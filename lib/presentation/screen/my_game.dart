@@ -1,7 +1,7 @@
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flutter/foundation.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
+import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 class MyGame extends FlameGame
@@ -11,12 +11,28 @@ class MyGame extends FlameGame
         PointerMoveCallbacks,
         MouseMovementDetector,
         HoverCallbacks {
-  @override
+  MyGame({required this.queuer});
+
+  /// Dispatches into the scene's state machine.
+  ///
+  /// Deliberately the narrow [Queuer] interface rather than the bloc itself —
+  /// the game only ever pushes events, and this keeps it testable with a
+  /// recording double.
   final Queuer queuer;
-  final SceneBloc _bloc;
 
-  /// Loading progress (0.0–1.0) exposed for the overlay widget.
-  final ValueNotifier<double> loadingProgress = ValueNotifier(0.0);
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
 
-  MyGame({required SceneBloc bloc}) : _bloc = bloc, queuer = bloc;
+    // The game owns no assets yet, so it reports straight to done. As
+    // components and audio arrive, report intermediate figures here — the
+    // bar is weighted and normalised in LoadingProgress, so this only ever
+    // needs to describe the game's own completion, never its share of the
+    // overall load.
+    _report(1);
+  }
+
+  void _report(double value) => queuer.queue(
+    event: SceneEvent.loadingProgressed(phase: LoadingPhase.game, value: value),
+  );
 }

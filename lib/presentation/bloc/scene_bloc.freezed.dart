@@ -1,6 +1,6 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // coverage:ignore-file
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, type=warning, deprecated_member_use, deprecated_member_use_from_same_package
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
 part of 'scene_bloc.dart';
@@ -9,6 +9,7 @@ part of 'scene_bloc.dart';
 // FreezedGenerator
 // **************************************************************************
 
+// GENERATED CODE - DO NOT MODIFY BY HAND
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
@@ -55,19 +56,12 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( CloseCurtain value)?  closeCurtain,TResult Function( TapDown value)?  tapDown,TResult Function( LoadTitle value)?  loadTitle,TResult Function( TitleLoaded value)?  titleLoaded,TResult Function( GameReady value)?  gameReady,TResult Function( OnScroll value)?  onScroll,TResult Function( UpdateUIOpacity value)?  updateUIOpacity,TResult Function( ToggleArrow value)?  toggleArrow,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
-return initialize(_that);case CloseCurtain() when closeCurtain != null:
-return closeCurtain(_that);case TapDown() when tapDown != null:
-return tapDown(_that);case LoadTitle() when loadTitle != null:
-return loadTitle(_that);case TitleLoaded() when titleLoaded != null:
-return titleLoaded(_that);case GameReady() when gameReady != null:
-return gameReady(_that);case OnScroll() when onScroll != null:
-return onScroll(_that);case UpdateUIOpacity() when updateUIOpacity != null:
-return updateUIOpacity(_that);case ToggleArrow() when toggleArrow != null:
-return toggleArrow(_that);case _:
+return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
+return loadingProgressed(_that);case _:
   return orElse();
 
 }
@@ -85,19 +79,12 @@ return toggleArrow(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( CloseCurtain value)  closeCurtain,required TResult Function( TapDown value)  tapDown,required TResult Function( LoadTitle value)  loadTitle,required TResult Function( TitleLoaded value)  titleLoaded,required TResult Function( GameReady value)  gameReady,required TResult Function( OnScroll value)  onScroll,required TResult Function( UpdateUIOpacity value)  updateUIOpacity,required TResult Function( ToggleArrow value)  toggleArrow,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,}){
 final _that = this;
 switch (_that) {
 case Initialize():
-return initialize(_that);case CloseCurtain():
-return closeCurtain(_that);case TapDown():
-return tapDown(_that);case LoadTitle():
-return loadTitle(_that);case TitleLoaded():
-return titleLoaded(_that);case GameReady():
-return gameReady(_that);case OnScroll():
-return onScroll(_that);case UpdateUIOpacity():
-return updateUIOpacity(_that);case ToggleArrow():
-return toggleArrow(_that);case _:
+return initialize(_that);case LoadingProgressed():
+return loadingProgressed(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -114,19 +101,12 @@ return toggleArrow(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( CloseCurtain value)?  closeCurtain,TResult? Function( TapDown value)?  tapDown,TResult? Function( LoadTitle value)?  loadTitle,TResult? Function( TitleLoaded value)?  titleLoaded,TResult? Function( GameReady value)?  gameReady,TResult? Function( OnScroll value)?  onScroll,TResult? Function( UpdateUIOpacity value)?  updateUIOpacity,TResult? Function( ToggleArrow value)?  toggleArrow,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
-return initialize(_that);case CloseCurtain() when closeCurtain != null:
-return closeCurtain(_that);case TapDown() when tapDown != null:
-return tapDown(_that);case LoadTitle() when loadTitle != null:
-return loadTitle(_that);case TitleLoaded() when titleLoaded != null:
-return titleLoaded(_that);case GameReady() when gameReady != null:
-return gameReady(_that);case OnScroll() when onScroll != null:
-return onScroll(_that);case UpdateUIOpacity() when updateUIOpacity != null:
-return updateUIOpacity(_that);case ToggleArrow() when toggleArrow != null:
-return toggleArrow(_that);case _:
+return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
+return loadingProgressed(_that);case _:
   return null;
 
 }
@@ -143,18 +123,11 @@ return toggleArrow(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function()?  closeCurtain,TResult Function( TapDownEvent tapDownEvent)?  tapDown,TResult Function()?  loadTitle,TResult Function()?  titleLoaded,TResult Function()?  gameReady,TResult Function()?  onScroll,TResult Function( double opacity)?  updateUIOpacity,TResult Function( bool isVisible)?  toggleArrow,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
-return initialize();case CloseCurtain() when closeCurtain != null:
-return closeCurtain();case TapDown() when tapDown != null:
-return tapDown(_that.tapDownEvent);case LoadTitle() when loadTitle != null:
-return loadTitle();case TitleLoaded() when titleLoaded != null:
-return titleLoaded();case GameReady() when gameReady != null:
-return gameReady();case OnScroll() when onScroll != null:
-return onScroll();case UpdateUIOpacity() when updateUIOpacity != null:
-return updateUIOpacity(_that.opacity);case ToggleArrow() when toggleArrow != null:
-return toggleArrow(_that.isVisible);case _:
+return initialize();case LoadingProgressed() when loadingProgressed != null:
+return loadingProgressed(_that.phase,_that.value);case _:
   return orElse();
 
 }
@@ -172,18 +145,11 @@ return toggleArrow(_that.isVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function()  closeCurtain,required TResult Function( TapDownEvent tapDownEvent)  tapDown,required TResult Function()  loadTitle,required TResult Function()  titleLoaded,required TResult Function()  gameReady,required TResult Function()  onScroll,required TResult Function( double opacity)  updateUIOpacity,required TResult Function( bool isVisible)  toggleArrow,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,}) {final _that = this;
 switch (_that) {
 case Initialize():
-return initialize();case CloseCurtain():
-return closeCurtain();case TapDown():
-return tapDown(_that.tapDownEvent);case LoadTitle():
-return loadTitle();case TitleLoaded():
-return titleLoaded();case GameReady():
-return gameReady();case OnScroll():
-return onScroll();case UpdateUIOpacity():
-return updateUIOpacity(_that.opacity);case ToggleArrow():
-return toggleArrow(_that.isVisible);case _:
+return initialize();case LoadingProgressed():
+return loadingProgressed(_that.phase,_that.value);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,18 +166,11 @@ return toggleArrow(_that.isVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function()?  closeCurtain,TResult? Function( TapDownEvent tapDownEvent)?  tapDown,TResult? Function()?  loadTitle,TResult? Function()?  titleLoaded,TResult? Function()?  gameReady,TResult? Function()?  onScroll,TResult? Function( double opacity)?  updateUIOpacity,TResult? Function( bool isVisible)?  toggleArrow,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
-return initialize();case CloseCurtain() when closeCurtain != null:
-return closeCurtain();case TapDown() when tapDown != null:
-return tapDown(_that.tapDownEvent);case LoadTitle() when loadTitle != null:
-return loadTitle();case TitleLoaded() when titleLoaded != null:
-return titleLoaded();case GameReady() when gameReady != null:
-return gameReady();case OnScroll() when onScroll != null:
-return onScroll();case UpdateUIOpacity() when updateUIOpacity != null:
-return updateUIOpacity(_that.opacity);case ToggleArrow() when toggleArrow != null:
-return toggleArrow(_that.isVisible);case _:
+return initialize();case LoadingProgressed() when loadingProgressed != null:
+return loadingProgressed(_that.phase,_that.value);case _:
   return null;
 
 }
@@ -254,75 +213,44 @@ String toString() {
 /// @nodoc
 
 
-class CloseCurtain implements SceneEvent {
-  const CloseCurtain();
+class LoadingProgressed implements SceneEvent {
+  const LoadingProgressed({required this.phase, required this.value});
   
 
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is CloseCurtain);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SceneEvent.closeCurtain()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class TapDown implements SceneEvent {
-  const TapDown(this.tapDownEvent);
-  
-
- final  TapDownEvent tapDownEvent;
+ final  LoadingPhase phase;
+ final  double value;
 
 /// Create a copy of SceneEvent
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
-$TapDownCopyWith<TapDown> get copyWith => _$TapDownCopyWithImpl<TapDown>(this, _$identity);
+$LoadingProgressedCopyWith<LoadingProgressed> get copyWith => _$LoadingProgressedCopyWithImpl<LoadingProgressed>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TapDown&&(identical(other.tapDownEvent, tapDownEvent) || other.tapDownEvent == tapDownEvent));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoadingProgressed&&(identical(other.phase, phase) || other.phase == phase)&&(identical(other.value, value) || other.value == value));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,tapDownEvent);
+int get hashCode => Object.hash(runtimeType,phase,value);
 
 @override
 String toString() {
-  return 'SceneEvent.tapDown(tapDownEvent: $tapDownEvent)';
+  return 'SceneEvent.loadingProgressed(phase: $phase, value: $value)';
 }
 
 
 }
 
 /// @nodoc
-abstract mixin class $TapDownCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
-  factory $TapDownCopyWith(TapDown value, $Res Function(TapDown) _then) = _$TapDownCopyWithImpl;
+abstract mixin class $LoadingProgressedCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
+  factory $LoadingProgressedCopyWith(LoadingProgressed value, $Res Function(LoadingProgressed) _then) = _$LoadingProgressedCopyWithImpl;
 @useResult
 $Res call({
- TapDownEvent tapDownEvent
+ LoadingPhase phase, double value
 });
 
 
@@ -330,279 +258,20 @@ $Res call({
 
 }
 /// @nodoc
-class _$TapDownCopyWithImpl<$Res>
-    implements $TapDownCopyWith<$Res> {
-  _$TapDownCopyWithImpl(this._self, this._then);
+class _$LoadingProgressedCopyWithImpl<$Res>
+    implements $LoadingProgressedCopyWith<$Res> {
+  _$LoadingProgressedCopyWithImpl(this._self, this._then);
 
-  final TapDown _self;
-  final $Res Function(TapDown) _then;
+  final LoadingProgressed _self;
+  final $Res Function(LoadingProgressed) _then;
 
 /// Create a copy of SceneEvent
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? tapDownEvent = null,}) {
-  return _then(TapDown(
-null == tapDownEvent ? _self.tapDownEvent : tapDownEvent // ignore: cast_nullable_to_non_nullable
-as TapDownEvent,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-
-class LoadTitle implements SceneEvent {
-  const LoadTitle();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LoadTitle);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SceneEvent.loadTitle()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class TitleLoaded implements SceneEvent {
-  const TitleLoaded();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TitleLoaded);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SceneEvent.titleLoaded()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class GameReady implements SceneEvent {
-  const GameReady();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is GameReady);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SceneEvent.gameReady()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class OnScroll implements SceneEvent {
-  const OnScroll();
-  
-
-
-
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OnScroll);
-}
-
-
-@override
-int get hashCode => runtimeType.hashCode;
-
-@override
-String toString() {
-  return 'SceneEvent.onScroll()';
-}
-
-
-}
-
-
-
-
-/// @nodoc
-
-
-class UpdateUIOpacity implements SceneEvent {
-  const UpdateUIOpacity(this.opacity);
-  
-
- final  double opacity;
-
-/// Create a copy of SceneEvent
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$UpdateUIOpacityCopyWith<UpdateUIOpacity> get copyWith => _$UpdateUIOpacityCopyWithImpl<UpdateUIOpacity>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UpdateUIOpacity&&(identical(other.opacity, opacity) || other.opacity == opacity));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,opacity);
-
-@override
-String toString() {
-  return 'SceneEvent.updateUIOpacity(opacity: $opacity)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $UpdateUIOpacityCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
-  factory $UpdateUIOpacityCopyWith(UpdateUIOpacity value, $Res Function(UpdateUIOpacity) _then) = _$UpdateUIOpacityCopyWithImpl;
-@useResult
-$Res call({
- double opacity
-});
-
-
-
-
-}
-/// @nodoc
-class _$UpdateUIOpacityCopyWithImpl<$Res>
-    implements $UpdateUIOpacityCopyWith<$Res> {
-  _$UpdateUIOpacityCopyWithImpl(this._self, this._then);
-
-  final UpdateUIOpacity _self;
-  final $Res Function(UpdateUIOpacity) _then;
-
-/// Create a copy of SceneEvent
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? opacity = null,}) {
-  return _then(UpdateUIOpacity(
-null == opacity ? _self.opacity : opacity // ignore: cast_nullable_to_non_nullable
+@pragma('vm:prefer-inline') $Res call({Object? phase = null,Object? value = null,}) {
+  return _then(LoadingProgressed(
+phase: null == phase ? _self.phase : phase // ignore: cast_nullable_to_non_nullable
+as LoadingPhase,value: null == value ? _self.value : value // ignore: cast_nullable_to_non_nullable
 as double,
-  ));
-}
-
-
-}
-
-/// @nodoc
-
-
-class ToggleArrow implements SceneEvent {
-  const ToggleArrow(this.isVisible);
-  
-
- final  bool isVisible;
-
-/// Create a copy of SceneEvent
-/// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
-@pragma('vm:prefer-inline')
-$ToggleArrowCopyWith<ToggleArrow> get copyWith => _$ToggleArrowCopyWithImpl<ToggleArrow>(this, _$identity);
-
-
-
-@override
-bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ToggleArrow&&(identical(other.isVisible, isVisible) || other.isVisible == isVisible));
-}
-
-
-@override
-int get hashCode => Object.hash(runtimeType,isVisible);
-
-@override
-String toString() {
-  return 'SceneEvent.toggleArrow(isVisible: $isVisible)';
-}
-
-
-}
-
-/// @nodoc
-abstract mixin class $ToggleArrowCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
-  factory $ToggleArrowCopyWith(ToggleArrow value, $Res Function(ToggleArrow) _then) = _$ToggleArrowCopyWithImpl;
-@useResult
-$Res call({
- bool isVisible
-});
-
-
-
-
-}
-/// @nodoc
-class _$ToggleArrowCopyWithImpl<$Res>
-    implements $ToggleArrowCopyWith<$Res> {
-  _$ToggleArrowCopyWithImpl(this._self, this._then);
-
-  final ToggleArrow _self;
-  final $Res Function(ToggleArrow) _then;
-
-/// Create a copy of SceneEvent
-/// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? isVisible = null,}) {
-  return _then(ToggleArrow(
-null == isVisible ? _self.isVisible : isVisible // ignore: cast_nullable_to_non_nullable
-as bool,
   ));
 }
 
@@ -732,10 +401,10 @@ return active(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( bool isSvgReady,  bool isGameReady)?  loading,TResult Function()?  logo,TResult Function()?  logoOverlayRemoving,TResult Function()?  titleLoading,TResult Function()?  title,TResult Function( double uiOpacity,  bool isArrowVisible)?  active,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress)?  loading,TResult Function()?  logo,TResult Function()?  logoOverlayRemoving,TResult Function()?  titleLoading,TResult Function()?  title,TResult Function( double uiOpacity,  bool isArrowVisible)?  active,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
-return loading(_that.isSvgReady,_that.isGameReady);case Logo() when logo != null:
+return loading(_that.progress);case Logo() when logo != null:
 return logo();case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
 return titleLoading();case Title() when title != null:
@@ -758,10 +427,10 @@ return active(_that.uiOpacity,_that.isArrowVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( bool isSvgReady,  bool isGameReady)  loading,required TResult Function()  logo,required TResult Function()  logoOverlayRemoving,required TResult Function()  titleLoading,required TResult Function()  title,required TResult Function( double uiOpacity,  bool isArrowVisible)  active,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress)  loading,required TResult Function()  logo,required TResult Function()  logoOverlayRemoving,required TResult Function()  titleLoading,required TResult Function()  title,required TResult Function( double uiOpacity,  bool isArrowVisible)  active,}) {final _that = this;
 switch (_that) {
 case Loading():
-return loading(_that.isSvgReady,_that.isGameReady);case Logo():
+return loading(_that.progress);case Logo():
 return logo();case LogoOverlayRemoving():
 return logoOverlayRemoving();case TitleLoading():
 return titleLoading();case Title():
@@ -783,10 +452,10 @@ return active(_that.uiOpacity,_that.isArrowVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( bool isSvgReady,  bool isGameReady)?  loading,TResult? Function()?  logo,TResult? Function()?  logoOverlayRemoving,TResult? Function()?  titleLoading,TResult? Function()?  title,TResult? Function( double uiOpacity,  bool isArrowVisible)?  active,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress)?  loading,TResult? Function()?  logo,TResult? Function()?  logoOverlayRemoving,TResult? Function()?  titleLoading,TResult? Function()?  title,TResult? Function( double uiOpacity,  bool isArrowVisible)?  active,}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
-return loading(_that.isSvgReady,_that.isGameReady);case Logo() when logo != null:
+return loading(_that.progress);case Logo() when logo != null:
 return logo();case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
 return titleLoading();case Title() when title != null:
@@ -803,11 +472,10 @@ return active(_that.uiOpacity,_that.isArrowVisible);case _:
 
 
 class Loading extends SceneState {
-  const Loading({this.isSvgReady = false, this.isGameReady = false}): super._();
+  const Loading({this.progress = LoadingProgress.empty}): super._();
   
 
-@JsonKey() final  bool isSvgReady;
-@JsonKey() final  bool isGameReady;
+@JsonKey() final  LoadingProgress progress;
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
@@ -819,16 +487,16 @@ $LoadingCopyWith<Loading> get copyWith => _$LoadingCopyWithImpl<Loading>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Loading&&(identical(other.isSvgReady, isSvgReady) || other.isSvgReady == isSvgReady)&&(identical(other.isGameReady, isGameReady) || other.isGameReady == isGameReady));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Loading&&(identical(other.progress, progress) || other.progress == progress));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isSvgReady,isGameReady);
+int get hashCode => Object.hash(runtimeType,progress);
 
 @override
 String toString() {
-  return 'SceneState.loading(isSvgReady: $isSvgReady, isGameReady: $isGameReady)';
+  return 'SceneState.loading(progress: $progress)';
 }
 
 
@@ -839,7 +507,7 @@ abstract mixin class $LoadingCopyWith<$Res> implements $SceneStateCopyWith<$Res>
   factory $LoadingCopyWith(Loading value, $Res Function(Loading) _then) = _$LoadingCopyWithImpl;
 @useResult
 $Res call({
- bool isSvgReady, bool isGameReady
+ LoadingProgress progress
 });
 
 
@@ -856,11 +524,10 @@ class _$LoadingCopyWithImpl<$Res>
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? isSvgReady = null,Object? isGameReady = null,}) {
+@pragma('vm:prefer-inline') $Res call({Object? progress = null,}) {
   return _then(Loading(
-isSvgReady: null == isSvgReady ? _self.isSvgReady : isSvgReady // ignore: cast_nullable_to_non_nullable
-as bool,isGameReady: null == isGameReady ? _self.isGameReady : isGameReady // ignore: cast_nullable_to_non_nullable
-as bool,
+progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
+as LoadingProgress,
   ));
 }
 

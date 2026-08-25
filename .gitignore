@@ -43,3 +43,17 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+/test/presentation/widgets/goldens/exit_15.png
+/test/presentation/widgets/goldens/exit_40.png
+/test/presentation/widgets/goldens/exit_70.png
+/test/presentation/widgets/goldens/loading_1.png
+/test/presentation/widgets/goldens/loading_50.png
+/test/presentation/widgets/failures/loading_50_isolatedDiff.png
+/test/presentation/widgets/failures/loading_50_maskedDiff.png
+/test/presentation/widgets/failures/loading_50_masterImage.png
+/test/presentation/widgets/failures/loading_50_testImage.png
+/test/presentation/widgets/goldens/loading_100.png
+/test/presentation/widgets/failures/loading_100_isolatedDiff.png
+/test/presentation/widgets/failures/loading_100_maskedDiff.png
+/test/presentation/widgets/failures/loading_100_masterImage.png
+/test/presentation/widgets/failures/loading_100_testImage.png

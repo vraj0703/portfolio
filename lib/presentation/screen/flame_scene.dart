@@ -2,12 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/screen/stateful_scene.dart';
+import 'package:portfolio/presentation/screen/scene_view.dart';
 
+/// Provides the scene's state machine and hosts the scene itself.
 class FlameScene extends StatelessWidget {
-  final VoidCallback onClick;
-
-  const FlameScene({super.key, required this.onClick});
+  const FlameScene({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +20,7 @@ class FlameScene extends StatelessWidget {
           create: (_) => locate<SceneBloc>()..add(const SceneEvent.initialize()),
         ),
       ],
-      child: Scaffold(body: StatefulScene(onClick: onClick)),
+      child: const Scaffold(body: SceneView()),
     );
   }
 }

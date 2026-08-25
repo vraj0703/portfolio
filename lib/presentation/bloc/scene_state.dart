@@ -4,9 +4,13 @@ part of 'scene_bloc.dart';
 class SceneState with _$SceneState {
   const SceneState._();
 
+  /// Assets and subsystems are still loading; the loading screen is up.
+  ///
+  /// [progress] carries the per-phase detail rather than a bare double so the
+  /// UI can render an overall bar today and a per-phase breakdown later
+  /// without another state change.
   const factory SceneState.loading({
-    @Default(false) bool isSvgReady,
-    @Default(false) bool isGameReady,
+    @Default(LoadingProgress.empty) LoadingProgress progress,
   }) = Loading;
 
   const factory SceneState.logo() = Logo;
