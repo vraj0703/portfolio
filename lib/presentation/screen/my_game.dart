@@ -1,8 +1,8 @@
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/foundation.dart';
-import 'package:projects/domain/interfaces/queuer.dart';
-import 'package:projects/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/domain/interfaces/queuer.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 class MyGame extends FlameGame
     with

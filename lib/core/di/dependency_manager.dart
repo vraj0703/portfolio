@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 typedef DependencyFactory<T> = T Function();
 
 class DependencyManager {
@@ -47,6 +49,17 @@ class DependencyManager {
       return _factories[T]!() as T;
     }
     throw Exception('Dependency of type $T is not registered.');
+  }
+
+  /// Clears every registration.
+  ///
+  /// The container is a process-wide singleton and registration throws on a
+  /// duplicate, so without this a second call to `initDependencies()` fails.
+  /// Tests need a clean container per case; production calls it never.
+  @visibleForTesting
+  void reset() {
+    _singletons.clear();
+    _factories.clear();
   }
 }
 

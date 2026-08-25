@@ -1,11 +1,11 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:projects/core/di/dependency_manager.dart';
-import 'package:projects/domain/config/durations.dart';
-import 'package:projects/presentation/bloc/scene_bloc.dart';
-import 'package:projects/presentation/screen/my_game.dart';
-import 'package:projects/presentation/widgets/curtain_clipper.dart';
+import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/domain/config/durations.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/screen/my_game.dart';
+import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 
 class StatefulScene extends StatefulWidget {
   final VoidCallback onClick;

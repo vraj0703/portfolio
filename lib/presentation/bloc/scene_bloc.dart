@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flame/events.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:projects/domain/interfaces/queuer.dart';
+import 'package:portfolio/domain/interfaces/queuer.dart';
 
 part 'scene_bloc.freezed.dart';
 part 'scene_event.dart';

@@ -1,4 +1,4 @@
-import 'package:projects/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 /// Abstraction over event dispatching to decouple game systems from the Bloc.
 ///

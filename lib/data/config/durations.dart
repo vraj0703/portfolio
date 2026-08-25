@@ -1,5 +1,5 @@
 // lib/data/config/app_durations.dart
-import 'package:projects/domain/config/durations.dart';
+import 'package:portfolio/domain/config/durations.dart';
 
 class AppDurationsImpl implements AppDurations {
   @override
