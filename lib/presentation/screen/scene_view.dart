@@ -5,6 +5,7 @@ import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/game/scene_palette.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
@@ -32,16 +33,20 @@ class SceneView extends StatelessWidget {
   Widget build(BuildContext context) {
     final durations = locate<AppDurations>();
 
-    // Read once. The game only pushes events, and the bloc instance is stable
-    // for the lifetime of the provider above this widget.
-    final queuer = context.read<SceneBloc>();
+    // Read once. The bloc instance is stable for the lifetime of the provider
+    // above this widget, and the palette is resolved here because Flame
+    // components have no BuildContext of their own.
+    final bloc = context.read<SceneBloc>();
+    final palette = ScenePalette.of(context);
 
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
         // Deliberately outside the BlocBuilder: the game must not be rebuilt
         // on every progress tick.
-        GameWidget.controlled(gameFactory: () => MyGame(queuer: queuer)),
+        GameWidget.controlled(
+          gameFactory: () => MyGame(bloc: bloc, palette: palette),
+        ),
 
         BlocBuilder<SceneBloc, SceneState>(
           builder: (context, state) {

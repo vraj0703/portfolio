@@ -18,4 +18,14 @@ class SceneEvent with _$SceneEvent {
     required LoadingPhase phase,
     required double value,
   }) = LoadingProgressed;
+
+  /// The logo layer has finished animating in and is ready to be tapped.
+  ///
+  /// Reported by the overlay rather than timed by the bloc: the entrance is
+  /// the overlay's own timeline, and gating interaction on a duration the
+  /// bloc guesses at would drift the moment that timeline is retuned.
+  const factory SceneEvent.logoEntranceCompleted() = LogoEntranceCompleted;
+
+  /// The user tapped the scene.
+  const factory SceneEvent.tapped() = Tapped;
 }

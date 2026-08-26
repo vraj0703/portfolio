@@ -20,6 +20,8 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
   SceneBloc() : super(const SceneState.loading()) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
+    on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
+    on<Tapped>(_onTapped);
   }
 
   @override
@@ -52,5 +54,26 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     if (next.isComplete) {
       emit(const SceneState.logo());
     }
+  }
+
+  FutureOr<void> _onLogoEntranceCompleted(
+    LogoEntranceCompleted event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Logo || current.isInteractive) return null;
+
+    emit(current.copyWith(isInteractive: true));
+  }
+
+  FutureOr<void> _onTapped(Tapped event, Emitter<SceneState> emit) {
+    final current = state;
+
+    // Only the logo layer consumes taps, and only once it has finished
+    // animating in. Anything else is a stray tap on a scene that has no
+    // affordance yet.
+    if (current is! Logo || !current.isInteractive) return null;
+
+    emit(const SceneState.logoOverlayRemoving());
   }
 }

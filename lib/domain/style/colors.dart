@@ -11,6 +11,19 @@ abstract class AppColors {
 
   /// Warm accent behind the mark — the aura and the exit burst.
   Color get loadingAccent;
+
+  /// The scene's ground. The mark is drawn in this same colour and reads
+  /// only because the god-ray pass gives it relief, so the two must match.
+  Color get sceneBackground;
+
+  /// "TAP TO ENTER" and the drop shadow behind it.
+  Color get logoOverlayText;
+  Color get logoOverlayTextShadow;
+
+  /// Glassy fill for the lines flanking the affordance: bright at the edges,
+  /// nearly clear through the middle, so they read as bevelled glass.
+  List<Color> get logoLineGradient;
+  List<double> get logoLineStops;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -27,6 +40,27 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get loadingAccent => const Color(0xFFC8A45C);
+
+  @override
+  Color get sceneBackground => const Color(0xFFC78E53);
+
+  @override
+  Color get logoOverlayText => const Color(0xFF9A482F);
+
+  @override
+  Color get logoOverlayTextShadow => const Color(0xFFD6A65F);
+
+  @override
+  List<Color> get logoLineGradient => const <Color>[
+    Color.fromRGBO(214, 166, 95, 0.2),
+    Color.fromRGBO(169, 95, 59, 0.05),
+    Color.fromRGBO(154, 72, 47, 0.7),
+    Color.fromRGBO(169, 95, 59, 0.05),
+    Color.fromRGBO(214, 166, 95, 0.2),
+  ];
+
+  @override
+  List<double> get logoLineStops => const <double>[0.0, 0.4, 0.5, 0.6, 1.0];
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

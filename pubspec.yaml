@@ -76,3 +76,7 @@ flutter:
 
   assets:
     - assets/images/logo.png
+
+  shaders:
+    - assets/shaders/logo.frag
+    - assets/shaders/god_rays.frag

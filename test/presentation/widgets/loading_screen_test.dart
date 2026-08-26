@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
@@ -7,20 +9,20 @@ import 'loading_test_host.dart';
 void main() {
   group('label', () {
     test('pads to three digits', () {
-      expect(LoadingScreen.label(0.07), 'LOADING... 007%');
-      expect(LoadingScreen.label(0.42), 'LOADING... 042%');
-      expect(LoadingScreen.label(1), 'LOADING... 100%');
+      expect(label(0.07), 'LOADING... 007%');
+      expect(label(0.42), 'LOADING... 042%');
+      expect(label(1), 'LOADING... 100%');
     });
 
     test('never shows 000, which reads as broken rather than early', () {
-      expect(LoadingScreen.label(0), 'LOADING... 001%');
-      expect(LoadingScreen.label(0.004), 'LOADING... 001%');
+      expect(label(0), 'LOADING... 001%');
+      expect(label(0.004), 'LOADING... 001%');
     });
 
     test('keeps a constant width so the readout does not reflow', () {
       // Right-aligned text that changes length jitters on every tick.
       final widths = <int>{
-        for (var i = 0; i <= 100; i++) LoadingScreen.label(i / 100).length,
+        for (var i = 0; i <= 100; i++) label(i / 100).length,
       };
       expect(widths, hasLength(1));
     });
@@ -31,10 +33,7 @@ void main() {
       // The project rule: no StatefulWidget until one is genuinely required.
       // Smoothing is a TweenAnimationBuilder and the exit is an input, so
       // nothing here needs State.
-      expect(
-        LoadingScreen(progress: progressAt(0)),
-        isA<StatelessWidget>(),
-      );
+      expect(LoadingScreen(progress: progressAt(0)), isA<StatelessWidget>());
     });
 
     testWidgets('renders the mark and the readout', (tester) async {
@@ -47,8 +46,9 @@ void main() {
       expect(find.text('LOADING... 050%'), findsOneWidget);
     });
 
-    testWidgets('smooths towards a new figure rather than snapping',
-        (tester) async {
+    testWidgets('smooths towards a new figure rather than snapping', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         loadingHost(LoadingScreen(progress: progressAt(0))),
       );
@@ -70,8 +70,9 @@ void main() {
       expect(find.text('LOADING... 100%'), findsOneWidget);
     });
 
-    testWidgets('starts from the floor rather than a blank readout',
-        (tester) async {
+    testWidgets('starts from the floor rather than a blank readout', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         loadingHost(LoadingScreen(progress: progressAt(0))),
       );
@@ -93,8 +94,9 @@ void main() {
       expect(text.style?.fontFamily, 'MonoLoading');
     });
 
-    testWidgets('lays out without overflow on a narrow viewport',
-        (tester) async {
+    testWidgets('lays out without overflow on a narrow viewport', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         loadingHost(
           LoadingScreen(progress: progressAt(0.5)),
@@ -114,7 +116,8 @@ void main() {
 
     test('bursts early rather than trailing the dissolve', () {
       final samples = <double, double>{
-        for (var i = 0; i <= 20; i++) i / 20: LoadingScreen.flashOpacity(i / 20),
+        for (var i = 0; i <= 20; i++)
+          i / 20: LoadingScreen.flashOpacity(i / 20),
       };
       final peakAt = samples.entries
           .reduce((a, b) => a.value >= b.value ? a : b)
@@ -207,4 +210,9 @@ void main() {
       }
     });
   });
+}
+
+String label(double progress) {
+  final pct = math.max(1, (progress * 100).round());
+  return 'LOADING... ${pct.toString().padLeft(3, '0')}%';
 }

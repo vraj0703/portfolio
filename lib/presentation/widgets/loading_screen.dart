@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
+import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 
 /* -- Shared geometry and timing ---------------------------------------- */
@@ -67,17 +68,6 @@ class LoadingScreen extends StatelessWidget {
   /// How long the bar takes to catch up to a new report. Long enough to read
   /// as motion, short enough not to lag a fast load.
   static const Duration smoothing = Duration(milliseconds: 300);
-
-  /// Formats the readout, e.g. `LOADING... 007%`.
-  ///
-  /// Always three digits, so the string's width never changes as the number
-  /// climbs — a right-aligned readout that reflows on every tick reads as
-  /// jitter. The 1% floor is deliberate too: `000%` looks broken rather than
-  /// merely early.
-  static String label(double progress) {
-    final pct = math.max(1, (progress * 100).round());
-    return 'LOADING... ${pct.toString().padLeft(3, '0')}%';
-  }
 
   /// Opacity of the burst: a quick onset to [_flashPeak], then a slower
   /// decay. Both sides approach the peak with near-zero slope, so it blooms
@@ -374,7 +364,7 @@ class _LoadingReadout extends StatelessWidget {
         child: SizedBox(
           width: width,
           child: Text(
-            LoadingScreen.label(progress),
+            context.strings.loadingProgress(progress),
             textAlign: TextAlign.right,
             // Face, size and spacing come from the theme; only the alpha is
             // animated, brightening as the load completes.

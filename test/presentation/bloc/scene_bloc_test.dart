@@ -120,4 +120,82 @@ void main() {
       expect((bloc.state as Loading).progress.of(phase), closeTo(0.25, 1e-9));
     });
   });
+
+  group('logo layer', () {
+    /// Gets the scene as far as the logo, which is where taps start mattering.
+    Future<void> reachLogo() async {
+      await completeAllPhases();
+      await awaitReveal();
+    }
+
+    test('the logo is not interactive until its entrance finishes', () async {
+      await reachLogo();
+      expect((bloc.state as Logo).isInteractive, isFalse);
+    });
+
+    test('becomes interactive once the entrance reports in', () async {
+      await reachLogo();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect((bloc.state as Logo).isInteractive, isTrue);
+    });
+
+    test('ignores taps while the entrance is still playing', () async {
+      await reachLogo();
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(
+        bloc.state,
+        isA<Logo>(),
+        reason: 'the scene must not be skippable before it is legible',
+      );
+    });
+
+    test('a tap advances once interactive', () async {
+      await reachLogo();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<LogoOverlayRemoving>());
+    });
+
+    test('a second entrance report changes nothing', () async {
+      await reachLogo();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      final emitted = <SceneState>[];
+      final sub = bloc.stream.listen(emitted.add);
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emitted, isEmpty);
+    });
+
+    test('ignores taps while still loading', () async {
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<Loading>());
+    });
+
+    test('ignores a further tap after the layer has begun leaving', () async {
+      await reachLogo();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<LogoOverlayRemoving>());
+    });
+  });
 }

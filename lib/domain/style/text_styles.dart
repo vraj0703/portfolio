@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 /// on this abstraction rather than concrete implementations.
 abstract class AppTypography {
   TextStyle get loading;
+
+  /// "TAP TO ENTER". Widely tracked, so it reads as an instruction rather
+  /// than a word.
+  TextStyle get enter;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -18,6 +22,15 @@ class DefaultAppTypography implements AppTypography {
     this.loadingTextColor = Colors.black87,
     this.fontFamily,
   });
+
+  @override
+  TextStyle get enter => TextStyle(
+    fontSize: 15,
+    fontWeight: FontWeight.w900,
+    letterSpacing: 10,
+    color: loadingTextColor,
+    fontFamily: "MonoLoading",
+  );
 
   @override
   TextStyle get loading => TextStyle(

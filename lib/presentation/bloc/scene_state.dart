@@ -13,7 +13,12 @@ class SceneState with _$SceneState {
     @Default(LoadingProgress.empty) LoadingProgress progress,
   }) = Loading;
 
-  const factory SceneState.logo() = Logo;
+  /// The mark is on screen with its "tap to enter" affordance.
+  ///
+  /// [isInteractive] is false while the layer animates in. Taps are ignored
+  /// until it flips, so the scene cannot be skipped past before the user has
+  /// seen what they are tapping.
+  const factory SceneState.logo({@Default(false) bool isInteractive}) = Logo;
 
   const factory SceneState.logoOverlayRemoving() = LogoOverlayRemoving;
 

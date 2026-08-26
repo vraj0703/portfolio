@@ -56,12 +56,14 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
-return loadingProgressed(_that);case _:
+return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
+return logoEntranceCompleted(_that);case Tapped() when tapped != null:
+return tapped(_that);case _:
   return orElse();
 
 }
@@ -79,12 +81,14 @@ return loadingProgressed(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,}){
 final _that = this;
 switch (_that) {
 case Initialize():
 return initialize(_that);case LoadingProgressed():
-return loadingProgressed(_that);case _:
+return loadingProgressed(_that);case LogoEntranceCompleted():
+return logoEntranceCompleted(_that);case Tapped():
+return tapped(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -101,12 +105,14 @@ return loadingProgressed(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
-return loadingProgressed(_that);case _:
+return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
+return logoEntranceCompleted(_that);case Tapped() when tapped != null:
+return tapped(_that);case _:
   return null;
 
 }
@@ -123,11 +129,13 @@ return loadingProgressed(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
-return loadingProgressed(_that.phase,_that.value);case _:
+return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
+return logoEntranceCompleted();case Tapped() when tapped != null:
+return tapped();case _:
   return orElse();
 
 }
@@ -145,11 +153,13 @@ return loadingProgressed(_that.phase,_that.value);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,}) {final _that = this;
 switch (_that) {
 case Initialize():
 return initialize();case LoadingProgressed():
-return loadingProgressed(_that.phase,_that.value);case _:
+return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted():
+return logoEntranceCompleted();case Tapped():
+return tapped();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -166,11 +176,13 @@ return loadingProgressed(_that.phase,_that.value);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
-return loadingProgressed(_that.phase,_that.value);case _:
+return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
+return logoEntranceCompleted();case Tapped() when tapped != null:
+return tapped();case _:
   return null;
 
 }
@@ -277,6 +289,70 @@ as double,
 
 
 }
+
+/// @nodoc
+
+
+class LogoEntranceCompleted implements SceneEvent {
+  const LogoEntranceCompleted();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoEntranceCompleted);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.logoEntranceCompleted()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class Tapped implements SceneEvent {
+  const Tapped();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Tapped);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.tapped()';
+}
+
+
+}
+
+
+
 
 /// @nodoc
 mixin _$SceneState {
@@ -401,11 +477,11 @@ return active(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress)?  loading,TResult Function()?  logo,TResult Function()?  logoOverlayRemoving,TResult Function()?  titleLoading,TResult Function()?  title,TResult Function( double uiOpacity,  bool isArrowVisible)?  active,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress)?  loading,TResult Function( bool isInteractive)?  logo,TResult Function()?  logoOverlayRemoving,TResult Function()?  titleLoading,TResult Function()?  title,TResult Function( double uiOpacity,  bool isArrowVisible)?  active,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
 return loading(_that.progress);case Logo() when logo != null:
-return logo();case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logo(_that.isInteractive);case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
 return titleLoading();case Title() when title != null:
 return title();case Active() when active != null:
@@ -427,11 +503,11 @@ return active(_that.uiOpacity,_that.isArrowVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress)  loading,required TResult Function()  logo,required TResult Function()  logoOverlayRemoving,required TResult Function()  titleLoading,required TResult Function()  title,required TResult Function( double uiOpacity,  bool isArrowVisible)  active,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress)  loading,required TResult Function( bool isInteractive)  logo,required TResult Function()  logoOverlayRemoving,required TResult Function()  titleLoading,required TResult Function()  title,required TResult Function( double uiOpacity,  bool isArrowVisible)  active,}) {final _that = this;
 switch (_that) {
 case Loading():
 return loading(_that.progress);case Logo():
-return logo();case LogoOverlayRemoving():
+return logo(_that.isInteractive);case LogoOverlayRemoving():
 return logoOverlayRemoving();case TitleLoading():
 return titleLoading();case Title():
 return title();case Active():
@@ -452,11 +528,11 @@ return active(_that.uiOpacity,_that.isArrowVisible);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress)?  loading,TResult? Function()?  logo,TResult? Function()?  logoOverlayRemoving,TResult? Function()?  titleLoading,TResult? Function()?  title,TResult? Function( double uiOpacity,  bool isArrowVisible)?  active,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress)?  loading,TResult? Function( bool isInteractive)?  logo,TResult? Function()?  logoOverlayRemoving,TResult? Function()?  titleLoading,TResult? Function()?  title,TResult? Function( double uiOpacity,  bool isArrowVisible)?  active,}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
 return loading(_that.progress);case Logo() when logo != null:
-return logo();case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logo(_that.isInteractive);case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
 return titleLoading();case Title() when title != null:
 return title();case Active() when active != null:
@@ -538,33 +614,67 @@ as LoadingProgress,
 
 
 class Logo extends SceneState {
-  const Logo(): super._();
+  const Logo({this.isInteractive = false}): super._();
   
 
+@JsonKey() final  bool isInteractive;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LogoCopyWith<Logo> get copyWith => _$LogoCopyWithImpl<Logo>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo&&(identical(other.isInteractive, isInteractive) || other.isInteractive == isInteractive));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,isInteractive);
 
 @override
 String toString() {
-  return 'SceneState.logo()';
+  return 'SceneState.logo(isInteractive: $isInteractive)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $LogoCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $LogoCopyWith(Logo value, $Res Function(Logo) _then) = _$LogoCopyWithImpl;
+@useResult
+$Res call({
+ bool isInteractive
+});
 
 
+
+
+}
+/// @nodoc
+class _$LogoCopyWithImpl<$Res>
+    implements $LogoCopyWith<$Res> {
+  _$LogoCopyWithImpl(this._self, this._then);
+
+  final Logo _self;
+  final $Res Function(Logo) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? isInteractive = null,}) {
+  return _then(Logo(
+isInteractive: null == isInteractive ? _self.isInteractive : isInteractive // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
