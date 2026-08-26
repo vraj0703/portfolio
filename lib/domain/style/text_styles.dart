@@ -26,10 +26,10 @@ class DefaultAppTypography implements AppTypography {
   @override
   TextStyle get enter => TextStyle(
     fontSize: 15,
-    fontWeight: FontWeight.w900,
-    letterSpacing: 10,
+    fontWeight: FontWeight.normal,
+    letterSpacing: 5,
     color: loadingTextColor,
-    fontFamily: "MonoLoading",
+    fontFamily: "Apertura",
   );
 
   @override
@@ -37,7 +37,7 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 14,
     fontWeight: FontWeight.bold,
     color: loadingTextColor,
-    letterSpacing: -0.5,
+    letterSpacing: 10,
     fontFamily: "MonoLoading",
   );
 }

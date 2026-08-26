@@ -7,12 +7,36 @@
 abstract final class LogoConfig {
   /* -- Mark ------------------------------------------------------------ */
 
-  /// Fraction of the shorter viewport edge the mark spans.
-  static const double markSizeFactor = 0.22;
-  static const double markMaxSize = 340;
+  /// Fraction of the viewport's width the mark spans.
+  static const double markSizeFactor = 0.30;
+  static const double markMaxSize = 460;
+
+  /// Ceiling on the mark's height as a fraction of the viewport, so a short
+  /// or landscape window cannot let it crowd out the affordance beneath it.
+  static const double markMaxHeightFactor = 0.5;
 
   /// The logo art is 175x150.
   static const double markAspect = 150 / 175;
+
+  /// Width of the mark for a given viewport.
+  ///
+  /// Shared by the loading curtain and the scene deliberately. They show the
+  /// same logo either side of the reveal, and when they sized it differently
+  /// it visibly changed size as the curtain opened — the two were using
+  /// different bases, one the viewport's width and the other its shorter
+  /// edge, which on a landscape window is a large discrepancy.
+  static double markWidthFor({
+    required double viewportWidth,
+    required double viewportHeight,
+  }) {
+    final byWidth = viewportWidth * markSizeFactor;
+    final capped = byWidth < markMaxSize ? byWidth : markMaxSize;
+
+    final maxHeight = viewportHeight * markMaxHeightFactor;
+    final heightLimited = maxHeight / markAspect;
+
+    return capped < heightLimited ? capped : heightLimited;
+  }
 
   /* -- Overlay --------------------------------------------------------- */
 

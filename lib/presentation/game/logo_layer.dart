@@ -126,11 +126,14 @@ class LogoShadowComponent extends PositionComponent {
 }
 
 /// Sizes the mark to the viewport, preserving the artwork's aspect.
+///
+/// Delegates to [LogoConfig.markWidthFor] so the mark is the same size here
+/// as it is on the loading curtain — they show the same logo either side of
+/// the reveal, and any difference reads as the logo changing size.
 Vector2 markSizeFor(Vector2 viewport) {
-  final shortest = viewport.x < viewport.y ? viewport.x : viewport.y;
-  final width = (shortest * LogoConfig.markSizeFactor).clamp(
-    0.0,
-    LogoConfig.markMaxSize,
+  final width = LogoConfig.markWidthFor(
+    viewportWidth: viewport.x,
+    viewportHeight: viewport.y,
   );
   return Vector2(width, width * LogoConfig.markAspect);
 }

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
@@ -11,11 +12,10 @@ import 'package:portfolio/domain/style/text_styles.dart';
 
 /// Fraction of viewport width the mark occupies, capped so it stays sane on
 /// an ultrawide monitor.
-const double _widthFactor = 0.22;
-const double _maxWidth = 340;
+
 
 /// The logo art is 175x150; keeping the ratio avoids distorting it.
-const double _aspect = 150 / 175;
+const double _aspect = LogoConfig.markAspect;
 
 /// Where in the exit the flash peaks. Early, so the burst reads as the cause
 /// of the dissolve rather than an afterthought.
@@ -92,7 +92,10 @@ class LoadingScreen extends StatelessWidget {
     final flash = flashOpacity(e);
 
     final size = MediaQuery.sizeOf(context);
-    final logoWidth = math.min(size.width * _widthFactor, _maxWidth);
+    final logoWidth = LogoConfig.markWidthFor(
+      viewportWidth: size.width,
+      viewportHeight: size.height,
+    );
     final logoHeight = logoWidth * _aspect;
 
     // Anchor the burst on the mark rather than the viewport. The column also

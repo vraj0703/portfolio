@@ -73,6 +73,9 @@ flutter:
     - family: MonoLoading
       fonts:
         - asset: fonts/mono_loading.ttf
+    - family: Apertura
+      fonts:
+        - asset: fonts/aperturaregular.ttf
 
   assets:
     - assets/images/logo.png
