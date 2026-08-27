@@ -35,11 +35,26 @@ abstract final class TitleTimeline {
       driftStart + _seconds(TitleConfig.driftDuration);
 
   /// How far the name has resolved, `0`..`1`.
-  static double primary(double elapsed) => _window(
+  /// How far the name has faded in, `0`..`1`.
+  static double primaryFade(double elapsed) => _window(
     elapsed,
     from: primaryStart,
     to: primaryEnd,
-    curve: Curves.easeOutCubic,
+    curve: Curves.easeOut,
+  );
+
+  /// How far the name has grown, `0`..`1`.
+  ///
+  /// A different curve from the fade on purpose: this one moves quickly at
+  /// first and then creeps, so the name is legible early but keeps growing
+  /// almost imperceptibly for the rest of the window. That long tail is what
+  /// carries the swell — a single shared curve finishes visibly early and
+  /// leaves the sound running over a static title.
+  static double primaryScale(double elapsed) => _window(
+    elapsed,
+    from: primaryStart,
+    to: primaryEnd,
+    curve: Curves.fastLinearToSlowEaseIn,
   );
 
   /// How far through the upward heat drift, `0`..`1`.
@@ -47,7 +62,7 @@ abstract final class TitleTimeline {
     elapsed,
     from: driftStart,
     to: driftEnd,
-    curve: Curves.easeInOut,
+    curve: Curves.easeInCubic,
   );
 
   static double _seconds(Duration d) => d.inMilliseconds / 1000;

@@ -90,3 +90,4 @@ flutter:
     - assets/shaders/god_rays.frag
     - assets/shaders/metallic_text.frag
     - assets/shaders/background_run_v2.frag
+    - assets/shaders/bold_text_entrance.frag

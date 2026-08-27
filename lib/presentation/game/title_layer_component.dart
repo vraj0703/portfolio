@@ -64,6 +64,15 @@ class TitleLayerComponent extends PositionComponent
   /// pointer moves, rather than sitting as a static gradient.
   Vector2 lightPosition = Vector2.zero();
 
+  /// Displacement applied by whatever stage follows the title.
+  ///
+  /// Kept separate from the parallax so the two compose instead of fighting:
+  /// the pointer keeps nudging the title while the scroll carries it away.
+  Vector2 stageOffset = Vector2.zero();
+
+  /// Fade applied by the following stage, multiplied into the entry's own.
+  double stageFade = 1;
+
   @visibleForTesting
   bool get isRunning => _elapsed != null;
 
@@ -166,25 +175,29 @@ class TitleLayerComponent extends PositionComponent
   /* -- Timeline -------------------------------------------------------- */
 
   void _drivePrimary(double elapsed) {
-    final t = TitleTimeline.primary(elapsed);
+    final scale = TitleConfig.primaryStartScale +
+        (1 - TitleConfig.primaryStartScale) *
+            TitleTimeline.primaryScale(elapsed);
 
     _primary
-      ..fade = t
-      ..scale = Vector2.all(
-        TitleConfig.primaryStartScale +
-            (1 - TitleConfig.primaryStartScale) * t,
-      );
-
-    // Heat drift: a slow upward creep that starts before the fade finishes,
-    // so the name never sits perfectly still.
-    _primary.position =
-        primaryParallax +
-        Vector2(0, TitleConfig.driftY * TitleTimeline.drift(elapsed));
+      ..fade = TitleTimeline.primaryFade(elapsed) * stageFade
+      ..scale = Vector2.all(scale)
+      // Heat drift: a slow upward creep beginning before the fade finishes,
+      // so the name never sits perfectly still.
+      ..position =
+          primaryParallax +
+          stageOffset +
+          Vector2(0, TitleConfig.driftY * TitleTimeline.drift(elapsed));
   }
+
 
   void _driveSecondary(double elapsed) {
     // Only the parallax is driven from here; the entry belongs to the line.
-    _secondary.position =
-        secondaryParallax + Vector2(0, TitleConfig.secondaryOffsetY);
+    _secondary
+      ..position =
+          secondaryParallax +
+          stageOffset +
+          Vector2(0, TitleConfig.secondaryOffsetY)
+      ..stageFade = stageFade;
   }
 }

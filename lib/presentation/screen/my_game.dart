@@ -8,6 +8,7 @@ import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
@@ -15,7 +16,9 @@ import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
+import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/cursor_tracker.dart';
+import 'package:portfolio/presentation/game/scroll_driver.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
 import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
@@ -51,6 +54,18 @@ class MyGame extends FlameGame
   late final TitleLayerComponent _title;
   late final BackdropComponent _backdrop;
   late final ScrollCueComponent _scrollCue;
+  late final BoldTextComponent _boldText;
+
+  /// Owns where the user is within the bold-text stage.
+  ///
+  /// Not in the bloc: this changes every frame while scrolling, and a bloc
+  /// emitting sixty states a second to carry a double is the wrong tool. The
+  /// bloc tracks which stage the scene is in; this tracks position within it.
+  final ScrollDriver _scroll = ScrollDriver();
+
+  /// True once the stage is running, so scroll and the arrow mean the bold
+  /// text rather than the title.
+  bool _boldTextActive = false;
 
   /// Everything that follows the pointer reads this rather than the raw
   /// position, so the scene glides after the cursor instead of snapping.
@@ -86,6 +101,9 @@ class MyGame extends FlameGame
     );
     final backdropProgram = await ui.FragmentProgram.fromAsset(
       'assets/shaders/background_run_v2.frag',
+    );
+    final boldTextProgram = await ui.FragmentProgram.fromAsset(
+      'assets/shaders/bold_text_entrance.frag',
     );
     _report(0.5);
 
@@ -139,8 +157,15 @@ class MyGame extends FlameGame
       onSecondaryBegin: () => audio.play(AudioCue.slideIn),
     )..priority = SceneLayers.title;
 
+    _boldText = BoldTextComponent(
+      shader: boldTextProgram.fragmentShader(),
+      text: palette.boldText,
+      style: palette.boldTextStyle,
+      priority: SceneLayers.boldText,
+    );
+
     _scrollCue = ScrollCueComponent(
-      queuer: queuer,
+      onAdvance: requestAdvance,
       color: palette.scrollCue,
       priority: SceneLayers.scrollCue,
     );
@@ -156,6 +181,7 @@ class MyGame extends FlameGame
           _mark,
           _overlay,
           _title,
+          _boldText,
           _scrollCue,
         ],
       ),
@@ -183,10 +209,56 @@ class MyGame extends FlameGame
   /// The title's own cues are not here: its animation starts well after the
   /// stage is entered, so they are fired by the layer at the moment the
   /// motion actually begins.
+  /// Maps the scroll onto everything the stage moves.
+  ///
+  /// One offset drives all of it, so the text, the departing title and the
+  /// cue can never disagree about how far through the user is.
+  void _driveBoldTextStage() {
+    final offset = _scroll.offset;
+
+    _boldText.progress = _scroll.progress;
+
+    // The title leaves upward as the text arrives, and has faded before it
+    // reaches the top — a title still legible at the edge of the screen reads
+    // as a layout fault rather than a departure.
+    final exit = (offset / BoldTextConfig.titleParallaxExit).clamp(0.0, 1.0);
+    final fade = 1 - (offset / BoldTextConfig.titleFadeEnd).clamp(0.0, 1.0);
+    _title
+      ..stageOffset = Vector2(0, BoldTextConfig.titleExitY * exit)
+      ..stageFade = fade;
+
+    // The arrow stays: the rest of the sequence is reached by clicking it
+    // again, so it has to outlive the gesture it invited.
+    _scrollCue.stageFade = BoldTextConfig.cueVisibility(_scroll.progress);
+
+    // The swell is bound to position rather than triggered, so scrolling back
+    // walks back out of the sound. Volume follows speed, so a slow scroll is
+    // quiet and a fast one swells.
+    audio.scrub(
+      AudioCue.boldTextSwell,
+      _scroll.progress,
+      volume: (0.2 + _scroll.velocity.abs() / 900).clamp(0.0, 1.0),
+    );
+
+    if (!_tingPlayed && _scroll.progress >= 0.42) {
+      _tingPlayed = true;
+      audio.play(AudioCue.ting);
+    } else if (_scroll.progress < 0.35) {
+      _tingPlayed = false;
+    }
+  }
+
+  bool _tingPlayed = false;
+
   void _playCueFor(SceneState state) {
     state.maybeWhen(
       logoOverlayRemoving: () => audio.play(AudioCue.enter),
       title: () => audio.play(AudioCue.bouncyArrow),
+      active: (_, _) {
+        if (_boldTextActive) return;
+        _boldTextActive = true;
+        _scroll.reset();
+      },
       orElse: () {},
     );
   }
@@ -221,6 +293,11 @@ class MyGame extends FlameGame
     if (!isLoaded) return;
 
     _cursor.update(dt);
+
+    if (_boldTextActive) {
+      _scroll.update(dt);
+      _driveBoldTextStage();
+    }
 
     // The shadow needs to follow the mark, not just sit where it started —
     // otherwise the light keeps occluding against a shape that has moved.
@@ -263,8 +340,27 @@ class MyGame extends FlameGame
     super.onScroll(info);
     // Scrolling and clicking the arrow are the same request; the bloc decides
     // whether it means anything yet.
-    if (info.scrollDelta.global.y <= 0) return;
+    final delta = info.scrollDelta.global.y;
+
+    if (_boldTextActive) {
+      _scroll.scrollBy(delta);
+      return;
+    }
+
+    // Before the stage, a downward scroll is just another way of asking to
+    // move on — the same request the arrow makes.
+    if (delta <= 0) return;
     _scrollCue.requestAdvance();
+  }
+
+  /// Called by the arrow. Before the stage it asks the bloc to move on; once
+  /// the stage is running it steps to the next pause instead.
+  void requestAdvance() {
+    if (_boldTextActive) {
+      _scroll.advanceToNextPause();
+      return;
+    }
+    queuer.queue(event: const SceneEvent.advanceRequested());
   }
 
   @override

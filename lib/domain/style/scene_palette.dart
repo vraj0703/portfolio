@@ -29,6 +29,8 @@ class ScenePalette {
     required this.titleSecondaryStyle,
     required this.titleBase,
     required this.scrollCue,
+    required this.boldText,
+    required this.boldTextStyle,
   });
 
   /// Resolves the palette from the ambient theme.
@@ -50,6 +52,8 @@ class ScenePalette {
       titleSecondaryStyle: context.typography.titleSecondary,
       titleBase: colors.titleBase,
       scrollCue: colors.scrollCue,
+      boldText: context.strings.boldText,
+      boldTextStyle: context.typography.boldText,
     );
   }
 
@@ -77,6 +81,10 @@ class ScenePalette {
 
   /// The downward arrow inviting the user onward.
   final Color scrollCue;
+
+  /// The bold-text stage's line, and how it is set.
+  final String boldText;
+  final TextStyle boldTextStyle;
 
 
   @override

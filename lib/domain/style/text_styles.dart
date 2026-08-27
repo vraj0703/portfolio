@@ -16,6 +16,10 @@ abstract class AppTypography {
 
   /// The line beneath the hero title.
   TextStyle get titleSecondary;
+
+  /// The bold-text stage. Rasterised into a texture, so this is the only
+  /// place its metrics are decided.
+  TextStyle get boldText;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -45,6 +49,19 @@ class DefaultAppTypography implements AppTypography {
     fontWeight: FontWeight.w500,
     letterSpacing: 28,
     fontFamily: "ModrntUrban",
+  );
+
+  @override
+  @override
+  TextStyle get boldText => TextStyle(
+    fontSize: 64,
+    fontWeight: FontWeight.w700,
+    height: 1.2,
+    letterSpacing: 1,
+    // Near-white: the shader replaces the fill with brushed metal and only
+    // reads the glyph's alpha, so the colour here is a mask, not a look.
+    color: const Color(0xFFDDDDDD),
+    fontFamily: "Apertura",
   );
 
   @override

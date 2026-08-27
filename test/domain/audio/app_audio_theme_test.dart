@@ -18,6 +18,15 @@ class _RecordingAudio implements AppAudio {
   @override
   void play(AudioCue cue, {double? volume}) => played.add(cue);
 
+  final List<double> scrubbed = <double>[];
+
+  @override
+  void scrub(AudioCue cue, double progress, {double? volume}) =>
+      scrubbed.add(progress);
+
+  @override
+  void stopScrub(AudioCue cue) {}
+
   @override
   void setMuted(bool value) => muted = value;
 

@@ -22,6 +22,8 @@ class FlameAppAudio implements AppAudio {
     AudioCue.titleLoaded: 'title_loaded.mp3',
     AudioCue.slideIn: 'slide_in.mp3',
     AudioCue.bouncyArrow: 'bouncy_arrow.mp3',
+    AudioCue.boldTextSwell: 'bold_text_swell.mp3',
+    AudioCue.ting: 'ting.mp3',
   };
 
   static const Map<AudioCue, double> _volumes = <AudioCue, double>{
@@ -29,6 +31,8 @@ class FlameAppAudio implements AppAudio {
     AudioCue.titleLoaded: 0.5,
     AudioCue.slideIn: 0.4,
     AudioCue.bouncyArrow: 0.35,
+    AudioCue.boldTextSwell: 0.6,
+    AudioCue.ting: 0.45,
   };
 
   /// Shortest gap between two plays of the *same* cue.
@@ -39,8 +43,16 @@ class FlameAppAudio implements AppAudio {
   /// cues are unaffected; this only collapses a repeat of the same one.
   static const Duration retriggerGuard = Duration(milliseconds: 120);
 
+  /// Seeking a decoder on every frame stutters, and the ear cannot hear the
+  /// difference — a scrubbed cue is re-aimed at roughly this rate instead.
+  static const Duration scrubInterval = Duration(milliseconds: 90);
+
   final Stopwatch _clock = Stopwatch()..start();
   final Map<AudioCue, int> _lastPlayedMs = <AudioCue, int>{};
+
+  final Map<AudioCue, AudioPlayer> _scrubPlayers = <AudioCue, AudioPlayer>{};
+  final Map<AudioCue, Duration> _scrubLengths = <AudioCue, Duration>{};
+  final Map<AudioCue, int> _lastScrubMs = <AudioCue, int>{};
 
   bool _muted = false;
   bool _preloaded = false;
@@ -102,6 +114,68 @@ class FlameAppAudio implements AppAudio {
   }
 
   @override
+  void scrub(AudioCue cue, double progress, {double? volume}) {
+    if (_muted) return;
+
+    final file = _files[cue];
+    if (file == null) return;
+
+    final now = _clock.elapsedMilliseconds;
+    final last = _lastScrubMs[cue];
+    if (last != null && now - last < scrubInterval.inMilliseconds) return;
+    _lastScrubMs[cue] = now;
+
+    unawaited(
+      _scrubSafely(
+        cue,
+        file,
+        progress.clamp(0.0, 1.0),
+        volume ?? _volumes[cue] ?? 1.0,
+      ),
+    );
+  }
+
+  Future<void> _scrubSafely(
+    AudioCue cue,
+    String file,
+    double progress,
+    double volume,
+  ) async {
+    try {
+      var player = _scrubPlayers[cue];
+      if (player == null) {
+        player = AudioPlayer();
+        _scrubPlayers[cue] = player;
+        await player.setSource(AssetSource('audio/\$file'));
+        await player.setReleaseMode(ReleaseMode.stop);
+        // Cached: asking the decoder for its length on every seek is a
+        // round trip per frame for a number that never changes.
+        _scrubLengths[cue] = await player.getDuration() ?? Duration.zero;
+      }
+
+      final length = _scrubLengths[cue] ?? Duration.zero;
+      if (length == Duration.zero) return;
+
+      await player.setVolume(volume.clamp(0.0, 1.0));
+      if (player.state != PlayerState.playing) {
+        await player.resume();
+      }
+      await player.seek(
+        Duration(milliseconds: (length.inMilliseconds * progress).round()),
+      );
+    } catch (error, stack) {
+      _report('scrub \$file failed', error, stack);
+    }
+  }
+
+  @override
+  void stopScrub(AudioCue cue) {
+    final player = _scrubPlayers[cue];
+    if (player == null) return;
+    unawaited(player.stop().catchError((Object _) {}));
+  }
+
+  @override
   void setMuted(bool muted) => _muted = muted;
 
   @override
@@ -110,7 +184,18 @@ class FlameAppAudio implements AppAudio {
     // usable. Nothing currently disposes this — it lives for the app — but a
     // half-dead object is a worse thing to leave behind than a reset one.
     _lastPlayedMs.clear();
+    _lastScrubMs.clear();
+    _scrubLengths.clear();
     _preloaded = false;
+
+    for (final player in _scrubPlayers.values) {
+      try {
+        await player.dispose();
+      } catch (_) {
+        // A player that will not close is not worth failing teardown over.
+      }
+    }
+    _scrubPlayers.clear();
 
     try {
       await FlameAudio.audioCache.clearAll();

@@ -29,6 +29,10 @@ abstract final class SceneLayers {
   /// The hero title stage.
   static const int title = 10;
 
+  /// The bold-text stage. Above the title, which it replaces, and below the
+  /// cue, which stays reachable throughout.
+  static const int boldText = 15;
+
   /// The scroll cue, above everything — it is the one thing the user is meant
   /// to be able to hit.
   static const int scrollCue = 20;

@@ -29,6 +29,16 @@ enum AudioCue {
 
   /// The scroll affordance arriving once the title has settled.
   bouncyArrow,
+
+  /// The swell under the bold-text stage.
+  ///
+  /// Scrubbed rather than played: it is tied to scroll position, so the user
+  /// hears the same point in the sound wherever they are in the sequence, and
+  /// hears it run backwards if they scroll back. See [AppAudio.scrub].
+  boldTextSwell,
+
+  /// The moment the bold text resolves.
+  ting,
 }
 
 /// Contract for the app's sound.
@@ -52,6 +62,20 @@ abstract class AppAudio {
 
   /// Plays [cue], if sound is on and the asset is available.
   void play(AudioCue cue, {double? volume});
+
+  /// Holds [cue] at [progress] (`0..1`) through its own length.
+  ///
+  /// For sound bound to a gesture rather than to a moment: scrolling forward
+  /// walks into the sound, scrolling back walks out of it. [volume] is
+  /// usually derived from how fast the user is moving, so a slow scroll is
+  /// quiet and a fast one swells.
+  ///
+  /// Implementations should throttle: seeking a decoder every frame stutters,
+  /// and the ear cannot hear the difference.
+  void scrub(AudioCue cue, double progress, {double? volume});
+
+  /// Stops a cue started by [scrub].
+  void stopScrub(AudioCue cue);
 
   /// Silences everything without unloading it.
   void setMuted(bool muted);
@@ -107,6 +131,10 @@ class SilentAudio implements AppAudio {
   Future<void> preload() async {}
   @override
   void play(AudioCue cue, {double? volume}) {}
+  @override
+  void scrub(AudioCue cue, double progress, {double? volume}) {}
+  @override
+  void stopScrub(AudioCue cue) {}
   @override
   void setMuted(bool muted) {}
   @override

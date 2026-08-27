@@ -6,7 +6,6 @@ import 'package:flame/events.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/config/scroll_cue_config.dart';
-import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 /// The bouncing arrow that invites the user onward from the title.
@@ -15,14 +14,20 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 /// box, which is less code as a [Path] than as an SVG asset plus a loader,
 /// and scales cleanly to any size.
 ///
-/// Clicking it and scrolling mean the same thing, so both raise the same
-/// event — the arrow does not own the decision, it just offers one of two
-/// ways to ask.
+/// Clicking it and scrolling mean the same thing, so both call [onAdvance].
+/// The arrow reports intent and nothing more — what "onward" means changes
+/// as the scene progresses, and that is the scene's business, not the
+/// arrow's.
 class ScrollCueComponent extends PositionComponent
     with FlameBlocListenable<SceneBloc, SceneState>, TapCallbacks {
-  ScrollCueComponent({required this.queuer, required this.color, super.priority});
+  ScrollCueComponent({
+    required this.onAdvance,
+    required this.color,
+    super.priority,
+  });
 
-  final Queuer queuer;
+  /// Called when the user asks to move on.
+  final VoidCallback onAdvance;
   final Color color;
 
   /// The chevron, in the artwork's own 24x24 space.
@@ -48,8 +53,17 @@ class ScrollCueComponent extends PositionComponent
   double _opacity = 0;
   bool _isVisible = false;
 
+  /// Fade applied by the stage below, multiplied into the cue's own. Once the
+  /// user has started scrolling the invitation has been accepted, and the
+  /// arrow is only in the way.
+  double stageFade = 1;
+
   @visibleForTesting
   double get opacity => _opacity;
+
+  /// How much of the arrow is actually on screen, combining its own fade with
+  /// whatever the stage beneath is doing to it.
+  double get visibleAmount => _opacity * stageFade;
 
   @override
   void onNewState(SceneState state) {
@@ -118,13 +132,13 @@ class ScrollCueComponent extends PositionComponent
   @override
   void onTapUp(TapUpEvent event) {
     super.onTapUp(event);
-    if (_opacity <= 0.5) return; // not really offered yet
-    queuer.queue(event: const SceneEvent.advanceRequested());
+    requestAdvance();
   }
 
   @override
   void render(Canvas canvas) {
-    if (_opacity <= 0.001) return;
+    final shown = visibleAmount;
+    if (shown <= 0.001) return;
 
     final scale = ScrollCueConfig.size / ScrollCueConfig.artboard;
     _path.reset();
@@ -142,21 +156,24 @@ class ScrollCueComponent extends PositionComponent
     // Shadow first: without it the arrow disappears against the lighter
     // passages of the animated backdrop.
     _shadowPaint.color = const Color(0xFF000000).withValues(
-      alpha: 0.55 * _opacity,
+      alpha: 0.55 * shown,
     );
     canvas.save();
     canvas.translate(0, ScrollCueConfig.shadowOffsetY);
     canvas.drawPath(_path, _shadowPaint);
     canvas.restore();
 
-    _paint.color = color.withValues(alpha: _opacity);
+    _paint.color = color.withValues(alpha: shown);
     canvas.drawPath(_path, _paint);
   }
 
-  /// Exposed so the game can forward a scroll to the same place a tap goes.
+  /// Exposed so a scroll can be routed to exactly where a tap goes.
+  ///
+  /// Ignored while the arrow is still fading in: acting on an affordance the
+  /// user cannot properly see yet is indistinguishable from a misfire.
   void requestAdvance() {
-    if (_opacity <= 0.5) return;
-    queuer.queue(event: const SceneEvent.advanceRequested());
+    if (visibleAmount <= 0.5) return;
+    onAdvance();
   }
 
   @visibleForTesting

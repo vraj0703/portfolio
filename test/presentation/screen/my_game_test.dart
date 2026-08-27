@@ -9,6 +9,7 @@ import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
+import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
 import 'package:portfolio/presentation/game/scroll_cue_component.dart';
@@ -34,6 +35,8 @@ ScenePalette _palette() {
     titleSecondaryStyle: type.titleSecondary,
     titleBase: colors.titleBase,
     scrollCue: colors.scrollCue,
+    boldText: strings.boldText,
+    boldTextStyle: type.boldText,
   );
 }
 
@@ -72,6 +75,7 @@ void main() {
         expect(mounted.whereType<LogoMarkComponent>(), hasLength(1));
         expect(mounted.whereType<LogoOverlayComponent>(), hasLength(1));
         expect(mounted.whereType<TitleLayerComponent>(), hasLength(1));
+        expect(mounted.whereType<BoldTextComponent>(), hasLength(1));
         expect(mounted.whereType<ScrollCueComponent>(), hasLength(1));
     });
 
@@ -87,6 +91,7 @@ void main() {
         expect(priorityOf<LogoMarkComponent>(), SceneLayers.mark);
         expect(priorityOf<LogoOverlayComponent>(), SceneLayers.affordance);
         expect(priorityOf<TitleLayerComponent>(), SceneLayers.title);
+        expect(priorityOf<BoldTextComponent>(), SceneLayers.boldText);
         expect(priorityOf<ScrollCueComponent>(), SceneLayers.scrollCue);
     });
 

@@ -48,6 +48,9 @@ class SecondaryTitleComponent extends PositionComponent {
   /// carrying its own.
   Vector2 lightPosition = Vector2.zero();
 
+  /// Fade applied by the following stage, multiplied into each glyph's own.
+  double stageFade = 1;
+
   @visibleForTesting
   int get glyphCount => _glyphs.length;
 
@@ -126,7 +129,7 @@ class SecondaryTitleComponent extends PositionComponent {
     for (var i = 0; i < _glyphs.length; i++) {
       _glyphs[i]
         ..lightPosition = lightPosition
-        ..fade = SecondaryTitleTimeline.opacityOf(elapsed, i)
+        ..fade = SecondaryTitleTimeline.opacityOf(elapsed, i) * stageFade
         ..position = Vector2(
           _restX[i] + slide,
           SecondaryTitleTimeline.riseOf(elapsed, i),

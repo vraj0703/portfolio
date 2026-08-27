@@ -11,6 +11,9 @@ abstract class AppStrings {
   String get primaryTitle;
   String get secondaryTitle;
 
+  /// The bold-text stage's line.
+  String get boldText;
+
   /// Formats the loading readout, e.g. "LOADING... 007%".
   String loadingProgress(double progress);
 }
@@ -32,6 +35,9 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get secondaryTitle => 'Welcome to my space';
+
+  @override
+  String get boldText => 'Crafting Clarity from Chaos.';
 
   @override
   String loadingProgress(double progress) {
