@@ -56,14 +56,17 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted(_that);case Tapped() when tapped != null:
-return tapped(_that);case _:
+return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
+return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
+return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
+return advanceRequested(_that);case _:
   return orElse();
 
 }
@@ -81,14 +84,17 @@ return tapped(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,}){
 final _that = this;
 switch (_that) {
 case Initialize():
 return initialize(_that);case LoadingProgressed():
 return loadingProgressed(_that);case LogoEntranceCompleted():
 return logoEntranceCompleted(_that);case Tapped():
-return tapped(_that);case _:
+return tapped(_that);case LogoExitCompleted():
+return logoExitCompleted(_that);case TitleEntranceCompleted():
+return titleEntranceCompleted(_that);case AdvanceRequested():
+return advanceRequested(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -105,14 +111,17 @@ return tapped(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted(_that);case Tapped() when tapped != null:
-return tapped(_that);case _:
+return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
+return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
+return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
+return advanceRequested(_that);case _:
   return null;
 
 }
@@ -129,13 +138,16 @@ return tapped(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted();case Tapped() when tapped != null:
-return tapped();case _:
+return tapped();case LogoExitCompleted() when logoExitCompleted != null:
+return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
+return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
+return advanceRequested();case _:
   return orElse();
 
 }
@@ -153,13 +165,16 @@ return tapped();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,}) {final _that = this;
 switch (_that) {
 case Initialize():
 return initialize();case LoadingProgressed():
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted():
 return logoEntranceCompleted();case Tapped():
-return tapped();case _:
+return tapped();case LogoExitCompleted():
+return logoExitCompleted();case TitleEntranceCompleted():
+return titleEntranceCompleted();case AdvanceRequested():
+return advanceRequested();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -176,13 +191,16 @@ return tapped();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted();case Tapped() when tapped != null:
-return tapped();case _:
+return tapped();case LogoExitCompleted() when logoExitCompleted != null:
+return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
+return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
+return advanceRequested();case _:
   return null;
 
 }
@@ -346,6 +364,102 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'SceneEvent.tapped()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class LogoExitCompleted implements SceneEvent {
+  const LogoExitCompleted();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoExitCompleted);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.logoExitCompleted()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class TitleEntranceCompleted implements SceneEvent {
+  const TitleEntranceCompleted();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TitleEntranceCompleted);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.titleEntranceCompleted()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class AdvanceRequested implements SceneEvent {
+  const AdvanceRequested();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is AdvanceRequested);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.advanceRequested()';
 }
 
 

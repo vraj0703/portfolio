@@ -198,4 +198,168 @@ void main() {
       expect(bloc.state, isA<LogoOverlayRemoving>());
     });
   });
+
+  group('title', () {
+    /// Runs the scene from loading through to the logo leaving.
+    Future<void> reachLogoExit() async {
+      await completeAllPhases();
+      await awaitReveal();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    test('the logo leaving hands over to the title', () async {
+      await reachLogoExit();
+      expect(bloc.state, isA<LogoOverlayRemoving>());
+
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<TitleLoading>());
+    });
+
+    test('the title settles once its entrance finishes', () async {
+      await reachLogoExit();
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<Title>());
+    });
+
+    test('a title entrance report is ignored before the title is loading',
+        () async {
+      await reachLogoExit();
+
+      // Arriving while the logo is still leaving would skip a stage.
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<LogoOverlayRemoving>());
+    });
+
+    test('a logo exit report is ignored outside the exit', () async {
+      await completeAllPhases();
+      await awaitReveal();
+
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<Logo>());
+    });
+
+    test('a repeated exit report does not re-enter the title', () async {
+      await reachLogoExit();
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state, isA<Title>());
+
+      final emitted = <SceneState>[];
+      final sub = bloc.stream.listen(emitted.add);
+      bloc.add(const SceneEvent.logoExitCompleted());
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emitted, isEmpty);
+    });
+
+    test('taps are inert once the logo has been dismissed', () async {
+      await reachLogoExit();
+
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<LogoOverlayRemoving>());
+    });
+  });
+
+  group('advancing from the title', () {
+    /// Runs the scene all the way to a settled title.
+    Future<void> reachTitle() async {
+      await completeAllPhases();
+      await awaitReveal();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    test('a settled title advances on request', () async {
+      await reachTitle();
+      expect(bloc.state, isA<Title>());
+
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<Active>());
+    });
+
+    test('scrolling through the intro does not skip it', () async {
+      // Both affordances raise this event, and a trackpad can deliver one
+      // long before the title exists. Nothing earlier should consume it.
+      for (final _ in Iterable<int>.generate(3)) {
+        bloc.add(const SceneEvent.advanceRequested());
+      }
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state, isA<Loading>());
+
+      await completeAllPhases();
+      await awaitReveal();
+
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state, isA<Logo>());
+    });
+
+    test('a request while the title is still arriving is ignored', () async {
+      await completeAllPhases();
+      await awaitReveal();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<TitleLoading>());
+
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<TitleLoading>());
+    });
+
+    test('a second request changes nothing', () async {
+      await reachTitle();
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      final emitted = <SceneState>[];
+      final sub = bloc.stream.listen(emitted.add);
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emitted, isEmpty);
+    });
+
+    test('the arrow is offered by default once active', () async {
+      await reachTitle();
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+
+      expect((bloc.state as Active).isArrowVisible, isTrue);
+    });
+  });
 }

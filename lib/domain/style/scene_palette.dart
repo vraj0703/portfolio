@@ -23,6 +23,12 @@ class ScenePalette {
     required this.lineStops,
     required this.enterStyle,
     required this.tapToEnter,
+    required this.primaryTitle,
+    required this.secondaryTitle,
+    required this.titlePrimaryStyle,
+    required this.titleSecondaryStyle,
+    required this.titleBase,
+    required this.scrollCue,
   });
 
   /// Resolves the palette from the ambient theme.
@@ -38,6 +44,12 @@ class ScenePalette {
         color: colors.logoOverlayText,
       ),
       tapToEnter: context.strings.tapToEnter,
+      primaryTitle: context.strings.primaryTitle,
+      secondaryTitle: context.strings.secondaryTitle,
+      titlePrimaryStyle: context.typography.titlePrimary,
+      titleSecondaryStyle: context.typography.titleSecondary,
+      titleBase: colors.titleBase,
+      scrollCue: colors.scrollCue,
     );
   }
 
@@ -54,6 +66,18 @@ class ScenePalette {
   final TextStyle enterStyle;
 
   final String tapToEnter;
+  final String primaryTitle;
+  final String secondaryTitle;
+
+  final TextStyle titlePrimaryStyle;
+  final TextStyle titleSecondaryStyle;
+
+  /// Base tone the metallic shader modulates for the hero title.
+  final Color titleBase;
+
+  /// The downward arrow inviting the user onward.
+  final Color scrollCue;
+
 
   @override
   bool operator ==(Object other) =>
@@ -63,7 +87,9 @@ class ScenePalette {
           overlayText == other.overlayText &&
           overlayTextShadow == other.overlayTextShadow &&
           enterStyle == other.enterStyle &&
-          tapToEnter == other.tapToEnter;
+          tapToEnter == other.tapToEnter &&
+          primaryTitle == other.primaryTitle &&
+          secondaryTitle == other.secondaryTitle;
 
   @override
   int get hashCode => Object.hash(
@@ -72,5 +98,7 @@ class ScenePalette {
     overlayTextShadow,
     enterStyle,
     tapToEnter,
+    primaryTitle,
+    secondaryTitle,
   );
 }

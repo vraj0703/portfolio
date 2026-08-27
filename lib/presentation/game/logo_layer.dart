@@ -1,9 +1,11 @@
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
+import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:portfolio/domain/config/logo_config.dart';
-import 'package:portfolio/presentation/game/scene_palette.dart';
+import 'package:portfolio/domain/style/scene_palette.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 /// The mark, drawn through the logo shader.
 ///
@@ -12,13 +14,15 @@ import 'package:portfolio/presentation/game/scene_palette.dart';
 /// purpose: the mark is not meant to read as a coloured shape sitting on the
 /// ground, but as the ground itself, cut out and lit. [LogoShadowComponent]
 /// underneath is what makes that legible — without it this is invisible.
-class LogoMarkComponent extends PositionComponent {
+class LogoMarkComponent extends PositionComponent
+    with FlameBlocListenable<SceneBloc, SceneState> {
   LogoMarkComponent({
     required this.shader,
     required this.artwork,
     required this.palette,
     required super.size,
     required super.position,
+    super.priority,
   }) : super(anchor: Anchor.center) {
     _paint = Paint()
       ..colorFilter = ColorFilter.mode(palette.background, BlendMode.srcIn);
@@ -39,6 +43,61 @@ class LogoMarkComponent extends PositionComponent {
 
   /// Fades with the layer's entrance and exit.
   double opacity = 1;
+
+  /// Where the mark rests while it is the subject of the scene, and how big
+  /// it is there. Set by the scene on resize.
+  Vector2 homePosition = Vector2.zero();
+  Vector2 homeSize = Vector2.zero();
+
+  /// Seconds into the retreat to the corner. Null while the mark is at home.
+  double? _exitElapsed;
+
+  /// True once the mark has finished retreating and parked.
+  bool get hasSettled =>
+      _exitElapsed != null &&
+      _exitElapsed! >= LogoConfig.exitDuration.inMilliseconds / 1000;
+
+  @override
+  void onNewState(SceneState state) {
+    super.onNewState(state);
+    state.maybeWhen(
+      logoOverlayRemoving: () => _exitElapsed ??= 0,
+      // Coming back to the logo returns the mark to the middle.
+      logo: (_) {
+        if (_exitElapsed == null) return;
+        _exitElapsed = null;
+        position = homePosition.clone();
+        size = homeSize.clone();
+      },
+      orElse: () {},
+    );
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    final elapsed = _exitElapsed;
+    if (elapsed == null) return;
+
+    final duration = LogoConfig.exitDuration.inMilliseconds / 1000;
+    _exitElapsed = elapsed + dt;
+
+    final t = Curves.easeInOutCubic.transform(
+      (elapsed / duration).clamp(0.0, 1.0),
+    );
+
+    // The mark parks in the top-left as a header mark while the title takes
+    // the stage. Anchored centre, so the target accounts for its own size.
+    final target = homeSize * LogoConfig.exitScale;
+    final corner = Vector2(
+      LogoConfig.exitMargin + target.x / 2,
+      LogoConfig.exitMargin + target.y / 2,
+    );
+
+    position = homePosition + (corner - homePosition) * t;
+    size = homeSize + (target - homeSize) * t;
+  }
 
   @override
   void render(Canvas canvas) {
@@ -73,7 +132,11 @@ class LogoMarkComponent extends PositionComponent {
 /// The light follows the cursor, which is what makes the whole layer feel
 /// lit rather than painted.
 class LogoShadowComponent extends PositionComponent {
-  LogoShadowComponent({required this.shader, required this.artwork});
+  LogoShadowComponent({
+    required this.shader,
+    required this.artwork,
+    super.priority,
+  });
 
   final ui.FragmentShader shader;
   final ui.Image artwork;
@@ -93,8 +156,17 @@ class LogoShadowComponent extends PositionComponent {
 
   double opacity = 1;
 
+  /// Set when an opaque layer above has fully covered this pass.
+  ///
+  /// The god-ray shader is a full-screen fragment program; once the backdrop
+  /// has finished fading in there is nothing of this left on screen, and
+  /// continuing to run it costs a whole pass per frame for pixels no one
+  /// sees.
+  bool isOccluded = false;
+
   @override
   void render(Canvas canvas) {
+    if (isOccluded) return;
     if (opacity <= 0.001) return;
     if (size.x == 0 || size.y == 0) return;
 

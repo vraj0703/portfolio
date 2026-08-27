@@ -7,6 +7,10 @@ abstract class AppStrings {
   String get appTitle;
   String get tapToEnter;
 
+  /// The hero title and the line beneath it.
+  String get primaryTitle;
+  String get secondaryTitle;
+
   /// Formats the loading readout, e.g. "LOADING... 007%".
   String loadingProgress(double progress);
 }
@@ -22,6 +26,12 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get tapToEnter => 'TAP TO ENTER';
+
+  @override
+  String get primaryTitle => 'VISHAL RAJ';
+
+  @override
+  String get secondaryTitle => 'Welcome to my space';
 
   @override
   String loadingProgress(double progress) {

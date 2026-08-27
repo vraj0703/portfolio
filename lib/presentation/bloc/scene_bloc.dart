@@ -22,6 +22,9 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
     on<Tapped>(_onTapped);
+    on<LogoExitCompleted>(_onLogoExitCompleted);
+    on<TitleEntranceCompleted>(_onTitleEntranceCompleted);
+    on<AdvanceRequested>(_onAdvanceRequested);
   }
 
   @override
@@ -75,5 +78,31 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     if (current is! Logo || !current.isInteractive) return null;
 
     emit(const SceneState.logoOverlayRemoving());
+  }
+
+  FutureOr<void> _onLogoExitCompleted(
+    LogoExitCompleted event,
+    Emitter<SceneState> emit,
+  ) {
+    if (state is! LogoOverlayRemoving) return null;
+    emit(const SceneState.titleLoading());
+  }
+
+  FutureOr<void> _onTitleEntranceCompleted(
+    TitleEntranceCompleted event,
+    Emitter<SceneState> emit,
+  ) {
+    if (state is! TitleLoading) return null;
+    emit(const SceneState.title());
+  }
+
+  FutureOr<void> _onAdvanceRequested(
+    AdvanceRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    // Only the settled title offers a way onward. Arriving earlier means the
+    // user scrolled through the intro, which should not skip it.
+    if (state is! Title) return null;
+    emit(const SceneState.active());
   }
 }

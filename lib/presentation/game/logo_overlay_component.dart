@@ -5,9 +5,9 @@ import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
+import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/bouncy_line.dart';
-import 'package:portfolio/presentation/game/scene_palette.dart';
 
 /// The "tap to enter" affordance beneath the mark.
 ///

@@ -4,8 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/game/scene_palette.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
@@ -38,6 +39,7 @@ class SceneView extends StatelessWidget {
     // components have no BuildContext of their own.
     final bloc = context.read<SceneBloc>();
     final palette = ScenePalette.of(context);
+    final audio = context.audio;
 
     return Stack(
       fit: StackFit.expand,
@@ -45,7 +47,8 @@ class SceneView extends StatelessWidget {
         // Deliberately outside the BlocBuilder: the game must not be rebuilt
         // on every progress tick.
         GameWidget.controlled(
-          gameFactory: () => MyGame(bloc: bloc, palette: palette),
+          gameFactory: () =>
+              MyGame(bloc: bloc, palette: palette, audio: audio),
         ),
 
         BlocBuilder<SceneBloc, SceneState>(

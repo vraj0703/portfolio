@@ -81,6 +81,14 @@ abstract final class LogoConfig {
 
   /* -- Exit ------------------------------------------------------------ */
 
+  /// Where the mark retreats to once dismissed, and how small it gets. It
+  /// parks in the top-left as a header mark while the title takes the stage.
+  static const double exitMargin = 60;
+  static const double exitScale = 0.2;
+
+  /// How long the mark takes to travel and shrink.
+  static const Duration exitDuration = Duration(milliseconds: 1100);
+
   /// How fast the text un-types when the layer is dismissed, in fractions of
   /// the string per second.
   static const double textExitSpeed = 2;

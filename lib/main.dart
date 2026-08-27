@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
@@ -18,6 +20,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     const appColors = DefaultAppColors();
     const appStrings = DefaultAppStrings();
+    final appAudio = locate<AppAudio>();
 
     return MaterialApp(
       title: appStrings.appTitle,
@@ -25,6 +28,7 @@ class MyApp extends StatelessWidget {
         extensions: [
           const AppColorsExtension(colors: appColors),
           const AppStringsExtension(strings: appStrings),
+          AppAudioExtension(audio: appAudio),
           AppTypographyExtension(
             typography: DefaultAppTypography(
               loadingTextColor: appColors.loadingText,

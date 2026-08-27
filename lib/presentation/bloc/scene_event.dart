@@ -28,4 +28,22 @@ class SceneEvent with _$SceneEvent {
 
   /// The user tapped the scene.
   const factory SceneEvent.tapped() = Tapped;
+
+  /// The logo layer has finished leaving: the mark has settled into its
+  /// corner and the affordance has fully un-typed.
+  ///
+  /// Both have to finish, and they are independent timelines — whichever
+  /// lands first must not pull the scene forward, or the title enters over
+  /// leftover glyphs.
+  const factory SceneEvent.logoExitCompleted() = LogoExitCompleted;
+
+  /// The titles have finished animating in.
+  const factory SceneEvent.titleEntranceCompleted() = TitleEntranceCompleted;
+
+  /// The user asked to move on from the title.
+  ///
+  /// Raised by either affordance — clicking the arrow or scrolling — because
+  /// they mean the same thing. Keeping them as one event stops the two paths
+  /// drifting apart, and stops the scene caring which one the user used.
+  const factory SceneEvent.advanceRequested() = AdvanceRequested;
 }

@@ -24,6 +24,13 @@ abstract class AppColors {
   /// nearly clear through the middle, so they read as bevelled glass.
   List<Color> get logoLineGradient;
   List<double> get logoLineStops;
+
+  /// Base tone the metallic title shader modulates. The sheen is generated
+  /// in the shader; this is the metal it is made of.
+  Color get titleBase;
+
+  /// The downward arrow inviting the user onward.
+  Color get scrollCue;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -61,6 +68,12 @@ class DefaultAppColors implements AppColors {
 
   @override
   List<double> get logoLineStops => const <double>[0.0, 0.4, 0.5, 0.6, 1.0];
+
+  @override
+  Color get titleBase => const Color(0xFFE3E4E5);
+
+  @override
+  Color get scrollCue => const Color(0xFFE8E4DC);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

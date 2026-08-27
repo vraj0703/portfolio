@@ -9,6 +9,13 @@ abstract class AppTypography {
   /// "TAP TO ENTER". Widely tracked, so it reads as an instruction rather
   /// than a word.
   TextStyle get enter;
+
+  /// The hero title. Its colour comes from the metallic shader rather than
+  /// the style, so none is set here.
+  TextStyle get titlePrimary;
+
+  /// The line beneath the hero title.
+  TextStyle get titleSecondary;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -28,6 +35,23 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 15,
     fontWeight: FontWeight.normal,
     letterSpacing: 5,
+    color: loadingTextColor,
+    fontFamily: "Apertura",
+  );
+
+  @override
+  TextStyle get titlePrimary => const TextStyle(
+    fontSize: 56,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 28,
+    fontFamily: "ModrntUrban",
+  );
+
+  @override
+  TextStyle get titleSecondary => TextStyle(
+    fontSize: 16,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 4,
     color: loadingTextColor,
     fontFamily: "Apertura",
   );
