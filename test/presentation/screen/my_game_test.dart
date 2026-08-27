@@ -3,6 +3,7 @@ import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
+import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/domain/style/strings.dart';
@@ -95,11 +96,18 @@ void main() {
         expect(priorityOf<ScrollCueComponent>(), SceneLayers.scrollCue);
     });
 
-    testWithGame<MyGame>('reports its loading phase as complete', _buildGame, (game) async {
-      // The scene cannot leave the loading screen until the game says it is
-      // ready, so a game that loads without reporting hangs the whole app.
+    testWithGame<MyGame>('reports its loading phase as complete', _buildGame, (
+      game,
+    ) async {
+      // A game that loads without reporting hangs the whole app behind the
+      // loading screen. Asserted on its own phase rather than on the scene
+      // leaving loading: the gallery loads alongside it now, and the scene
+      // waits for both.
       await Future<void>.delayed(Duration.zero);
-      expect(game.bloc.state, isNot(isA<Loading>()));
+
+      final state = game.bloc.state;
+      expect(state, isA<Loading>(), reason: 'gallery has not reported here');
+      expect((state as Loading).progress.of(LoadingPhase.game), 1);
     });
 
     testWithGame<MyGame>('paints the scene on the theme ground', _buildGame, (game) async {

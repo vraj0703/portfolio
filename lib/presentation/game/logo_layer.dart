@@ -203,7 +203,7 @@ class LogoShadowComponent extends PositionComponent {
 /// as it is on the loading curtain — they show the same logo either side of
 /// the reveal, and any difference reads as the logo changing size.
 Vector2 markSizeFor(Vector2 viewport) {
-  final width = LogoConfig.markWidthFor(
+  final width = LogoConfig.logoMarkWidthFor(
     viewportWidth: viewport.x,
     viewportHeight: viewport.y,
   );

@@ -7,6 +7,7 @@ import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
@@ -44,11 +45,28 @@ class SceneView extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
+        // The gallery is a separate renderer, so it replaces the Flame scene
+        // rather than layering over it. Mounted only in its own state: it
+        // holds GPU resources, and keeping it alive through the intro would
+        // pay for a corridor nobody is looking at.
+        BlocBuilder<SceneBloc, SceneState>(
+          buildWhen: (previous, current) =>
+              (previous is Gallery) != (current is Gallery),
+          builder: (context, state) =>
+              state is Gallery ? const GalleryView() : const SizedBox.shrink(),
+        ),
+
         // Deliberately outside the BlocBuilder: the game must not be rebuilt
         // on every progress tick.
-        GameWidget.controlled(
-          gameFactory: () =>
-              MyGame(bloc: bloc, palette: palette, audio: audio),
+        BlocBuilder<SceneBloc, SceneState>(
+          buildWhen: (previous, current) =>
+              (previous is Gallery) != (current is Gallery),
+          builder: (context, state) => state is Gallery
+              ? const SizedBox.shrink()
+              : GameWidget.controlled(
+                  gameFactory: () =>
+                      MyGame(bloc: bloc, palette: palette, audio: audio),
+                ),
         ),
 
         BlocBuilder<SceneBloc, SceneState>(

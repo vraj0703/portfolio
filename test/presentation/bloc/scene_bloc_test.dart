@@ -362,4 +362,61 @@ void main() {
       expect((bloc.state as Active).isArrowVisible, isTrue);
     });
   });
+
+  group('handing over to the gallery', () {
+    Future<void> reachActive() async {
+      await completeAllPhases();
+      await awaitReveal();
+      bloc.add(const SceneEvent.logoEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.tapped());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.logoExitCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.titleEntranceCompleted());
+      await Future<void>.delayed(Duration.zero);
+      bloc.add(const SceneEvent.advanceRequested());
+      await Future<void>.delayed(Duration.zero);
+    }
+
+    test('a spent bold-text stage opens the gallery', () async {
+      await reachActive();
+      expect(bloc.state, isA<Active>());
+
+      bloc.add(const SceneEvent.boldTextCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state, isA<Gallery>());
+    });
+
+    test('the gallery scrolls, like the stage before it', () async {
+      await reachActive();
+      bloc.add(const SceneEvent.boldTextCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(bloc.state.isScrollable, isTrue);
+    });
+
+    test('completion arriving early is ignored', () async {
+      // The stage reports for itself, and a report from a scene that never
+      // ran it should not skip anything.
+      bloc.add(const SceneEvent.boldTextCompleted());
+      await Future<void>.delayed(Duration.zero);
+      expect(bloc.state, isA<Loading>());
+    });
+
+    test('a repeated completion changes nothing', () async {
+      await reachActive();
+      bloc.add(const SceneEvent.boldTextCompleted());
+      await Future<void>.delayed(Duration.zero);
+
+      final emitted = <SceneState>[];
+      final sub = bloc.stream.listen(emitted.add);
+      bloc.add(const SceneEvent.boldTextCompleted());
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emitted, isEmpty);
+    });
+  });
 }

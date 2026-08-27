@@ -18,7 +18,7 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/cursor_tracker.dart';
-import 'package:portfolio/presentation/game/scroll_driver.dart';
+import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
 import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
@@ -240,6 +240,15 @@ class MyGame extends FlameGame
       volume: (0.2 + _scroll.velocity.abs() / 900).clamp(0.0, 1.0),
     );
 
+    // The stage hands over once the scroll is spent, not when the sequence
+    // finishes drawing — the tail past the sequence is what confirms the user
+    // meant to leave rather than pausing on the flash.
+    if (_scroll.isComplete && !_boldTextHandedOver) {
+      _boldTextHandedOver = true;
+      audio.stopScrub(AudioCue.boldTextSwell);
+      queuer.queue(event: const SceneEvent.boldTextCompleted());
+    }
+
     if (!_tingPlayed && _scroll.progress >= 0.42) {
       _tingPlayed = true;
       audio.play(AudioCue.ting);
@@ -249,6 +258,7 @@ class MyGame extends FlameGame
   }
 
   bool _tingPlayed = false;
+  bool _boldTextHandedOver = false;
 
   void _playCueFor(SceneState state) {
     state.maybeWhen(
@@ -341,6 +351,11 @@ class MyGame extends FlameGame
     // Scrolling and clicking the arrow are the same request; the bloc decides
     // whether it means anything yet.
     final delta = info.scrollDelta.global.y;
+
+    // Once the stage has handed over, its scroll is spent. Continuing to
+    // accept input here keeps driving a sequence the visitor has already left
+    // and competes with the gallery for the same gesture.
+    if (_boldTextHandedOver) return;
 
     if (_boldTextActive) {
       _scroll.scrollBy(delta);

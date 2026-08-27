@@ -13,7 +13,6 @@ import 'package:portfolio/domain/style/text_styles.dart';
 /// Fraction of viewport width the mark occupies, capped so it stays sane on
 /// an ultrawide monitor.
 
-
 /// The logo art is 175x150; keeping the ratio avoids distorting it.
 const double _aspect = LogoConfig.markAspect;
 
@@ -92,7 +91,7 @@ class LoadingScreen extends StatelessWidget {
     final flash = flashOpacity(e);
 
     final size = MediaQuery.sizeOf(context);
-    final logoWidth = LogoConfig.markWidthFor(
+    final logoWidth = LogoConfig.loadingMarkWidthFor(
       viewportWidth: size.width,
       viewportHeight: size.height,
     );

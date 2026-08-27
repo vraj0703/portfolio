@@ -46,4 +46,7 @@ class SceneEvent with _$SceneEvent {
   /// they mean the same thing. Keeping them as one event stops the two paths
   /// drifting apart, and stops the scene caring which one the user used.
   const factory SceneEvent.advanceRequested() = AdvanceRequested;
+
+  /// The bold-text stage has played out and the scroll is spent.
+  const factory SceneEvent.boldTextCompleted() = BoldTextCompleted;
 }

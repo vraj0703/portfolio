@@ -31,7 +31,10 @@ class SceneState with _$SceneState {
     @Default(true) bool isArrowVisible,
   }) = Active;
 
-  bool get isScrollable => this is Active;
+  /// The gallery: the corridor of work the bold text hands over to.
+  const factory SceneState.gallery() = Gallery;
+
+  bool get isScrollable => this is Active || this is Gallery;
 
   bool get isInteractable => this is Logo || this is Title;
 }

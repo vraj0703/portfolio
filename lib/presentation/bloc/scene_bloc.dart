@@ -25,6 +25,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<LogoExitCompleted>(_onLogoExitCompleted);
     on<TitleEntranceCompleted>(_onTitleEntranceCompleted);
     on<AdvanceRequested>(_onAdvanceRequested);
+    on<BoldTextCompleted>(_onBoldTextCompleted);
   }
 
   @override
@@ -104,5 +105,13 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // user scrolled through the intro, which should not skip it.
     if (state is! Title) return null;
     emit(const SceneState.active());
+  }
+
+  FutureOr<void> _onBoldTextCompleted(
+    BoldTextCompleted event,
+    Emitter<SceneState> emit,
+  ) {
+    if (state is! Active) return null;
+    emit(const SceneState.gallery());
   }
 }

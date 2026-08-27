@@ -18,7 +18,15 @@
 /// bar advances at a believable rate rather than stalling on the slow one.
 enum LoadingPhase {
   /// The Flame scene: engine boot, component construction, asset warm-up.
-  game(weight: 1);
+  game(weight: 1),
+
+  /// The gallery: shader bundle, a rasterised canvas per project, and a
+  /// texture upload for each.
+  ///
+  /// Weighted well above the game because it genuinely takes longer, and the
+  /// bar should reflect that rather than sitting at 50% while the slow half
+  /// finishes.
+  gallery(weight: 3);
 
   const LoadingPhase({required this.weight});
 

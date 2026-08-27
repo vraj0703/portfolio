@@ -113,4 +113,44 @@ void main() {
       expect(a, isNot(equals(LoadingProgress.empty.advance(phase, 0.61))));
     });
   });
+
+  group('the gallery shares the bar', () {
+    test('is weighted above the game, because it takes longer', () {
+      // A bar that races to half and then sits there while the slow half
+      // finishes is worse than no bar.
+      expect(
+        LoadingPhase.gallery.weight,
+        greaterThan(LoadingPhase.game.weight),
+      );
+    });
+
+    test('the scene is not ready until both have reported', () {
+      var progress = LoadingProgress.empty;
+      progress = progress.advance(LoadingPhase.game, 1);
+
+      expect(progress.isComplete, isFalse,
+          reason: 'the gallery is still building');
+
+      progress = progress.advance(LoadingPhase.gallery, 1);
+      expect(progress.isComplete, isTrue);
+    });
+
+    test('finishing the light half moves the bar less than half way', () {
+      final progress = LoadingProgress.empty.advance(LoadingPhase.game, 1);
+
+      expect(progress.value, lessThan(0.5));
+      expect(progress.value, greaterThan(0));
+    });
+
+    test('every declared phase counts toward the bar', () {
+      // Adding a phase should widen the bar automatically; a phase that no
+      // one waits on is a phase that can silently never finish.
+      var progress = LoadingProgress.empty;
+      for (final phase in LoadingPhase.values) {
+        progress = progress.advance(phase, 1);
+      }
+      expect(progress.value, 1);
+      expect(progress.isComplete, isTrue);
+    });
+  });
 }

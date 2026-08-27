@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
-import 'package:portfolio/presentation/game/scroll_driver.dart';
+import 'package:portfolio/domain/utils/scroll_driver.dart';
 
 /// Runs the driver for [seconds] at a steady 60fps.
 void settle(ScrollDriver driver, {double seconds = 4}) {
