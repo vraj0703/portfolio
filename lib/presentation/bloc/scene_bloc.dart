@@ -31,6 +31,16 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
   @override
   void queue({required SceneEvent event}) => add(event);
 
+  /// Whether the logo's entrance has finished, remembered across the arrival
+  /// of the state it belongs to.
+  ///
+  /// The report is fired exactly once, by a component that starts animating
+  /// as soon as it mounts — so whether it lands before or after the scene
+  /// reaches [Logo] depends entirely on how long loading took. Dropping it
+  /// for arriving early meant the logo screen never became interactive, and
+  /// every tap and key press for the rest of the visit was ignored.
+  bool _logoEntranceDone = false;
+
   FutureOr<void> _initialize(
     Initialize event,
     Emitter<SceneState> emit,
@@ -56,7 +66,9 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     emit(current.copyWith(progress: next));
 
     if (next.isComplete) {
-      emit(const SceneState.logo());
+      // Carries a report that arrived while the loading screen was still up,
+      // rather than waiting for a second one that will never come.
+      emit(SceneState.logo(isInteractive: _logoEntranceDone));
     }
   }
 
@@ -64,6 +76,8 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     LogoEntranceCompleted event,
     Emitter<SceneState> emit,
   ) {
+    _logoEntranceDone = true;
+
     final current = state;
     if (current is! Logo || current.isInteractive) return null;
 

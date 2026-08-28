@@ -83,6 +83,25 @@ flutter:
         - asset: fonts/modrnt_urban.otf
 
   assets:
+    # Listed file by file rather than by directory, and the omissions are
+    # deliberate. Between them these three downloads also carry 65MB of
+    # displacement and OpenEXR normal maps, Blender/USD/MaterialX sources and
+    # a preview thumbnail — none of which the renderer can use (see
+    # `TextureSet`). A directory entry would bundle every one of them.
+    #
+    # Every set now uses the OpenGL normal variant, never the DirectX one:
+    # `NormalDX` has green inverted, which lights every bump from the wrong
+    # side and reads as the surface being subtly inside-out.
+    - assets/textures/floor/Tiles079_1K-JPG_Color.jpg
+    - assets/textures/floor/Tiles079_1K-JPG_Roughness.jpg
+    - assets/textures/floor/Tiles079_1K-JPG_NormalGL.jpg
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_Color.jpg
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg
+    - assets/textures/wall/Marble004_1K-JPG_Color.jpg
+    - assets/textures/wall/Marble004_1K-JPG_Roughness.jpg
+    - assets/textures/wall/Marble004_1K-JPG_NormalGL.jpg
     - assets/images/logo.png
     - assets/audio/
 

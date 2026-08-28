@@ -66,6 +66,18 @@ abstract final class GalleryLayout {
   /// from inside.
   static const double groundSize = 200;
 
+  /// How thick the ceiling slab is.
+  ///
+  /// Non-zero on purpose, and the reason is lighting rather than looks. A
+  /// plane's vertex normals all point straight up, which is right for a floor
+  /// and exactly wrong for a ceiling: the surface then faces away from the
+  /// room, every light in the corridor sits behind it, and it shades black.
+  /// The original dodged this by marking the ceiling double-sided, which
+  /// flips the normal for back-facing fragments. With no such setting here,
+  /// the ceiling is given a thickness instead, so it is a solid whose
+  /// underside genuinely faces down.
+  static const double ceilingThickness = 0.2;
+
   static List<Placement> build() {
     final length = GalleryDimensions.corridorLength;
     final centreZ = -length / 2;
@@ -79,8 +91,14 @@ abstract final class GalleryLayout {
       ),
       Placement(
         kind: SurfaceKind.ceiling,
-        position: Vector3(0, GalleryDimensions.ceilY, centreZ),
-        extents: Vector3(groundSize, 0, groundSize),
+        // Raised by half its thickness so the face the visitor sees sits at
+        // the ceiling height, not the middle of the slab.
+        position: Vector3(
+          0,
+          GalleryDimensions.ceilY + ceilingThickness / 2,
+          centreZ,
+        ),
+        extents: Vector3(groundSize, ceilingThickness, groundSize),
       ),
       // The left wall runs the whole corridor.
       Placement(

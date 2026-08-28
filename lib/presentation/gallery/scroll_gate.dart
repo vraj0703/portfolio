@@ -13,14 +13,21 @@
 /// That also handles arriving *without* scrolling: with no events to wait
 /// through, the quiet period has already elapsed and the visitor's first
 /// scroll is honoured immediately.
+///
+/// The gate only works if it is offered *every* event from the moment the
+/// surface appears. Leave it blind for even a few frames — behind a
+/// placeholder, say — and the tail flows past unseen, so the first event it
+/// does get looks like the pause it was waiting for.
 class ScrollGate {
   ScrollGate({this.quietPeriod = defaultQuietPeriod});
 
   /// How still the input must go before a new gesture is recognised.
   ///
-  /// Long enough to outlast the momentum phase of a flick, short enough that
-  /// a visitor who pauses and scrolls again is answered at once.
-  static const Duration defaultQuietPeriod = Duration(milliseconds: 150);
+  /// Deliberately longer than the gap between momentum events. A coasting
+  /// trackpad does not emit evenly: its events *spread out* as it decelerates,
+  /// so a short threshold is satisfied by the tail of the very gesture it is
+  /// supposed to exclude, and the gate arms mid-coast.
+  static const Duration defaultQuietPeriod = Duration(milliseconds: 350);
 
   final Duration quietPeriod;
 

@@ -61,6 +61,19 @@ abstract final class GalleryLighting {
   /// Slightly cooler fill so the pools of light read as warmer by contrast.
   static const Color fill = Color(0xFFFFF0D8);
 
+  /// Flat warm light reaching every surface, whichever way it faces.
+  ///
+  /// The original carried both an ambient and a hemisphere light, and between
+  /// them they did most of the work of making the room legible — the spots
+  /// and fills only picked the work out of it. Without an equivalent, every
+  /// surface not directly under a light falls to black, which reads as a hole
+  /// in the room rather than as shadow.
+  ///
+  /// Expressed as radiance rather than as a light: the renderer's ambient
+  /// term is its image-based-lighting environment, so a constant colour there
+  /// is what a flat ambient light amounts to.
+  static final Vector3 ambient = Vector3(0.45, 0.44, 0.41);
+
   /// How far above a frame its light hangs.
   static const double lightHeightAbove = 2.2;
 

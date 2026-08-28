@@ -133,4 +133,25 @@ void main() {
     // tick cannot churn it.
     expect(identical(before, after), isTrue);
   });
+
+  testWidgets('a click on the logo screen advances the scene', (tester) async {
+    // The composition, not SceneInput alone: what sits under the pointer here
+    // is the whole stack — curtain, loading screen, GameWidget — and the
+    // question is whether a click survives all of it.
+    await tester.pumpWidget(host());
+    created!.add(const SceneEvent.initialize());
+    for (final phase in LoadingPhase.values) {
+      created!.add(SceneEvent.loadingProgressed(phase: phase, value: 1));
+    }
+    await tester.pump();
+    created!.add(const SceneEvent.logoEntranceCompleted());
+    await tester.pump();
+
+    expect(created!.state, isA<Logo>(), reason: 'precondition');
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+
+    expect(created!.state, isNot(isA<Logo>()));
+  });
 }

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
@@ -65,7 +64,12 @@ class FlameScene extends StatelessWidget {
           );
         },
         (error, stack) {
-          if (kDebugMode) debugPrint('[gallery] warm-up failed: $error');
+          // Logged in every build, not just debug. A failure here is silent
+          // by design — the intro carries on and the loading bar completes —
+          // so without this the only symptom is the bar jumping to the end,
+          // which is indistinguishable from it having simply finished.
+          debugPrint('[gallery] warm-up failed: $error');
+          debugPrint('$stack');
           _releaseGalleryPhase(bloc);
         },
       );

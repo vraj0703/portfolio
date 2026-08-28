@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show FontWeight, TextStyle;
 import 'package:flutter_scene/scene.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
@@ -11,6 +12,7 @@ import 'package:portfolio/domain/gallery/gallery_lighting.dart';
 import 'package:portfolio/presentation/game/gallery/project_artwork.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
+import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:portfolio/presentation/gallery/threshold_cue.dart';
 
 /// Builds the gallery's scene graph, and owns everything it allocates.
@@ -79,9 +81,14 @@ class GalleryScene {
     // Geometry and materials touch the shader bundle, so nothing can be
     // constructed before the engine's static resources exist.
     await Scene.initializeStaticResources();
-    onProgress?.call(_shaderShare);
+    await _report(onProgress, _shaderShare);
 
-    final scene = Scene();
+    final scene = Scene()
+      // Replaces the engine's default studio environment. That default is
+      // built to flatter a product on a turntable; this is a dim room, and
+      // what it needs from its ambient term is the original's flat warm wash,
+      // not a photographic key and rim.
+      ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient);
     final artwork = <ui.Image>[];
     final textures = <Texture2D>[];
 
@@ -91,14 +98,44 @@ class GalleryScene {
     final cue = ThresholdCue.build(style: cueStyle ?? _defaultCueStyle);
     scene.add(cue.node);
 
-    onProgress?.call(1);
+    await _report(onProgress, 1);
 
     return _ready = GalleryScene._(scene, cue, artwork, textures);
+  }
+
+  /// Reports [value] and hands a frame back to the engine.
+  ///
+  /// Every expensive thing in this build — decoding, repacking, mip-chain
+  /// construction, canvas rasterisation — runs on the main isolate. Reporting
+  /// progress in the middle of that does not make the bar move: nothing can
+  /// paint while the thread is held, so the reports pile up and the bar sits
+  /// frozen on whatever it last drew until the whole phase finishes and the
+  /// backlog arrives in one frame. That is the stall, and no amount of finer
+  /// reporting fixes it — it only changes which number it freezes on.
+  ///
+  /// Waiting for the end of a frame costs about sixteen milliseconds a step.
+  /// A loading bar that moves is worth more than the half-second.
+  static Future<void> _report(
+    void Function(double)? onProgress,
+    double value,
+  ) async {
+    onProgress?.call(value);
+    if (onProgress == null) return;
+    await SchedulerBinding.instance.endOfFrame;
   }
 
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.
   static const double _shaderShare = 0.15;
+
+  /// Where the bar stands once the photographed surfaces are in.
+  ///
+  /// The bulk of the bar, because it is the bulk of the time: ten JPEG
+  /// decodes, three million-pixel repacks and ten mipmapped uploads, against
+  /// seven canvas draws for the artwork. Sharing the bar evenly between them
+  /// would make it crawl through this and then sprint, which reads as a stall
+  /// followed by a jump — the same complaint, moved rather than fixed.
+  static const double _surfaceShare = 0.8;
 
   /// Used when the caller has no theme to hand — the loading screen builds
   /// the gallery before any widget with a context is mounted over it.
@@ -126,9 +163,44 @@ class GalleryScene {
     final rough = await SurfaceTextures.metallicRoughnessMap();
     artwork..add(normal)..add(rough);
 
-    final normalTexture = await Texture2D.fromImage(normal);
-    final roughTexture = await Texture2D.fromImage(rough);
+    final normalTexture = await Texture2D.fromImage(
+      normal,
+      content: TextureContent.normal,
+    );
+    final roughTexture = await Texture2D.fromImage(
+      rough,
+      content: TextureContent.data,
+    );
     textures..add(normalTexture)..add(roughTexture);
+
+    // Photographed rather than generated. Each is null when its files cannot
+    // be read, which drops that surface back to the procedural plaster
+    // instead of failing the whole room.
+    const sets = <SurfaceKind, TextureSet>{
+      SurfaceKind.floor: GallerySurfaces.floor,
+      SurfaceKind.ceiling: GallerySurfaces.ceiling,
+      SurfaceKind.sideWall: GallerySurfaces.wall,
+    };
+
+    final totalSteps = sets.values.fold<int>(0, (sum, s) => sum + s.stepCount);
+    var stepsDone = 0;
+
+    final surfaces = <SurfaceKind, SurfaceMaps?>{};
+    for (final entry in sets.entries) {
+      surfaces[entry.key] = await SurfaceMaps.load(
+        entry.value,
+        artwork,
+        textures,
+        onStep: () async {
+          stepsDone++;
+          await _report(
+            onProgress,
+            _shaderShare +
+                (_surfaceShare - _shaderShare) * (stepsDone / totalSteps),
+          );
+        },
+      );
+    }
 
     final pieces = GalleryLayout.build();
     final frameCount = pieces.where((p) => p.kind == SurfaceKind.frame).length;
@@ -162,15 +234,19 @@ class GalleryScene {
         // instant, and a bar that jumps on the cheap work then stalls on the
         // expensive work is worse than no bar at all.
         framesDone++;
-        onProgress?.call(
-          _shaderShare + (1 - _shaderShare) * (framesDone / frameCount),
+        await _report(
+          onProgress,
+          _surfaceShare + (1 - _surfaceShare) * (framesDone / frameCount),
         );
       } else {
-        material = _surfaceOf(piece.kind, normalTexture, roughTexture);
+        material = _surfaceOf(piece, normalTexture, roughTexture, surfaces);
       }
 
       final geometry = switch (piece.kind) {
-        SurfaceKind.floor || SurfaceKind.ceiling => PlaneGeometry(
+        // The floor alone is a plane. A plane's normals point straight up,
+        // which is what a floor wants and what a ceiling cannot use — see
+        // [GalleryLayout.ceilingThickness].
+        SurfaceKind.floor => PlaneGeometry(
           width: piece.extents.x,
           depth: piece.extents.z,
         ),
@@ -229,33 +305,58 @@ class GalleryScene {
   }
 
   static PhysicallyBasedMaterial _surfaceOf(
-    SurfaceKind kind,
+    Placement piece,
     Texture2D normal,
     Texture2D rough,
+    Map<SurfaceKind, SurfaceMaps?> surfaces,
   ) {
-    final base = switch (kind) {
-      SurfaceKind.floor => _material(const ui.Color(0xFF8A7A62), 0.85, 0.05),
-      SurfaceKind.ceiling => _material(const ui.Color(0xFFD9C7B8), 0.5, 0),
-      _ => _material(const ui.Color(0xFFD4A97E), 0.75, 0.08),
+    // Every wall draws on the one set, whichever wall it is — a room whose
+    // back wall is a different brick from its side walls does not read as a
+    // room that was built, only as one that was assembled.
+    final kind = switch (piece.kind) {
+      SurfaceKind.floor || SurfaceKind.ceiling => piece.kind,
+      _ => SurfaceKind.sideWall,
     };
 
-    // The floor and ceiling are seen at a glancing angle and read fine flat;
-    // the walls are what the picture lights rake across, so they are the
-    // surfaces that need something to catch.
-    if (kind == SurfaceKind.floor || kind == SurfaceKind.ceiling) return base;
+    final (across, down) = _spanOf(piece);
+    final maps = surfaces[kind];
+    if (maps != null) return maps.materialFor(across, down);
 
-    return base
+    // Nothing loaded, so fall back to what the room looked like before there
+    // were photographs of one: flat colour, and procedural plaster on the
+    // walls where a raking light has something to catch.
+    if (kind != SurfaceKind.sideWall) {
+      return switch (kind) {
+        SurfaceKind.floor => _material(const ui.Color(0xFF8A7A62), 0.85, 0.05),
+        _ => _material(const ui.Color(0xFFD9C7B8), 0.5, 0),
+      };
+    }
+
+    final tiling = Vector2(
+      SurfaceTextures.repeatsFor(across),
+      SurfaceTextures.repeatsFor(down),
+    );
+
+    return _material(const ui.Color(0xFFD4A97E), 0.75, 0.08)
       ..normalTexture = normal
-      ..normalTextureTransform = _tiled
+      ..normalTextureTransform = TextureTransform(scale: tiling)
       ..metallicRoughnessTexture = rough
-      ..metallicRoughnessTextureTransform = _tiled;
+      ..metallicRoughnessTextureTransform = TextureTransform(scale: tiling);
   }
 
-  /// Detail maps are tiled, not stretched: one repeat of a 512px map across a
-  /// thirty-metre wall is invisible.
-  static TextureTransform get _tiled => TextureTransform(
-    scale: Vector2.all(SurfaceTextures.tiling),
-  );
+  /// The two axes a surface actually spans, in world units.
+  ///
+  /// A wall's *thickness* is not one of them: tiling by a 0.2-unit axis would
+  /// put a single repeat across the whole face and smear it up the wall.
+  static (double, double) _spanOf(Placement piece) {
+    final e = piece.extents;
+    return switch (piece.kind) {
+      SurfaceKind.floor || SurfaceKind.ceiling => (e.x, e.z),
+      // Side walls run along z; the back and wing walls run along x.
+      SurfaceKind.sideWall => (e.z, e.y),
+      _ => (e.x, e.y),
+    };
+  }
 
   /* -- Helpers --------------------------------------------------------- */
 
@@ -294,3 +395,4 @@ class GalleryScene {
     _textures.clear();
   }
 }
+

@@ -15,9 +15,22 @@ import 'dart:ui' as ui;
 /// hundreds of kilobytes to encode randomness that a loop produces in a few
 /// milliseconds, and it would have to be authored at a fixed resolution.
 abstract final class SurfaceTextures {
-  /// Detail maps are tiled across each surface rather than stretched; at one
-  /// repeat a 512px map spread over a thirty-metre wall is invisible.
-  static const double tiling = 16;
+  /// World units covered by one repeat of a detail map.
+  ///
+  /// Tiling is expressed as a *size*, not a repeat count. A fixed count makes
+  /// the texel density depend on how big the surface happens to be: sixteen
+  /// repeats across a thirty-metre wall is fine, and the same sixteen across
+  /// a two-hundred-metre floor stretches each repeat over twelve metres,
+  /// where the grain is far too coarse to read as a material at all.
+  static const double unitsPerRepeat = 2;
+
+  /// Repeats needed to cover a surface [extent] units across.
+  ///
+  /// [unitsPerRepeat] defaults to the plaster's grain. A photographed set has
+  /// a real-world size of its own and passes its own.
+  static double repeatsFor(double extent, {double? unitsPerRepeat}) =>
+      (extent.abs() / (unitsPerRepeat ?? SurfaceTextures.unitsPerRepeat))
+          .clamp(1.0, 512.0);
 
   static const int _normalSize = 512;
   static const int _roughnessSize = 256;

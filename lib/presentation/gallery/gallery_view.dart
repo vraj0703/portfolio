@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_scene/scene.dart';
@@ -16,6 +18,22 @@ import 'package:portfolio/presentation/gallery/scroll_gate.dart';
 /// on the way out, and the scroll position has to survive rebuilds.
 class GalleryView extends StatefulWidget {
   const GalleryView({super.key});
+
+  /// Which way a wheel turn walks the corridor.
+  ///
+  /// Inverted with respect to the stages before it, and deliberately so. Up
+  /// to here the scroll has been moving a *page*: content travels up as the
+  /// wheel goes down, which is what every scrolling surface does. The gallery
+  /// is not a page — the visitor is walking through a room, and the natural
+  /// reading of pushing the wheel away is moving away, deeper in.
+  ///
+  /// Keeping the page convention here would mean pushing forward to back out
+  /// of the corridor, which fights the first-person framing the whole scene
+  /// is built on.
+  static const double scrollDirection = -1;
+
+  /// Identifies the stand-in shown while the corridor is still building.
+  static const Key placeholderKey = ValueKey('gallery-placeholder');
 
   /// How far the visitor scrolls to walk the whole gallery.
   ///
@@ -66,19 +84,30 @@ class _GalleryViewState extends State<GalleryView> {
     if (_gallery == null) _load();
   }
 
-  Future<void> _load() async {
-    try {
-      final gallery = await GalleryScene.warmUp();
-      if (!mounted) {
-        // Disposed while the build was in flight; nothing will ever show it,
-        // so release it here rather than leaking a whole scene.
-        gallery.dispose();
-        return;
-      }
-      setState(() => _gallery = gallery);
-    } catch (error) {
-      if (mounted) setState(() => _error = error);
-    }
+  /// Builds the corridor, for the case it was not warmed during the intro.
+  ///
+  /// Guarded by a zone rather than a `try`. Bringing up the scene starts GPU
+  /// work of its own, and when that fails — no backend, a headless harness —
+  /// the error surfaces from inside the engine's async machinery rather than
+  /// on the future awaited here. A `catch` around the await never sees it, and
+  /// what should have been this view's failure screen becomes an unhandled
+  /// error that takes the app down with it.
+  void _load() {
+    runZonedGuarded(
+      () async {
+        final gallery = await GalleryScene.warmUp();
+        if (!mounted) {
+          // Disposed while the build was in flight; nothing will ever show it,
+          // so release it here rather than leaking a whole scene.
+          gallery.dispose();
+          return;
+        }
+        setState(() => _gallery = gallery);
+      },
+      (error, stack) {
+        if (mounted) setState(() => _error = error);
+      },
+    );
   }
 
   @override
@@ -89,7 +118,33 @@ class _GalleryViewState extends State<GalleryView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_error != null) return _failure(_error!);
+    // The gate is fed from out here, wrapping every branch without exception. Mount it only
+    // around the finished scene and it is blind for as long as the scene
+    // takes to arrive: the tail of the previous gesture flows past unseen,
+    // the activity clock stays frozen at the handover, and the first event
+    // the gate actually sees reads as the pause it was waiting for. It then
+    // arms mid-gesture, which is precisely the leak it exists to prevent.
+    return Listener(
+      onPointerSignal: (event) {
+        if (event is! PointerScrollEvent) return;
+        // Every event is offered to the gate, including the ones it
+        // swallows — a continuous stream must not look like a pause simply
+        // because none of it was acted on.
+        if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+        // The driver clamps to `[0, extent]`, so scrolling the wrong way at
+        // the entrance simply holds there rather than running off the start.
+        _scroll.scrollBy(event.scrollDelta.dy * GalleryView.scrollDirection);
+      },
+      // Without this the placeholder is not a hit-test target, and the
+      // events it is here to swallow go straight past it.
+      behavior: HitTestBehavior.opaque,
+      child: _surface(context),
+    );
+  }
+
+  Widget _surface(BuildContext context) {
+    final error = _error;
+    if (error != null) return _failure(error);
 
     final gallery = _gallery;
     if (gallery == null) {
@@ -98,44 +153,32 @@ class _GalleryViewState extends State<GalleryView> {
       // the stage that just ended rather than the corridor's, so the wait
       // continues from what was on screen instead of cutting to a new plate.
       return ColoredBox(
+        key: GalleryView.placeholderKey,
         color: context.colors.sceneBackground,
         child: const SizedBox.expand(),
       );
     }
 
-    return Listener(
-      onPointerSignal: (event) {
-        if (event is! PointerScrollEvent) return;
-        // Every event is offered to the gate, including the ones it
-        // swallows — a continuous stream must not look like a pause simply
-        // because none of it was acted on.
-        if (!_gate.accept(_clock.elapsedMilliseconds)) return;
-        _scroll.scrollBy(event.scrollDelta.dy);
+    return SceneView(
+      gallery.scene,
+      // Driven from the render loop rather than from setState. Rebuilding
+      // this subtree every frame to move a camera re-runs the whole widget
+      // tree sixty times a second for a value the renderer could read
+      // directly — which is what made arriving here stutter.
+      onTick: (elapsed, deltaSeconds) {
+        _scroll.update(deltaSeconds);
+        gallery.cue.update(elapsed.inMicroseconds / 1e6, _scroll.progress);
       },
-      child: SceneView(
-        gallery.scene,
-        // Driven from the render loop rather than from setState. Rebuilding
-        // this subtree every frame to move a camera re-runs the whole widget
-        // tree sixty times a second for a value the renderer could read
-        // directly — which is what made arriving here stutter.
-        onTick: (elapsed, deltaSeconds) {
-          _scroll.update(deltaSeconds);
-          gallery.cue.update(
-            elapsed.inMicroseconds / 1e6,
-            _scroll.progress,
-          );
-        },
-        cameraBuilder: (_) {
-          final pose = GalleryCameraPath.poseAt(_scroll.progress);
-          return PerspectiveCamera(
-            fovRadiansY: GalleryDimensions.fovRadians,
-            // The camera crosses the same boundary as the room, or it would
-            // pan away from the wall it is meant to be tracking.
-            position: SceneAxes.position(pose.position),
-            target: SceneAxes.position(pose.target),
-          );
-        },
-      ),
+      cameraBuilder: (_) {
+        final pose = GalleryCameraPath.poseAt(_scroll.progress);
+        return PerspectiveCamera(
+          fovRadiansY: GalleryDimensions.fovRadians,
+          // The camera crosses the same boundary as the room, or it would
+          // pan away from the wall it is meant to be tracking.
+          position: SceneAxes.position(pose.position),
+          target: SceneAxes.position(pose.target),
+        );
+      },
     );
   }
 

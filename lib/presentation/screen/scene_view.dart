@@ -8,7 +8,9 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
+import 'package:portfolio/presentation/gallery/gallery_warm_render.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
+import 'package:portfolio/presentation/screen/scene_input.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
 
@@ -42,74 +44,100 @@ class SceneView extends StatelessWidget {
     final palette = ScenePalette.of(context);
     final audio = context.audio;
 
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        // The gallery is a separate renderer, so it replaces the Flame scene
-        // rather than layering over it. Mounted only in its own state: it
-        // holds GPU resources, and keeping it alive through the intro would
-        // pay for a corridor nobody is looking at.
-        BlocBuilder<SceneBloc, SceneState>(
-          buildWhen: (previous, current) =>
-              (previous is Gallery) != (current is Gallery),
-          builder: (context, state) =>
-              state is Gallery ? const GalleryView() : const SizedBox.shrink(),
-        ),
+    return SceneInput(
+      bloc: bloc,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          // The gallery is a separate renderer, so it replaces the Flame scene
+          // rather than layering over it. Mounted only in its own state: it
+          // holds GPU resources, and keeping it alive through the intro would
+          // pay for a corridor nobody is looking at.
+          BlocBuilder<SceneBloc, SceneState>(
+            buildWhen: (previous, current) =>
+                (previous is Gallery) != (current is Gallery),
+            builder: (context, state) => state is Gallery
+                ? const GalleryView()
+                : const SizedBox.shrink(),
+          ),
 
-        // Deliberately outside the BlocBuilder: the game must not be rebuilt
-        // on every progress tick.
-        BlocBuilder<SceneBloc, SceneState>(
-          buildWhen: (previous, current) =>
-              (previous is Gallery) != (current is Gallery),
-          builder: (context, state) => state is Gallery
-              ? const SizedBox.shrink()
-              : GameWidget.controlled(
-                  gameFactory: () =>
-                      MyGame(bloc: bloc, palette: palette, audio: audio),
-                ),
-        ),
+          // Bottom of the stack, and painted over by everything above it. This
+          // is the gallery being drawn once, small, while the intro is still
+          // running, so the frame the visitor actually arrives on is not the
+          // one paying to compile its shaders. Rebuilt with the rest of the
+          // tree, so it appears on the first state change after the scene
+          // finishes building and stops mattering once the real view mounts.
+          // Positioned, because a non-positioned child of an expanding Stack is
+          // given tight constraints — the warm render's own size would be
+          // discarded and it would draw at full screen, which is the expense it
+          // exists to avoid.
+          Positioned(
+            top: 0,
+            left: 0,
+            width: GalleryWarmRender.edge,
+            height: GalleryWarmRender.edge,
+            child: BlocBuilder<SceneBloc, SceneState>(
+              builder: (context, state) => state is Gallery
+                  ? const SizedBox.shrink()
+                  : const GalleryWarmRender(),
+            ),
+          ),
 
-        BlocBuilder<SceneBloc, SceneState>(
-          builder: (context, state) {
-            final isLoading = state is Loading;
+          // Deliberately outside the BlocBuilder: the game must not be rebuilt
+          // on every progress tick.
+          BlocBuilder<SceneBloc, SceneState>(
+            buildWhen: (previous, current) =>
+                (previous is Gallery) != (current is Gallery),
+            builder: (context, state) => state is Gallery
+                ? const SizedBox.shrink()
+                : GameWidget.controlled(
+                    gameFactory: () =>
+                        MyGame(bloc: bloc, palette: palette, audio: audio),
+                  ),
+          ),
 
-            return TweenAnimationBuilder<double>(
-              // 0 = curtain closed, 1 = fully open. On the first build the
-              // tween has no `begin`, so it settles on 0 without animating —
-              // the scene starts covered, which is what we want.
-              tween: Tween<double>(end: isLoading ? 0.0 : 1.0),
-              duration: durations.reveal,
-              curve: Curves.easeInOut,
-              builder: (context, reveal, _) {
-                return Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    ClipPath(
-                      clipper: CurtainClipper(revealProgress: reveal),
-                      child: const ColoredBox(color: Colors.black),
-                    ),
+          BlocBuilder<SceneBloc, SceneState>(
+            builder: (context, state) {
+              final isLoading = state is Loading;
 
-                    // Leaves *with* the curtain rather than popping out a
-                    // frame before it starts: the reveal drives the mark's
-                    // swell-and-flash exit. Once fully revealed it is gone
-                    // entirely, costing nothing.
-                    if (reveal < 1)
-                      LoadingScreen(
-                        exit: reveal,
-                        // After leaving `loading` the bar has, by definition,
-                        // finished — so it reads 100% on the way out rather
-                        // than snapping back to zero.
-                        progress: isLoading
-                            ? state.progress
-                            : LoadingProgress.complete,
+              return TweenAnimationBuilder<double>(
+                // 0 = curtain closed, 1 = fully open. On the first build the
+                // tween has no `begin`, so it settles on 0 without animating —
+                // the scene starts covered, which is what we want.
+                tween: Tween<double>(end: isLoading ? 0.0 : 1.0),
+                duration: durations.reveal,
+                curve: Curves.easeInOut,
+                builder: (context, reveal, _) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      ClipPath(
+                        clipper: CurtainClipper(revealProgress: reveal),
+                        child: const ColoredBox(color: Colors.black),
                       ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
-      ],
+
+                      // Leaves *with* the curtain rather than popping out a
+                      // frame before it starts: the reveal drives the mark's
+                      // swell-and-flash exit. Once fully revealed it is gone
+                      // entirely, costing nothing.
+                      if (reveal < 1)
+                        LoadingScreen(
+                          exit: reveal,
+                          // After leaving `loading` the bar has, by definition,
+                          // finished — so it reads 100% on the way out rather
+                          // than snapping back to zero.
+                          progress: isLoading
+                              ? state.progress
+                              : LoadingProgress.complete,
+                        ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -44,6 +44,16 @@ class LogoOverlayComponent extends PositionComponent
   bool _entranceReported = false;
   bool _isLeaving = false;
 
+  /// Whether the logo screen is the one on show.
+  ///
+  /// The entrance used to advance from the moment this mounted, which is
+  /// while the loading screen still covers the scene. Two things followed
+  /// from that, and both were bugs: the label typed itself out behind the
+  /// curtain and was already finished by the time anyone could see it, and
+  /// on any load slower than the 1.4s entrance the completion report — which
+  /// fires exactly once — was raised while the scene was still loading.
+  bool _isOnShow = false;
+
   /// Cursor position in this component's own space, so the lines lean the
   /// right way regardless of where the layer sits on screen.
   Vector2 cursor = Vector2.zero();
@@ -78,11 +88,21 @@ class LogoOverlayComponent extends PositionComponent
   }
 
   @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+    // The state in force when this mounted never arrives as a *change*, so
+    // without this the entrance would wait for a transition into a state the
+    // scene is already in.
+    _isOnShow = state is Logo;
+  }
+
+  @override
   void onNewState(SceneState state) {
     super.onNewState(state);
 
     state.maybeWhen(
       logo: (_) {
+        _isOnShow = true;
         // Re-entering the logo (e.g. returning from a later section) replays
         // the entrance rather than snapping to the finished pose.
         if (_isLeaving) {
@@ -114,6 +134,8 @@ class LogoOverlayComponent extends PositionComponent
   }
 
   void _advanceEntrance(double dt) {
+    if (!_isOnShow) return;
+
     final duration = LogoConfig.entranceDuration.inMilliseconds / 1000;
     if (_entrance < 1) {
       _entrance = (_entrance + dt / duration).clamp(0.0, 1.0);

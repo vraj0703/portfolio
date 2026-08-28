@@ -17,6 +17,29 @@ void main() {
       expect(of(SurfaceKind.backWall), hasLength(1));
     });
 
+    test('the ceiling is a solid, not a sheet', () {
+      // The bug this replaced: a plane's vertex normals all point straight
+      // up. On a floor that is correct; on a ceiling it turns the surface
+      // away from the room, so every light in the corridor falls behind it
+      // and it renders black. The original marked its ceiling double-sided,
+      // which flips the normal for back-facing fragments; here it is given a
+      // thickness so its underside genuinely faces down.
+      final ceiling = of(SurfaceKind.ceiling).single;
+
+      expect(ceiling.extents.y, greaterThan(0));
+    });
+
+    test('the ceiling presents its underside at the ceiling height', () {
+      // Centring the slab on the ceiling height would sink half of it into
+      // the room, and the walls would stop short of what the visitor sees.
+      final ceiling = of(SurfaceKind.ceiling).single;
+      final underside = ceiling.position.y - ceiling.extents.y / 2;
+
+      // Loose, because `Vector3` stores 32-bit floats — a tolerance finer
+      // than the type can represent tests the storage, not the layout.
+      expect(underside, closeTo(GalleryDimensions.ceilY, 1e-5));
+    });
+
     test('the ceiling is above the floor', () {
       expect(
         of(SurfaceKind.ceiling).single.position.y,

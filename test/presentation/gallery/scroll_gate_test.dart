@@ -26,20 +26,29 @@ void main() {
     });
 
     test('a coasting trackpad decelerating into stillness is ignored', () {
-      // Momentum events thin out as they die away; none of them should count
-      // as the pause that separates one gesture from the next.
+      // The case a short threshold gets wrong. Momentum events do not arrive
+      // evenly — they spread out as the flick dies away, so the tail of the
+      // gesture eventually produces a gap that looks like a pause. Every one
+      // of these still belongs to the stage the visitor left.
       var t = 20;
       for (var gap = 16; gap < quiet.inMilliseconds; gap += 12) {
         t += gap;
         expect(gate.accept(t), isFalse, reason: 'leaked at ${t}ms');
       }
     });
+
   });
 
   group('a new gesture', () {
     test('is honoured once the input has gone quiet', () {
       expect(gate.accept(20), isFalse);
       expect(gate.accept(20 + quiet.inMilliseconds + 1), isTrue);
+    });
+
+    test('the quiet period outlasts a momentum tail', () {
+      // Momentum events rarely spread beyond about a quarter second before
+      // stopping altogether; the threshold has to sit clear of that.
+      expect(quiet.inMilliseconds, greaterThan(250));
     });
 
     test('stays honoured for the rest of the visit', () {
@@ -58,8 +67,8 @@ void main() {
   group('arriving without scrolling', () {
     test('the first scroll is honoured immediately', () {
       // Reaching the gallery by clicking the arrow means there is no gesture
-      // in flight, so there is nothing to wait through — making the visitor
-      // scroll twice would be a bug of its own.
+      // in flight, so there is nothing to wait through beyond the settle —
+      // making the visitor scroll twice would be a bug of its own.
       final clicked = ScrollGate()..arrive(0);
 
       expect(clicked.accept(quiet.inMilliseconds + 1), isTrue);
