@@ -88,12 +88,21 @@ class SceneView extends StatelessWidget {
           BlocBuilder<SceneBloc, SceneState>(
             buildWhen: (previous, current) =>
                 (previous is Gallery) != (current is Gallery),
-            builder: (context, state) => state is Gallery
-                ? const SizedBox.shrink()
-                : GameWidget.controlled(
-                    gameFactory: () =>
-                        MyGame(bloc: bloc, palette: palette, audio: audio),
-                  ),
+            // Hidden, not unmounted. Tearing the game down on the way into
+            // the corridor threw the whole intro away: every component keys
+            // its behaviour off transitions, so a game rebuilt on the way
+            // back mounted into a stage it had never seen arrive and simply
+            // sat there — the title never started, the mark never retreated.
+            // Off stage it lays out but does not paint, so the corridor still
+            // has the screen to itself, and coming back is a return rather
+            // than a reconstruction.
+            builder: (context, state) => Offstage(
+              offstage: state is Gallery,
+              child: GameWidget.controlled(
+                gameFactory: () =>
+                    MyGame(bloc: bloc, palette: palette, audio: audio),
+              ),
+            ),
           ),
 
           BlocBuilder<SceneBloc, SceneState>(

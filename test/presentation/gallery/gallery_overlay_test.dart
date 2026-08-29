@@ -25,6 +25,7 @@ void main() {
           onExit: () => taps.add('exit'),
           onForward: () => taps.add('forward'),
           mirrored: mirrored,
+          asFallback: true,
         ),
       ),
     );

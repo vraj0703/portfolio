@@ -92,9 +92,9 @@ flutter:
     # Every set now uses the OpenGL normal variant, never the DirectX one:
     # `NormalDX` has green inverted, which lights every bump from the wrong
     # side and reads as the surface being subtly inside-out.
-    - assets/textures/floor/Tiles079_1K-JPG_Color.jpg
-    - assets/textures/floor/Tiles079_1K-JPG_Roughness.jpg
-    - assets/textures/floor/Tiles079_1K-JPG_NormalGL.jpg
+    - assets/textures/floor/Tiles013_1K-JPG_Color.jpg
+    - assets/textures/floor/Tiles013_1K-JPG_Roughness.jpg
+    - assets/textures/floor/Tiles013_1K-JPG_NormalGL.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_Color.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg

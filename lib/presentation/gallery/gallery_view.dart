@@ -7,6 +7,7 @@ import 'package:flutter_scene/scene.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/domain/gallery/walk_order.dart';
 import 'package:vector_math/vector_math.dart';
+import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/project_focus.dart';
@@ -154,7 +155,31 @@ class _GalleryViewState extends State<GalleryView> {
     if (frame?.project?.id == _focused?.project?.id) return;
 
     setState(() => _focused = frame);
+    _placeControls(frame);
+  }
 
+  /// Brings the room's own controls to [frame], or takes them away.
+  ///
+  /// Called from [_focus] unconditionally, and the reason is worth stating:
+  /// the controls are hidden the moment they are built, and nothing but
+  /// [ControlIcons.showFor] ever reveals them. A focus that skips this leaves
+  /// three icons loaded, parented, lit and permanently invisible — and
+  /// because they *did* load, the plain fallback row stays suppressed, so the
+  /// visitor is left with no controls at all rather than simpler ones.
+  void _placeControls(Placement? frame) {
+    final controls = _gallery?.controls;
+    if (controls == null) return;
+
+    if (frame == null) {
+      controls.hide();
+      return;
+    }
+
+    controls.showFor(
+      frame,
+      canGoBack: _order.hasPrevious(frame),
+      canGoForward: _order.hasNext(frame),
+    );
   }
 
   void _step(Placement? Function(Placement) move) {
@@ -178,6 +203,21 @@ class _GalleryViewState extends State<GalleryView> {
       kinds: const <SurfaceKind>{SurfaceKind.frame, SurfaceKind.exitSign},
     );
 
+    // The controls sit in front of the work, so they are offered the tap
+    // first — otherwise pressing one would also pick the piece behind it.
+    final control = _controlAt(at, camera);
+    if (control != null) {
+      switch (control) {
+        case ControlAction.previous:
+          _step(_order.previous);
+        case ControlAction.next:
+          _step(_order.next);
+        case ControlAction.exit:
+          _focus(null);
+      }
+      return;
+    }
+
     if (hit?.kind == SurfaceKind.exitSign) {
       context.read<SceneBloc>().add(const SceneEvent.galleryExited());
       return;
@@ -189,9 +229,47 @@ class _GalleryViewState extends State<GalleryView> {
     if (hit != null) _focus(hit);
   }
 
+  /// Which control is under [at], if any.
+  ControlAction? _controlAt(Offset at, PerspectiveCamera camera) {
+    final controls = _gallery?.controls;
+    if (controls == null) return null;
+
+    final row = controls.placements;
+    if (row.isEmpty) return null;
+
+    // Reuses the frames' picker by describing each control as a flat quad on
+    // the same wall, which is exactly what it is.
+    final hit = FramePicker.at(
+      at,
+      _viewSize,
+      row
+          .map(
+            (p) => Placement(
+              kind: SurfaceKind.exitSign,
+              position: p.position,
+              extents: p.extents,
+            ),
+          )
+          .toList(),
+      camera.position,
+      (world) => camera.worldToScreen(world, _viewSize),
+      kinds: const <SurfaceKind>{SurfaceKind.exitSign},
+    );
+    if (hit == null) return null;
+
+    return row
+        .firstWhere((p) => p.position == hit.position)
+        .action;
+  }
+
   @override
   void dispose() {
-    _gallery?.dispose();
+    // The scene is deliberately *not* disposed here. It is memoised so it is
+    // built once, and this widget is only the window onto it — tearing it
+    // down every time the visitor steps out threw away seconds of decoding
+    // and uploading, and made walking back in a rebuild rather than a return.
+    // `GalleryScene.dispose` remains for a genuine teardown; nothing in the
+    // ordinary flow is one.
     super.dispose();
   }
 
@@ -252,6 +330,7 @@ class _GalleryViewState extends State<GalleryView> {
               onExit: () => _focus(null),
               onForward: () => _step(_order.next),
               mirrored: !(_focused?.position.x.isNegative ?? true),
+              asFallback: _gallery?.controls == null,
             ),
           ],
         );

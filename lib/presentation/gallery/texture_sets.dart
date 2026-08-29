@@ -68,12 +68,22 @@ class TextureSet {
 
 /// The photographed sets the gallery is surfaced with.
 abstract final class GallerySurfaces {
-  /// ambientCG `Tiles079`. No baked occlusion in this one.
+  /// ambientCG `Tiles013`. No baked occlusion, and no `Metalness` map —
+  /// which is its own answer: glazed tile is dielectric.
+  ///
+  /// Its roughness runs 64..255 with a mean of 92/255, which sits in the
+  /// middle of everything tried here: the tile before it averaged 22 and was
+  /// close to a mirror, the wood before that 135 and was flat. That matters
+  /// more than it sounds, because the renderer has no screen-space
+  /// reflections — a near-mirror floor cannot show the corridor back, only a
+  /// wash of the constant environment, so it reads as glare rather than as
+  /// polish. Semi-matte is the range where a floor still looks like stone.
   static const TextureSet floor = TextureSet(
-    colour: 'assets/textures/floor/Tiles079_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/floor/Tiles079_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/floor/Tiles079_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/floor/Tiles013_1K-JPG_Color.jpg',
+    roughness: 'assets/textures/floor/Tiles013_1K-JPG_Roughness.jpg',
+    normal: 'assets/textures/floor/Tiles013_1K-JPG_NormalGL.jpg',
     unitsPerRepeat: 4,
+    metallic: 0,
   );
 
   /// ambientCG `Marble004`. No baked occlusion in this one.

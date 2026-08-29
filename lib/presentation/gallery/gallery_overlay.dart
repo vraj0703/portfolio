@@ -23,6 +23,7 @@ class GalleryOverlay extends StatelessWidget {
     required this.onExit,
     required this.onForward,
     required this.mirrored,
+    required this.asFallback,
     super.key,
   });
 
@@ -42,6 +43,14 @@ class GalleryOverlay extends StatelessWidget {
   /// ✕ and pointed it away from where it would actually take you.
   final bool mirrored;
 
+  /// Whether to draw the controls at all.
+  ///
+  /// False in the normal case: the controls are objects in the room, on the
+  /// wall beneath the work. This row is what the visitor gets when those
+  /// models cannot be read — a gallery whose navigation depends on a
+  /// downloadable asset would be a gallery you could get stuck in.
+  final bool asFallback;
+
   static const Color ink = Color(0xFFF0E4CC);
   static const Color plate = Color(0xCC1A1512);
 
@@ -54,7 +63,7 @@ class GalleryOverlay extends StatelessWidget {
         // The controls are only meaningful with something focused, and are
         // gone rather than disabled when nothing is: a permanent bar of dead
         // buttons reads as a broken interface.
-        if (isFocused)
+        if (isFocused && asFallback)
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(

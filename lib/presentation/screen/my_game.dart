@@ -209,6 +209,35 @@ class MyGame extends FlameGame
   /// The title's own cues are not here: its animation starts well after the
   /// stage is entered, so they are fired by the layer at the moment the
   /// motion actually begins.
+  /// Puts the bold-text stage back to its beginning.
+  ///
+  /// Returning from the corridor lands on the title with the stage spent, and
+  /// three separate things wrong with it. The scroll sits at its end and
+  /// `_boldTextHandedOver` makes [onScroll] discard every gesture, so the
+  /// visitor can scroll all they like and never reach the gallery again. And
+  /// the stage's *appearance* is wrong too: the title's offset and fade and
+  /// the cue's fade are only ever written by [_driveBoldTextStage], which
+  /// stops running the moment the stage is inactive — so they keep the values
+  /// they held when the stage ended, with the title parked off the top of the
+  /// screen at zero opacity and the arrow invisible beneath it.
+  ///
+  /// Resetting the counters alone therefore fixes the scrolling and leaves a
+  /// blank screen. The mapping is re-run once from a rewound scroll instead,
+  /// so every one of those values is restored by the same code that set them
+  /// rather than by a second copy of the same arithmetic.
+  void _rewindBoldTextStage() {
+    _boldTextActive = false;
+    _boldTextHandedOver = false;
+    _tingPlayed = false;
+    _scroll.reset();
+
+    _driveBoldTextStage();
+    // The mapping scrubs the swell as a side effect; at offset zero that is
+    // the sound's first frame, which is not what a visitor arriving back at
+    // the title should hear.
+    audio.stopScrub(AudioCue.boldTextSwell);
+  }
+
   /// Maps the scroll onto everything the stage moves.
   ///
   /// One offset drives all of it, so the text, the departing title and the
@@ -263,7 +292,11 @@ class MyGame extends FlameGame
   void _playCueFor(SceneState state) {
     state.maybeWhen(
       logoOverlayRemoving: () => audio.play(AudioCue.enter),
-      title: () => audio.play(AudioCue.bouncyArrow),
+      title: () {
+        audio.play(AudioCue.bouncyArrow);
+
+        _rewindBoldTextStage();
+      },
       active: (_, _) {
         if (_boldTextActive) return;
         _boldTextActive = true;

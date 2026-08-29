@@ -35,13 +35,14 @@ void main() {
     bloc.add(const SceneEvent.galleryExited());
     await settle();
 
-    // `titleLoading`, not `title`. The stage's components drive themselves
-    // from the entrance, so handing them the finished state leaves the title
-    // never having been told to appear and the visitor lands on a bare logo.
+    // `title`, not `titleLoading`. The game is no longer torn down on the way
+    // into the corridor, so the stage is still standing exactly as it was
+    // left; replaying its entrance would animate something already on screen.
+    //
     // And not the bold-text stage they scrolled through to get here: that is
-    // a one-way passage on a scroll already spent, and landing back inside
-    // it strands them mid-animation.
-    expect(bloc.state, isA<TitleLoading>());
+    // a one-way passage on a scroll already spent, and landing back inside it
+    // strands them mid-animation.
+    expect(bloc.state, isA<Title>());
 
     await bloc.close();
   });

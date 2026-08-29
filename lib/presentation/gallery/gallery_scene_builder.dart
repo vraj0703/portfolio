@@ -11,6 +11,7 @@ import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/control_icons.dart';
 import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
@@ -24,13 +25,23 @@ import 'package:portfolio/presentation/gallery/texture_sets.dart';
 /// deliberately — textures and images are not garbage collected. Anything
 /// this builder makes, it also disposes.
 class GalleryScene {
-  GalleryScene._(this.scene, this.arrow, this._artwork, this._textures);
+  GalleryScene._(
+    this.scene,
+    this.arrow,
+    this.controls,
+    this._artwork,
+    this._textures,
+  );
 
   final Scene scene;
 
   /// The entrance cue, exposed so the view can advance its bob and retire it.
   /// Null when the model could not be read — see [ScrollArrow.load].
   final ScrollArrow? arrow;
+
+  /// The three controls that appear under a focused piece, as objects in the
+  /// room. Null when their models could not be read.
+  final ControlIcons? controls;
 
   /// Rasterised project art. Owned here, not by the materials that sample it:
   /// a material holding the only reference to an image has no moment at which
@@ -100,9 +111,12 @@ class GalleryScene {
     final arrow = await ScrollArrow.load();
     if (arrow != null) scene.add(arrow.node);
 
+    final controls = await ControlIcons.load();
+    if (controls != null) scene.add(controls.node);
+
     await _report(onProgress, 1);
 
-    return _ready = GalleryScene._(scene, arrow, artwork, textures);
+    return _ready = GalleryScene._(scene, arrow, controls, artwork, textures);
   }
 
   /// Reports [value] and hands a frame back to the engine.

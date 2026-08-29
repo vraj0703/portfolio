@@ -93,12 +93,11 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // an event from anywhere else is a stray one.
     if (state is! Gallery) return null;
 
-    // `titleLoading`, not `title`: the stage's components drive themselves
-    // from the entrance, so handing them the finished state leaves the title
-    // never having been told to appear — the visitor lands on a bare logo.
-    // Replaying the entrance also re-establishes the stage, which a hard cut
-    // back into the middle of it would not.
-    emit(const SceneState.titleLoading());
+    // `title`, not `titleLoading`. The game is no longer torn down on the way
+    // into the corridor, so the stage is still standing exactly as it was
+    // left — replaying its two-second entrance would be animating something
+    // the visitor can already see.
+    emit(const SceneState.title());
   }
 
   FutureOr<void> _onTapped(Tapped event, Emitter<SceneState> emit) {

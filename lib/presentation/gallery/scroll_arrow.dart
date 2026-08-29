@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
+import 'package:portfolio/presentation/gallery/icon_metal.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:vector_math/vector_math.dart';
 
@@ -16,13 +17,20 @@ import 'package:vector_math/vector_math.dart';
 /// It leaves as soon as the visitor starts moving. A cue that follows them
 /// down the corridor repeating itself has stopped being a cue.
 class ScrollArrow {
-  ScrollArrow._(this.node);
+  ScrollArrow._(this.node, this._lamp);
 
   final Node node;
+  final PointLight _lamp;
 
-  /// Where it lies, in design coordinates: just inside the entrance, on the
+  /// Where it hangs, in design coordinates: just inside the entrance, on the
   /// centre line, ahead of where the visitor starts.
-  static const double heightAboveFloor = 0.06;
+  ///
+  /// It floats rather than lies. The height has to clear [bobHeight] plus the
+  /// model's own half thickness, or the bottom of every bob dips through the
+  /// floor and the arrow flickers as it is clipped — which is what it did at
+  /// six centimetres against a nine-centimetre bob. Well clear, not barely:
+  /// a marking that grazes the floor reads as a fault rather than as a hover.
+  static const double heightAboveFloor = 0.55;
   static const double distanceIn = -2.4;
 
   /// Turn about the vertical, so the arrow points *down* the corridor.
@@ -85,16 +93,34 @@ class ScrollArrow {
               },
             );
 
-      _light(model);
+      _surface(model);
+
+      // Three nodes rather than one, so the scale lands only where it should.
+      // The arrow is a third of its authored size; a lamp parented under that
+      // scale would have its offset shrunk with it and end up buried in the
+      // model. The scaling is pushed down to its own node instead, leaving
+      // the lamp measured in world units.
+      final scaled = Node(
+        localTransform: Matrix4.identity()
+          ..scaleByDouble(scale, scale, scale, 1),
+      )..add(model);
+
+      final lamp = PointLight(color: Vector3(1, 0.82, 0.55), range: 6);
+      final lampNode = Node(
+        localTransform: Matrix4.translation(Vector3(0, lampHeight, 0)),
+      )..addComponent(PointLightComponent(lamp));
 
       // `add`, not `children.add`. The list is public and appending to it
-      // looks like it works — the model appears, in the scene, at the right
-      // place in the tree. What it does not do is set the child's parent or
-      // mark its world transform dirty, so the child never composes with this
-      // node's transform: every rotation and scale set here is silently
-      // ignored and the model renders exactly as authored.
-      final node = Node()..add(model);
-      final arrow = ScrollArrow._(node);
+      // looks like it works — the model lands in the scene, in the right
+      // place in the tree, and renders. What it does not do is set the
+      // child's parent or mark its world transform dirty, so the child never
+      // composes with this node's transform: every rotation and scale set
+      // here is silently discarded and the model appears exactly as authored.
+      final node = Node()
+        ..add(scaled)
+        ..add(lampNode);
+
+      final arrow = ScrollArrow._(node, lamp);
       arrow.update(0, 0);
       return arrow;
     } catch (_) {
@@ -102,33 +128,60 @@ class ScrollArrow {
     }
   }
 
-  /// Colour the cue glows, matching the room's other lettering.
-  static final Vector4 glow = Vector4(1, 0.78, 0.42, 1);
+  /// Base colour of the metal — brass rather than steel, so it belongs to a
+  /// room lit in warm tones.
+  static final Vector4 brass = Vector4(0.94, 0.71, 0.36, 1);
 
-  /// Replaces the model's own material with one that lights itself.
+  /// Kept just bright enough that the arrow is never wholly lost.
   ///
-  /// The corridor is deliberately dim, and the picture lights are aimed at
-  /// the work rather than at the floor — a cue shaded by the room would sit
-  /// in the darkest part of it. This is an instruction, not an exhibit: it
-  /// has to be the thing the visitor notices first, so it carries its own
-  /// light the way the wall signs do.
+  /// Real metal in an unlit corner is black, and a cue that disappears when
+  /// the visitor happens to stand in the wrong place has failed. This is a
+  /// floor, not a fill: it should read as sheen, not as a lamp.
+  static final Vector4 sheen = Vector4(0.16, 0.11, 0.05, 1);
+
+  /// Height of the small lamp that travels with the arrow.
+  static const double lampHeight = 1.4;
+
+  /// How hard the lamp works while the cue is up.
   ///
-  /// The imported material is discarded rather than tinted. It arrived
+  /// Enough to raise a highlight on the metal and no more. This is a spot of
+  /// light on the floor at the entrance, not a second source competing with
+  /// the picture lights down the corridor.
+  static const double lampIntensity = 5;
+
+  /// Gives the model a metal surface.
+  ///
+  /// Metal is *reflection*, which means it needs something to reflect. The
+  /// corridor's fill lights start ten units in and its picture lights are
+  /// aimed at the walls, so this spot of floor has almost nothing reaching
+  /// it — hence the lamp above. Without it a fully metallic material is
+  /// simply black, and the arrow was previously unlit for exactly that
+  /// reason.
+  ///
+  /// The imported material is discarded rather than tinted: it arrived
   /// authored for whatever lighting the model was made under, and matching
   /// that to this room is more work than replacing it.
-  static void _light(Node model) {
+  static void _surface(Node model) {
     for (final primitive in model.mesh?.primitives ?? const <MeshPrimitive>[]) {
-      primitive.material = UnlitMaterial()..baseColorFactor = glow;
+      primitive.material = IconMetal.of();
     }
     for (final child in model.children) {
-      _light(child);
+      _surface(child);
     }
   }
 
   /// Advances the bob and decides whether the cue still has anything to say.
   void update(double elapsed, double progress) {
-    node.visible = progress < fadesBy;
-    if (!node.visible) return;
+    final showing = progress < fadesBy;
+    node.visible = showing;
+
+    // The lamp is doused by hand, because hiding a node does not hide its
+    // light: `PointLightComponent` registers with the scene on *mount* and
+    // only unregisters when the node leaves it. Left alone, retiring the
+    // arrow would leave an unexplained pool of light on the floor behind it.
+    _lamp.intensity = showing ? lampIntensity : 0;
+
+    if (!showing) return;
 
     final lift = math.sin(elapsed * bobRate * math.pi) * bobHeight;
 
@@ -142,7 +195,7 @@ class ScrollArrow {
               ),
             ),
           )
-          ..rotateY(SceneAxes.rotationY(facing))
-          ..scaleByDouble(scale, scale, scale, 1);
+          // Scale belongs to the model's own node now — see [load].
+          ..rotateY(SceneAxes.rotationY(facing));
   }
 }

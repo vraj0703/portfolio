@@ -54,6 +54,21 @@ void main() {
     expect(ScrollArrow.facing.abs(), closeTo(3.141592653589793 / 2, 1e-9));
   });
 
+  test('it floats clear of the floor through the whole bob', () {
+    // At six centimetres against a nine-centimetre bob, the bottom of every
+    // cycle dipped through the floor and the arrow flickered as it clipped.
+    expect(
+      ScrollArrow.heightAboveFloor,
+      greaterThan(ScrollArrow.bobHeight),
+      reason: 'the arrow passes through the floor at the bottom of each bob',
+    );
+    // And not merely by a hair: grazing the floor reads as a fault.
+    expect(
+      ScrollArrow.heightAboveFloor - ScrollArrow.bobHeight,
+      greaterThan(0.2),
+    );
+  });
+
   test('it is sized like a floor marking, not a monument', () {
     // The model is three units long as authored, in a corridor eight across.
     expect(ScrollArrow.scale * 3, lessThan(1.5));

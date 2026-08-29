@@ -32,6 +32,22 @@ class BackdropComponent extends PositionComponent
   /// it is reaching the screen any more.
   bool get isOpaque => _opacity >= 1;
 
+  /// Whether the backdrop is already up by the time [state] is reached.
+  static bool hasRisenBy(SceneState state) =>
+      state is! Loading && state is! Logo;
+
+  @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+
+    // Anything past the logo is a stage this backdrop is already behind, so
+    // it starts fully risen rather than waiting for a rise it missed.
+    if (hasRisenBy(state)) {
+      _isRising = true;
+      _opacity = 1;
+    }
+  }
+
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);

@@ -1,4 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'dart:math' as math;
+
+import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/project_focus.dart';
@@ -64,6 +67,55 @@ void main() {
             'them should not find the shot changing scale',
       );
     });
+  });
+
+  test('the controls are inside the shot, not below it', () {
+    // The bug this exists for: the controls rendered correctly, on the wall,
+    // in the right place — 0.35 units under the bottom edge of the framing,
+    // where nobody could see them. A shot composed on the work alone crops
+    // off everything hung beneath it.
+    for (final aspect in aspects) {
+      for (final frame in frames) {
+        final pose = ProjectFocus.poseFor(frame, aspect: aspect);
+        final distance = (pose.position.x - frame.position.x).abs();
+        final halfHeight =
+            distance * math.tan(GalleryDimensions.fovRadians / 2);
+        final lowestVisible = pose.target.y - halfHeight;
+
+        final controls = ControlLayout.below(
+          frame,
+          canGoBack: true,
+          canGoForward: true,
+        );
+
+        for (final control in controls) {
+          expect(
+            control.position.y - ControlLayout.iconSize / 2,
+            greaterThan(lowestVisible),
+            reason: 'at aspect \$aspect the ${control.action.name} control '
+                'falls off the bottom of the shot',
+          );
+        }
+      }
+    }
+  });
+
+  test('the work itself still fits', () {
+    // Reaching lower must not push the frame off the top.
+    for (final aspect in aspects) {
+      for (final frame in frames) {
+        final pose = ProjectFocus.poseFor(frame, aspect: aspect);
+        final distance = (pose.position.x - frame.position.x).abs();
+        final halfHeight =
+            distance * math.tan(GalleryDimensions.fovRadians / 2);
+
+        expect(
+          pose.target.y + halfHeight,
+          greaterThan(frame.position.y + frame.extents.y / 2),
+          reason: 'the top of the work is cropped',
+        );
+      }
+    }
   });
 
   group('the fit', () {

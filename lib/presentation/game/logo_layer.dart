@@ -57,6 +57,27 @@ class LogoMarkComponent extends PositionComponent
       _exitElapsed != null &&
       _exitElapsed! >= LogoConfig.exitDuration.inMilliseconds / 1000;
 
+  /// Whether the mark has already left the middle by the time [state] is
+  /// reached.
+  ///
+  /// A predicate rather than an inline check, because it is the whole of the
+  /// rule and the component around it cannot be built without a GPU.
+  static bool hasRetreatedBy(SceneState state) =>
+      state is! Loading && state is! Logo;
+
+  @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+
+    // Past the logo, the mark has already retreated to its corner. A game
+    // mounted into one of those stages never saw it go, so it would sit
+    // centred and full size over the title — the single biggest reason
+    // leaving the gallery looked like landing back on the logo screen.
+    if (hasRetreatedBy(state)) {
+      _exitElapsed = LogoConfig.exitDuration.inMilliseconds / 1000;
+    }
+  }
+
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);

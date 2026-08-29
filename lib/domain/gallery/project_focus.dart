@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:vector_math/vector_math.dart';
 
+import 'control_layout.dart';
 import 'gallery_dimensions.dart';
 import 'gallery_layout.dart';
 
@@ -65,17 +66,32 @@ abstract final class ProjectFocus {
     return math.max(math.max(forHeight, forWidth), minimumStandoff);
   }
 
+  /// How far the shot must reach below the work.
+  ///
+  /// The controls hang beneath the frame, so the framing has to take in both
+  /// — a shot composed on the work alone crops them off the bottom of the
+  /// screen, where they render perfectly and are seen by nobody. Derived from
+  /// [ControlLayout] rather than restated, so moving the row cannot leave the
+  /// camera framing where it used to be.
+  static double get reachBelow =>
+      ControlLayout.dropBelowFrame + ControlLayout.iconSize / 2;
+
   /// Where to stand to read [frame], in design space.
   ///
   /// The camera comes off the wall along its normal and looks straight back
-  /// at the centre of the work — square on, not angled. A raking view of a
-  /// flat plane of text is a view you cannot read.
+  /// at the centre of the composition — square on, not angled. A raking view
+  /// of a flat plane of text is a view you cannot read.
   static FocusPose poseFor(Placement frame, {required double aspect}) {
     final distance = distanceFor(
       width: GalleryLayout.frameWidth,
-      height: GalleryDimensions.frameMaxHeight,
+      height: GalleryDimensions.frameMaxHeight + reachBelow,
       aspect: aspect,
     );
+
+    // Aimed low of the work's own centre by half what was added beneath it,
+    // so the extra room appears where the controls are rather than as empty
+    // ceiling above the frame.
+    final centreY = frame.position.y - reachBelow / 2;
 
     // Frames hang just inside the wall they belong to, so the sign of their x
     // is also the direction of the wall — and stepping the *opposite* way is
@@ -85,10 +101,10 @@ abstract final class ProjectFocus {
     return FocusPose(
       position: Vector3(
         frame.position.x + inward * distance,
-        frame.position.y,
+        centreY,
         frame.position.z,
       ),
-      target: Vector3(frame.position.x, frame.position.y, frame.position.z),
+      target: Vector3(frame.position.x, centreY, frame.position.z),
     );
   }
 

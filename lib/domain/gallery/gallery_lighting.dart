@@ -72,7 +72,7 @@ abstract final class GalleryLighting {
   /// Expressed as radiance rather than as a light: the renderer's ambient
   /// term is its image-based-lighting environment, so a constant colour there
   /// is what a flat ambient light amounts to.
-  static final Vector3 ambient = Vector3(0.45, 0.44, 0.41);
+  static final Vector3 ambient = Vector3(0.55, 0.53, 0.48);
 
   /// How far above a frame its light hangs.
   static const double lightHeightAbove = 2.2;
@@ -92,7 +92,12 @@ abstract final class GalleryLighting {
   static const double unfinishedLight = 0.35;
 
   /// Fill lights sit along the centre line at this spacing.
-  static const double fillSpacing = 10;
+  ///
+  /// Closer together than the original's, because each one has to reach the
+  /// floor as well as the air: a museum corridor is meant to be dim, but a
+  /// *floor* that goes black stops reading as a floor and starts reading as
+  /// a hole the visitor is walking over.
+  static const double fillSpacing = 7;
 
   static List<LightPlacement> build() => <LightPlacement>[
     ..._frameLights(GalleryProjects.left, onLeft: true),
@@ -132,9 +137,15 @@ abstract final class GalleryLighting {
   }
 
   /// Sparse warm fill down the middle of the corridor.
+  ///
+  /// Starts within a stride of the entrance rather than a full spacing in.
+  /// Beginning at the first interval left the opening stretch — the part the
+  /// visitor spends longest looking at, and where the first pieces hang —
+  /// lit only by picture spots aimed at the walls, so the floor beneath them
+  /// read as unlit rather than as shadow.
   static Iterable<LightPlacement> _fill() sync* {
     for (
-      var z = -fillSpacing;
+      var z = -fillSpacing / 2.5;
       z > GalleryDimensions.backWallZ;
       z -= fillSpacing
     ) {
@@ -142,8 +153,8 @@ abstract final class GalleryLighting {
         kind: LightKind.point,
         position: Vector3(0, GalleryDimensions.ceilY - 0.6, z),
         colour: fill,
-        intensity: 6,
-        range: 16,
+        intensity: 9,
+        range: 18,
       );
     }
   }

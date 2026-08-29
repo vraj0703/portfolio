@@ -114,6 +114,31 @@ class TitleLayerComponent extends PositionComponent
   }
 
   @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+
+    // The stage the game *mounted into* never arrives as a change, so without
+    // this the title waits for a transition into a state the scene is already
+    // in — and waits forever. Leaving the gallery rebuilds the game straight
+    // into the title stage, which is exactly that case: the timeline never
+    // started, nothing was drawn, and all the visitor saw was the bare mark,
+    // which reads as having been dropped back at the logo.
+    if (hasBegunBy(state)) _elapsed ??= 0;
+  }
+
+  /// Whether the title's entrance has started by the time [state] is reached.
+  ///
+  /// Matched through the union rather than with `is Title`, because Flutter
+  /// exports a `Title` widget of its own and importing both into one library
+  /// is ambiguous.
+  static bool hasBegunBy(SceneState state) => state.maybeWhen(
+    titleLoading: () => true,
+    title: () => true,
+    active: (_, _) => true,
+    orElse: () => false,
+  );
+
+  @override
   void onNewState(SceneState state) {
     super.onNewState(state);
 
