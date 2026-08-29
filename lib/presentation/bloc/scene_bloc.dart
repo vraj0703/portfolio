@@ -26,6 +26,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<TitleEntranceCompleted>(_onTitleEntranceCompleted);
     on<AdvanceRequested>(_onAdvanceRequested);
     on<BoldTextCompleted>(_onBoldTextCompleted);
+    on<GalleryExited>(_onGalleryExited);
   }
 
   @override
@@ -82,6 +83,22 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     if (current is! Logo || current.isInteractive) return null;
 
     emit(current.copyWith(isInteractive: true));
+  }
+
+  FutureOr<void> _onGalleryExited(
+    GalleryExited event,
+    Emitter<SceneState> emit,
+  ) {
+    // Guarded like every other transition: the sign lives in the gallery, so
+    // an event from anywhere else is a stray one.
+    if (state is! Gallery) return null;
+
+    // `titleLoading`, not `title`: the stage's components drive themselves
+    // from the entrance, so handing them the finished state leaves the title
+    // never having been told to appear — the visitor lands on a bare logo.
+    // Replaying the entrance also re-establishes the stage, which a hard cut
+    // back into the middle of it would not.
+    emit(const SceneState.titleLoading());
   }
 
   FutureOr<void> _onTapped(Tapped event, Emitter<SceneState> emit) {

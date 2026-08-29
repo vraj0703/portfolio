@@ -22,9 +22,12 @@ void main() {
     // activity clock stayed frozen at the handover, and the first event the
     // gate did see looked like the pause it was waiting for — arming it in
     // the middle of the very gesture it exists to discard.
-    final gate = find.descendant(
-      of: find.byType(GalleryView),
-      matching: find.byType(Listener),
+    // The gate is the listener that handles pointer *signals*; the overlay's
+    // gesture detectors each bring a Listener of their own, so counting them
+    // says nothing.
+    final gate = find.byWidgetPredicate(
+      (w) => w is Listener && w.onPointerSignal != null,
+      description: 'the scroll gate',
     );
 
     expect(
@@ -45,12 +48,9 @@ void main() {
     await tester.pumpWidget(loadingHost(const GalleryView()));
 
     final listener = tester.widget<Listener>(
-      find
-          .descendant(
-            of: find.byType(GalleryView),
-            matching: find.byType(Listener),
-          )
-          .first,
+      find.byWidgetPredicate(
+        (w) => w is Listener && w.onPointerSignal != null,
+      ),
     );
 
     // Hit-test behaviour is the other half of it: a Listener that defers to a

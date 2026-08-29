@@ -1,10 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/material.dart';
-import 'package:flutter_scene/scene.dart';
-import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
-import 'package:portfolio/presentation/gallery/scene_axes.dart';
-import 'package:vector_math/vector_math.dart' as vm;
 
 /// The word that tells the visitor the corridor is walkable.
 ///
@@ -12,22 +7,23 @@ import 'package:vector_math/vector_math.dart' as vm;
 /// A corridor that does not move until you scroll, with nothing saying so,
 /// reads as a still image.
 ///
-/// Built as a Flutter widget on a surface in the scene rather than as 3D
-/// text: flutter_scene has no glyph rendering of its own, and this way the
-/// cue is set in the app's own type, at any size, with no font atlas to
-/// bake. The same mechanism carries the testimonial cards and the keycaps.
+/// Pure animation, drawn by the view rather than mounted in the scene.
+///
+/// It began as a widget on a surface in the room, which was the wrong trade
+/// twice over: a `WidgetComponent` rasterises on its update policy whether
+/// or not its node is visible, so a hidden cue still cost a capture every
+/// frame inside the render loop — and with the manual policy it never
+/// rasterised at all, so the cost bought a surface nobody could see. As a
+/// value the view reads, it costs nothing and is testable without a GPU.
 class ThresholdCue {
-  ThresholdCue._(this._node);
+  ThresholdCue();
 
-  final Node _node;
-
-  Node get node => _node;
-
-  /// Where the cue hangs, in design coordinates.
+  /// Where the cue sits above the bottom of the view, as a fraction of its
+  /// height.
   static const double heightAboveFloor = 1.15;
   static const double distanceIn = -1.5;
 
-  /// How far it lunges toward the visitor, in world units.
+  /// How far it lunges toward the visitor, as a fraction of its own size.
   static const double beckonDepth = 0.22;
 
   /// Beats per second of the beckon.
@@ -42,37 +38,13 @@ class ThresholdCue {
   /// rather than an invitation.
   static const double maxIdleGain = 0.6;
 
-  static ThresholdCue build({required TextStyle style}) {
-    final node = Node(
-      localTransform: vm.Matrix4.translation(
-        SceneAxes.position(
-          vm.Vector3(
-            0,
-            GalleryDimensions.floorY + heightAboveFloor,
-            distanceIn,
-          ),
-        ),
-      ),
-    );
+  /// How much the cue is currently leaning toward the visitor, `-1..1`.
+  double get beckon => _beckon;
+  double _beckon = 0;
 
-    node.addComponent(
-      WidgetComponent(
-        // Captured once. The word never changes, and re-rasterising static
-        // text every frame costs a full widget capture for an identical
-        // result — the motion lives in the node's transform, not in the
-        // pixels.
-        update: WidgetUpdatePolicy.manual,
-        // It is a sign, not a button. Automatic forwarding would let it
-        // swallow pointer events aimed at the corridor behind it.
-        input: WidgetInput.manual,
-        size: const Size(420, 120),
-        worldHeight: 0.42,
-        child: Center(child: Text('SCROLL', style: style)),
-      ),
-    );
-
-    return ThresholdCue._(node);
-  }
+  /// Whether the cue still has anything to say.
+  bool get visible => _visible;
+  bool _visible = true;
 
   /// Advances the beckon.
   ///
@@ -93,17 +65,10 @@ class ThresholdCue {
         ? math.pow(raw, 0.6).toDouble()
         : -math.pow(-raw, 1.4).toDouble();
 
-    final z = distanceIn + skewed * beckonDepth * gain;
-    final lift = math.max(0.0, math.sin(elapsed * beckonRate + 0.3)) * 0.015 * gain;
-
-    _node.localTransform = vm.Matrix4.translation(
-      SceneAxes.position(
-        vm.Vector3(0, GalleryDimensions.floorY + heightAboveFloor + lift, z),
-      ),
-    );
+    _beckon = skewed * gain;
 
     // Fades out as the visitor commits, rather than following them down the
     // corridor repeating itself.
-    _node.visible = progress < 0.06;
+    _visible = progress < 0.06;
   }
 }

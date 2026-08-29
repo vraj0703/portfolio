@@ -20,6 +20,18 @@ abstract class AppTypography {
   /// The bold-text stage. Rasterised into a texture, so this is the only
   /// place its metrics are decided.
   TextStyle get boldText;
+
+  /// The name on the gallery's far wall.
+  TextStyle get wallName;
+
+  /// The statement beneath it.
+  TextStyle get wallStatement;
+
+  /// Lettering painted on a gallery wall — the way out, and its like.
+  TextStyle get wallSign;
+
+  /// The glyphs on the gallery's navigation controls.
+  TextStyle get galleryControl;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -71,6 +83,45 @@ class DefaultAppTypography implements AppTypography {
     letterSpacing: 4,
     color: loadingTextColor,
     fontFamily: "Apertura",
+  );
+
+  /// Warm and slightly over-bright: this is lettering meant to read as lit
+  /// rather than as printed, and it carries its own glow on the wall.
+  static const Color wallInk = Color(0xFFFFE6B0);
+  static const Color wallBody = Color(0xFFC4B496);
+
+  @override
+  TextStyle get wallName => const TextStyle(
+    color: wallInk,
+    fontSize: 132,
+    height: 1.2,
+    letterSpacing: 10,
+    fontWeight: FontWeight.w300,
+  );
+
+  @override
+  TextStyle get wallStatement => const TextStyle(
+    color: wallBody,
+    fontSize: 40,
+    height: 1.5,
+    letterSpacing: 1.2,
+  );
+
+  @override
+  TextStyle get wallSign => const TextStyle(
+    color: wallInk,
+    fontSize: 104,
+    height: 1.3,
+    letterSpacing: 18,
+    fontWeight: FontWeight.w400,
+  );
+
+  @override
+  TextStyle get galleryControl => const TextStyle(
+    fontSize: 26,
+    height: 1,
+    color: Color(0xFFF0E4CC),
+    fontWeight: FontWeight.w300,
   );
 
   @override

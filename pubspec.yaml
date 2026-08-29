@@ -99,11 +99,19 @@ flutter:
     - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg
+    - assets/textures/frame/Wood066_1K-JPG_Color.jpg
+    - assets/textures/frame/Wood066_1K-JPG_Roughness.jpg
+    - assets/textures/frame/Wood066_1K-JPG_NormalGL.jpg
     - assets/textures/wall/Marble004_1K-JPG_Color.jpg
     - assets/textures/wall/Marble004_1K-JPG_Roughness.jpg
     - assets/textures/wall/Marble004_1K-JPG_NormalGL.jpg
+    # A multi-file glTF is a *set*: the .gltf names scene.bin as its geometry
+    # buffer, and the model cannot load without it. Listed by directory so a
+    # companion arriving later is picked up without another pubspec edit.
+    - assets/objects/
     - assets/images/logo.png
     - assets/audio/
+    - flutter_scene_generated/
 
   shaders:
     - assets/shaders/logo.frag

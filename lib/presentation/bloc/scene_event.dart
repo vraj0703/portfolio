@@ -49,4 +49,12 @@ class SceneEvent with _$SceneEvent {
 
   /// The bold-text stage has played out and the scroll is spent.
   const factory SceneEvent.boldTextCompleted() = BoldTextCompleted;
+
+  /// The visitor asked to leave the gallery, from the sign on the left wall.
+  ///
+  /// Returns them to the title rather than to the bold-text stage they
+  /// scrolled through to get here: that stage is a one-way passage driven by
+  /// a scroll that has already been spent, and dropping someone back into
+  /// the middle of it would strand them halfway through an animation.
+  const factory SceneEvent.galleryExited() = GalleryExited;
 }

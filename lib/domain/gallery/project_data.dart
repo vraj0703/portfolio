@@ -9,10 +9,28 @@ import 'dart:ui';
 /// from the left-wall count in `gallery_dimensions.dart`. Reordering this
 /// list moves walls.
 
-/// Selects which generative artwork is drawn onto a project's frame canvas.
+/// Which generative artwork a project's card would carry.
 ///
-/// Each value maps to a painter in `gallery/textures/project_artwork.dart`.
+/// Kept while the cards are deliberately blank: the painters that consumed it
+/// were deleted with them, and the choice per project is content worth
+/// keeping rather than something to re-decide when the cards are filled in.
 enum ProjectVisual { mesh, pipeline, timeline, graph, funnel, dashboard, chat }
+
+/// How far along a piece of work is.
+///
+/// A gallery does not hang an empty frame where a work is not ready — it
+/// hangs the frame and says so on the card. Unfinished work stays on the wall
+/// because the shape of what is coming is itself worth seeing; it is simply
+/// not lit the same way. See `GalleryLighting`, where [ProjectStatus.soon]
+/// gets a dimmer picture light: the room states the difference before any
+/// text does.
+enum ProjectStatus {
+  /// Finished, public, and worth reading in full.
+  live,
+
+  /// Announced, not yet ready. Shows its premise and nothing it cannot back.
+  soon,
+}
 
 class Project {
   const Project({
@@ -23,6 +41,9 @@ class Project {
     required this.gradient,
     required this.stats,
     required this.visual,
+    this.status = ProjectStatus.live,
+    this.summary = '',
+    this.stack = const <String>[],
   });
 
   final String id;
@@ -38,6 +59,24 @@ class Project {
 
   final ProjectVisual visual;
 
+  final ProjectStatus status;
+
+  /// What the work is for, in the visitor's terms rather than the author's.
+  ///
+  /// The one thing [description] cannot carry: it is a label, read in passing
+  /// at four metres, and has to stay short enough to be. This is read at
+  /// arm's length by someone who has already stopped, and answers the
+  /// question a label cannot — *why does this exist*.
+  final String summary;
+
+  /// What it is built with. Named, not counted: a stack is how a reader
+  /// decides whether they recognise the work, and a number tells them
+  /// nothing.
+  final List<String> stack;
+
+  /// Whether there is a finished case to read, as opposed to a premise.
+  bool get isLive => status == ProjectStatus.live;
+
   /// Projects with no public link render without a clickable affordance.
   bool get hasLink => url.isNotEmpty && url != '#';
 }
@@ -52,6 +91,11 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFFD4A800), Color(0xFF5C3A1E)),
       stats: <String>['11 Public Repos', '474 Tests', '4-Layer Governance'],
       visual: ProjectVisual.mesh,
+      summary:
+          'An operating system for a team of AI agents. Four layers of '
+          'governance decide what an agent may do on its own, what it must '
+          'ask about, and what it must never touch.',
+      stack: <String>['TypeScript', 'Node', 'TOML', 'MCP'],
     ),
     Project(
       id: 'ai-mind',
@@ -61,6 +105,11 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
       stats: <String>['Decision Routing', '3-Tier LLM', 'Clean Architecture'],
       visual: ProjectVisual.pipeline,
+      summary:
+          'The part that decides which model answers. Routes each request by '
+          'what it actually needs, so the expensive tier is spent on the work '
+          'that warrants it and not on everything.',
+      stack: <String>['Clean Architecture', 'Multi-model'],
     ),
     Project(
       id: 'ai-constitution',
@@ -70,6 +119,11 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFF10B981), Color(0xFF064E3B)),
       stats: <String>['Governance', 'Autonomy Limits', 'Audit Trails'],
       visual: ProjectVisual.timeline,
+      summary:
+          'Rules an autonomous agent cannot talk its way out of. Limits are '
+          'declared outside the agent and every decision leaves a trail, so '
+          'what it did is answerable after the fact.',
+      stack: <String>['TOML', 'Policy engine', 'Audit log'],
     ),
     Project(
       id: 'ai-knowledge',
@@ -79,6 +133,7 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFFF59E0B), Color(0xFF78350F)),
       stats: <String>['71 Capabilities', 'Hebbian Graph', 'Semantic Search'],
       visual: ProjectVisual.graph,
+      status: ProjectStatus.soon,
     ),
     Project(
       id: 'subwise',
@@ -88,6 +143,7 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFFC8A45C), Color(0xFF5C3A1E)),
       stats: <String>['Kotlin 2', 'Compose', 'Material 3'],
       visual: ProjectVisual.dashboard,
+      status: ProjectStatus.soon,
     ),
     Project(
       id: 'jotter',
@@ -97,6 +153,7 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFFEF4444), Color(0xFF7F1D1D)),
       stats: <String>['Flutter', 'RevenueCat', 'Play Store'],
       visual: ProjectVisual.chat,
+      status: ProjectStatus.soon,
     ),
     Project(
       id: 'twin-health',
@@ -106,6 +163,7 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFF6366F1), Color(0xFF312E81)),
       stats: <String>['67 Releases', '0 Hotfixes', r'$87K Saved'],
       visual: ProjectVisual.funnel,
+      status: ProjectStatus.soon,
     ),
   ];
 

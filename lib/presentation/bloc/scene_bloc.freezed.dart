@@ -56,7 +56,7 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,TResult Function( GalleryExited value)?  galleryExited,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
@@ -67,7 +67,8 @@ return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
 return advanceRequested(_that);case BoldTextCompleted() when boldTextCompleted != null:
-return boldTextCompleted(_that);case _:
+return boldTextCompleted(_that);case GalleryExited() when galleryExited != null:
+return galleryExited(_that);case _:
   return orElse();
 
 }
@@ -85,7 +86,7 @@ return boldTextCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,required TResult Function( GalleryExited value)  galleryExited,}){
 final _that = this;
 switch (_that) {
 case Initialize():
@@ -96,7 +97,8 @@ return tapped(_that);case LogoExitCompleted():
 return logoExitCompleted(_that);case TitleEntranceCompleted():
 return titleEntranceCompleted(_that);case AdvanceRequested():
 return advanceRequested(_that);case BoldTextCompleted():
-return boldTextCompleted(_that);case _:
+return boldTextCompleted(_that);case GalleryExited():
+return galleryExited(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -113,7 +115,7 @@ return boldTextCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,TResult? Function( GalleryExited value)?  galleryExited,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
@@ -124,7 +126,8 @@ return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
 return advanceRequested(_that);case BoldTextCompleted() when boldTextCompleted != null:
-return boldTextCompleted(_that);case _:
+return boldTextCompleted(_that);case GalleryExited() when galleryExited != null:
+return galleryExited(_that);case _:
   return null;
 
 }
@@ -141,7 +144,7 @@ return boldTextCompleted(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,TResult Function()?  galleryExited,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
@@ -151,7 +154,8 @@ return tapped();case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
 return advanceRequested();case BoldTextCompleted() when boldTextCompleted != null:
-return boldTextCompleted();case _:
+return boldTextCompleted();case GalleryExited() when galleryExited != null:
+return galleryExited();case _:
   return orElse();
 
 }
@@ -169,7 +173,7 @@ return boldTextCompleted();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,required TResult Function()  galleryExited,}) {final _that = this;
 switch (_that) {
 case Initialize():
 return initialize();case LoadingProgressed():
@@ -179,7 +183,8 @@ return tapped();case LogoExitCompleted():
 return logoExitCompleted();case TitleEntranceCompleted():
 return titleEntranceCompleted();case AdvanceRequested():
 return advanceRequested();case BoldTextCompleted():
-return boldTextCompleted();case _:
+return boldTextCompleted();case GalleryExited():
+return galleryExited();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -196,7 +201,7 @@ return boldTextCompleted();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,TResult? Function()?  galleryExited,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
@@ -206,7 +211,8 @@ return tapped();case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
 return advanceRequested();case BoldTextCompleted() when boldTextCompleted != null:
-return boldTextCompleted();case _:
+return boldTextCompleted();case GalleryExited() when galleryExited != null:
+return galleryExited();case _:
   return null;
 
 }
@@ -498,6 +504,38 @@ int get hashCode => runtimeType.hashCode;
 @override
 String toString() {
   return 'SceneEvent.boldTextCompleted()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class GalleryExited implements SceneEvent {
+  const GalleryExited();
+  
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryExited);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'SceneEvent.galleryExited()';
 }
 
 

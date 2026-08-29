@@ -93,6 +93,20 @@ abstract final class GallerySurfaces {
     metallic: 0,
   );
 
+  /// ambientCG `Wood066`, for the frames the work hangs in.
+  ///
+  /// A much shorter repeat than any wall: a frame moulding is a few
+  /// centimetres across, and grain tiled at wall scale would stretch a single
+  /// board over the whole frame and read as a photograph of wood rather than
+  /// as wood.
+  static const TextureSet frame = TextureSet(
+    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.jpg',
+    roughness: 'assets/textures/frame/Wood066_1K-JPG_Roughness.jpg',
+    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.jpg',
+    unitsPerRepeat: 0.6,
+    metallic: 0,
+  );
+
   /// ambientCG `OfficeCeiling001`.
   ///
   /// The download also carries `Emission` and `Metalness` maps, and neither

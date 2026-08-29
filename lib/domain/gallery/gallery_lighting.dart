@@ -81,6 +81,16 @@ abstract final class GalleryLighting {
   /// rather than flattening it head-on.
   static const double lightStandoff = 0.9;
 
+  /// What a piece still in progress gets, as a fraction of a full light.
+  ///
+  /// The room saying it before the card does. A gallery hanging work that is
+  /// not ready does not pretend otherwise — and it does not need a sign,
+  /// because the lighting already tells you: the finished pieces are lit to
+  /// be looked at, and the rest are visible rather than presented.
+  ///
+  /// Dim, not dark. Unlit reads as broken; this reads as deliberate.
+  static const double unfinishedLight = 0.35;
+
   /// Fill lights sit along the centre line at this spacing.
   static const double fillSpacing = 10;
 
@@ -113,7 +123,7 @@ abstract final class GalleryLighting {
         // light rather than a downlight that misses the work entirely.
         direction: Vector3(-inward, -1, 0)..normalize(),
         colour: frameLight,
-        intensity: 12,
+        intensity: 12 * (projects[i].isLive ? 1 : unfinishedLight),
         range: 8,
         innerCone: 0.2,
         outerCone: 0.5,

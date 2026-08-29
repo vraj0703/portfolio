@@ -16,6 +16,9 @@ enum SurfaceKind {
   wingWall,
   /// A framed project.
   frame,
+
+  /// The way out, painted on the left wall by the entrance.
+  exitSign,
 }
 
 /// One piece of the gallery, positioned in world space.
@@ -59,8 +62,29 @@ abstract final class GalleryLayout {
   /// How far a frame stands off the wall behind it.
   static const double frameStandoff = 0.14;
 
+  /// How far anything painted on a wall sits proud of it.
+  ///
+  /// Must clear *half* the wall's thickness, not merely be positive: the
+  /// walls are slabs centred on their nominal plane, so a sign nudged a few
+  /// millimetres toward the room is still buried inside the wall and renders
+  /// nowhere. This is the bug that hid the far wall's lettering completely.
+  static const double wallThickness = 0.2;
+  static const double paintedOnWall = wallThickness / 2 + 0.02;
+
   /// Frames are wider than they are tall, matching the artwork.
   static const double frameWidth = 4;
+
+  /// How much wood shows around the card, on every side.
+  ///
+  /// A moulding, not a hairline. Too thin and the frame reads as a border
+  /// drawn on the card rather than as a thing the card sits inside.
+  static const double frameBorder = 0.22;
+
+  /// How far the card stands proud of the wood behind it.
+  ///
+  /// Small, but not zero: two surfaces at the same depth fight for the same
+  /// pixels and flicker as the camera moves.
+  static const double cardRelief = 0.012;
 
   /// The floor and ceiling extend well past the walls so no edge is visible
   /// from inside.
@@ -152,6 +176,18 @@ abstract final class GalleryLayout {
           height,
           0.2,
         ),
+      ),
+      // Painted on the left wall before the first piece, where the original
+      // put it — offered as the visitor arrives, not only at the far end.
+      Placement(
+        kind: SurfaceKind.exitSign,
+        position: Vector3(
+          -GalleryDimensions.wallX + paintedOnWall,
+          GalleryDimensions.frameY,
+          -1,
+        ),
+        extents: Vector3(1.7, 0.62, 0.02),
+        rotationY: quarterTurn,
       ),
       ..._frames(GalleryProjects.left, onLeft: true),
       ..._frames(GalleryProjects.right, onLeft: false),

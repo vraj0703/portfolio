@@ -1,7 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
-import 'package:flutter/widgets.dart' show FontWeight, TextStyle;
+import 'package:flutter/widgets.dart' show TextSpan;
+import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:flutter_scene/scene.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
 // in 32-bit vectors throughout, and the two Matrix4 types are unrelated as far
@@ -9,11 +10,12 @@ import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
-import 'package:portfolio/presentation/game/gallery/project_artwork.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
+import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/presentation/gallery/wall_text.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
-import 'package:portfolio/presentation/gallery/threshold_cue.dart';
 
 /// Builds the gallery's scene graph, and owns everything it allocates.
 ///
@@ -22,13 +24,13 @@ import 'package:portfolio/presentation/gallery/threshold_cue.dart';
 /// deliberately — textures and images are not garbage collected. Anything
 /// this builder makes, it also disposes.
 class GalleryScene {
-  GalleryScene._(this.scene, this.cue, this._artwork, this._textures);
+  GalleryScene._(this.scene, this.arrow, this._artwork, this._textures);
 
   final Scene scene;
 
-  /// The entrance cue, exposed so the view can advance its beckon. Nothing
-  /// else in the scene animates on its own clock.
-  final ThresholdCue cue;
+  /// The entrance cue, exposed so the view can advance its bob and retire it.
+  /// Null when the model could not be read — see [ScrollArrow.load].
+  final ScrollArrow? arrow;
 
   /// Rasterised project art. Owned here, not by the materials that sample it:
   /// a material holding the only reference to an image has no moment at which
@@ -75,7 +77,6 @@ class GalleryScene {
   /// seven of them is the slowest part of opening the gallery.
   static Future<GalleryScene> build({
     int artworkSize = 1024,
-    TextStyle? cueStyle,
     void Function(double)? onProgress,
   }) async {
     // Geometry and materials touch the shader bundle, so nothing can be
@@ -94,13 +95,14 @@ class GalleryScene {
 
     await _populate(scene, artwork, textures, artworkSize, onProgress);
     _light(scene);
+    await _hangStatement(scene, artwork, textures);
 
-    final cue = ThresholdCue.build(style: cueStyle ?? _defaultCueStyle);
-    scene.add(cue.node);
+    final arrow = await ScrollArrow.load();
+    if (arrow != null) scene.add(arrow.node);
 
     await _report(onProgress, 1);
 
-    return _ready = GalleryScene._(scene, cue, artwork, textures);
+    return _ready = GalleryScene._(scene, arrow, artwork, textures);
   }
 
   /// Reports [value] and hands a frame back to the engine.
@@ -137,15 +139,6 @@ class GalleryScene {
   /// followed by a jump — the same complaint, moved rather than fixed.
   static const double _surfaceShare = 0.8;
 
-  /// Used when the caller has no theme to hand — the loading screen builds
-  /// the gallery before any widget with a context is mounted over it.
-  static const TextStyle _defaultCueStyle = TextStyle(
-    color: ui.Color(0xFFFFE0A8),
-    fontSize: 64,
-    fontWeight: FontWeight.w300,
-    letterSpacing: 14,
-  );
-
   /// Walks the layout and creates a node for each piece.
   ///
   /// No decisions here: where things go is [GalleryLayout]'s business, which
@@ -161,7 +154,9 @@ class GalleryScene {
     // would multiply an identical megabyte of noise by the number of walls.
     final normal = await SurfaceTextures.normalMap();
     final rough = await SurfaceTextures.metallicRoughnessMap();
-    artwork..add(normal)..add(rough);
+    artwork
+      ..add(normal)
+      ..add(rough);
 
     final normalTexture = await Texture2D.fromImage(
       normal,
@@ -171,7 +166,9 @@ class GalleryScene {
       rough,
       content: TextureContent.data,
     );
-    textures..add(normalTexture)..add(roughTexture);
+    textures
+      ..add(normalTexture)
+      ..add(roughTexture);
 
     // Photographed rather than generated. Each is null when its files cannot
     // be read, which drops that surface back to the procedural plaster
@@ -180,6 +177,7 @@ class GalleryScene {
       SurfaceKind.floor: GallerySurfaces.floor,
       SurfaceKind.ceiling: GallerySurfaces.ceiling,
       SurfaceKind.sideWall: GallerySurfaces.wall,
+      SurfaceKind.frame: GallerySurfaces.frame,
     };
 
     final totalSteps = sets.values.fold<int>(0, (sum, s) => sum + s.stepCount);
@@ -203,9 +201,6 @@ class GalleryScene {
     }
 
     final pieces = GalleryLayout.build();
-    final frameCount = pieces.where((p) => p.kind == SurfaceKind.frame).length;
-    var framesDone = 0;
-
     for (final piece in pieces) {
       // Design space in, engine space out — see [SceneAxes]. Position and
       // rotation have to cross together; flipping one without the other
@@ -215,32 +210,17 @@ class GalleryScene {
         transform.rotateY(SceneAxes.rotationY(piece.rotationY));
       }
 
-      final Material material;
-      if (piece.kind == SurfaceKind.frame) {
-        final image = await ProjectArtwork.render(
-          piece.project!,
-          size: artworkSize,
-        );
-        artwork.add(image);
-
-        final texture = await Texture2D.fromImage(image);
-        textures.add(texture);
-
-        material = PhysicallyBasedMaterial(baseColorTexture: texture)
-          ..roughnessFactor = 0.6
-          ..metallicFactor = 0;
-
-        // Reported per frame rather than per piece: the shell is effectively
-        // instant, and a bar that jumps on the cheap work then stalls on the
-        // expensive work is worse than no bar at all.
-        framesDone++;
-        await _report(
-          onProgress,
-          _surfaceShare + (1 - _surfaceShare) * (framesDone / frameCount),
-        );
-      } else {
-        material = _surfaceOf(piece, normalTexture, roughTexture, surfaces);
+      if (piece.kind == SurfaceKind.exitSign) {
+        await _paintExitSign(scene, piece, artwork, textures, transform);
+        continue;
       }
+
+      if (piece.kind == SurfaceKind.frame) {
+        _hangFrame(scene, piece, surfaces[SurfaceKind.frame], transform);
+        continue;
+      }
+
+      final material = _surfaceOf(piece, normalTexture, roughTexture, surfaces);
 
       final geometry = switch (piece.kind) {
         // The floor alone is a plane. A plane's normals point straight up,
@@ -253,7 +233,9 @@ class GalleryScene {
         _ => CuboidGeometry(piece.extents),
       };
 
-      scene.add(Node(mesh: Mesh(geometry, material), localTransform: transform));
+      scene.add(
+        Node(mesh: Mesh(geometry, material), localTransform: transform),
+      );
     }
   }
 
@@ -264,15 +246,11 @@ class GalleryScene {
   /// is placed by translation and aimed by the direction it carries.
   static void _light(Scene scene) {
     for (final light in GalleryLighting.build()) {
-      final colour = Vector3(
-        light.colour.r,
-        light.colour.g,
-        light.colour.b,
-      );
+      final colour = Vector3(light.colour.r, light.colour.g, light.colour.b);
 
-      final node = Node(localTransform: Matrix4.translation(
-        SceneAxes.position(light.position),
-      ));
+      final node = Node(
+        localTransform: Matrix4.translation(SceneAxes.position(light.position)),
+      );
 
       switch (light.kind) {
         case LightKind.spot:
@@ -302,6 +280,180 @@ class GalleryScene {
 
       scene.add(node);
     }
+  }
+
+  /// The name and statement on the far wall.
+  ///
+  /// The end of the corridor has to be a destination rather than the point
+  /// at which the work runs out; a blank wall there reads as an unfinished
+  /// room. Baked to a texture rather than mounted as a live widget surface —
+  /// see [WallText].
+  static Future<void> _hangStatement(
+    Scene scene,
+    List<ui.Image> images,
+    List<Texture2D> textures,
+  ) async {
+    const type = DefaultAppTypography();
+    const width = 1600;
+    const height = 640;
+
+    final image = await WallText.render(
+      width: width,
+      height: height,
+      lines: <TextSpan>[
+        TextSpan(text: 'VISHAL RAJ\n', style: type.wallName),
+        TextSpan(
+          text:
+              '\n'
+              'I make software that works quietly and well. For a decade I '
+              'have been building mobile apps, developer tools, and lately '
+              'AI systems that can think for themselves. Good engineering is '
+              'invisible — you only notice it when it is missing.',
+          style: type.wallStatement,
+        ),
+      ],
+      rulePosition: 178,
+      ruleColour: DefaultAppTypography.wallInk,
+      ruleWidth: 480,
+    );
+    images.add(image);
+
+    final texture = await Texture2D.fromImage(image);
+    textures.add(texture);
+
+    // Sized from the image's own proportions, so retyping the statement
+    // cannot silently stretch it.
+    const worldWidth = 6.0;
+    const worldHeight = worldWidth * height / width;
+
+    scene.add(
+      Node(
+        mesh: Mesh(
+          CuboidGeometry(Vector3(worldWidth, worldHeight, 0.02)),
+          _neon(texture),
+        ),
+        localTransform: Matrix4.translation(
+          SceneAxes.position(
+            Vector3(
+              0,
+              0.9,
+              // Clear of the slab, not merely nudged toward the room: the
+              // wall is 0.2 thick and centred on this plane, so a smaller
+              // offset leaves the lettering buried inside it.
+              GalleryDimensions.backWallZ + GalleryLayout.paintedOnWall,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// A lit sign on a wall: unlit shading, alpha blended.
+  ///
+  /// Both halves matter. **Unlit**, because the corridor is deliberately dim
+  /// and a lit material would leave the lettering as dark as the plaster it
+  /// sits on — the glow has to come from the sign, not from the room.
+  /// **Blended**, because the texture is transparent apart from the letters,
+  /// and an opaque material ignores alpha: the cleared background rasterises
+  /// as solid black and the sign arrives as a black slab. That is exactly
+  /// what was on the wall.
+  static UnlitMaterial _neon(Texture2D texture) =>
+      UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend;
+
+  /// Paints the way out onto the wall it belongs to.
+  ///
+  /// On the wall rather than floating over the view, so it tilts with the
+  /// corridor and reads as part of the room — lettering on plaster, not a
+  /// button on a page.
+  static Future<void> _paintExitSign(
+    Scene scene,
+    Placement piece,
+    List<ui.Image> images,
+    List<Texture2D> textures,
+    Matrix4 transform,
+  ) async {
+    const type = DefaultAppTypography();
+    const width = 680;
+    const height = 248;
+
+    final image = await WallText.render(
+      width: width,
+      height: height,
+      lines: <TextSpan>[
+        // No arrow and no plate: the visitor asked for lettering on plaster,
+        // and a glyph plus a border is a button drawn on a wall rather than
+        // a word written on one.
+        TextSpan(text: 'BACK', style: type.wallSign),
+      ],
+      rulePosition: 172,
+      ruleColour: DefaultAppTypography.wallInk,
+      ruleWidth: 300,
+    );
+    images.add(image);
+
+    final texture = await Texture2D.fromImage(image);
+    textures.add(texture);
+
+    scene.add(
+      Node(
+        mesh: Mesh(CuboidGeometry(piece.extents), _neon(texture)),
+        localTransform: transform,
+      ),
+    );
+  }
+
+  /// Hangs one piece: the wooden frame, and the card inside it.
+  ///
+  /// Two meshes rather than one. The frame is a moulding with its own
+  /// material and the card is a flat surface with another, and a single box
+  /// carrying one texture cannot be both — which is what made the old frames
+  /// read as printed panels rather than as work in a frame.
+  static void _hangFrame(
+    Scene scene,
+    Placement piece,
+    SurfaceMaps? wood,
+    Matrix4 transform,
+  ) {
+    final width = GalleryLayout.frameWidth;
+    final height = piece.extents.y;
+    final depth = piece.extents.z;
+
+    scene.add(
+      Node(
+        mesh: Mesh(
+          CuboidGeometry(Vector3(width, height, depth)),
+          wood?.materialFor(width, height) ??
+              _material(const ui.Color(0xFF6B4A2F), 0.7, 0),
+        ),
+        localTransform: transform,
+      ),
+    );
+
+    // Blank on purpose, for now — the card is the surface the work will be
+    // presented on, and an empty one states the shape of the room without
+    // pretending to content it does not have yet.
+    final card = Matrix4.copy(transform)
+      ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
+
+    scene.add(
+      Node(
+        mesh: Mesh(
+          CuboidGeometry(
+            Vector3(
+              width - GalleryLayout.frameBorder * 2,
+              height - GalleryLayout.frameBorder * 2,
+              GalleryLayout.cardRelief * 2,
+            ),
+          ),
+          // Lifted slightly by its own emission. A matte white card under a
+          // picture light this dim otherwise settles to grey, and a gallery
+          // card that reads as grey reads as unlit rather than as blank.
+          _material(const ui.Color(0xFFFFFFFF), 0.92, 0)
+            ..emissiveFactor = Vector4(0.06, 0.06, 0.055, 1),
+        ),
+        localTransform: card,
+      ),
+    );
   }
 
   static PhysicallyBasedMaterial _surfaceOf(
@@ -360,10 +512,6 @@ class GalleryScene {
 
   /* -- Helpers --------------------------------------------------------- */
 
-
-
-
-
   static PhysicallyBasedMaterial _material(
     ui.Color colour,
     double roughness,
@@ -395,4 +543,3 @@ class GalleryScene {
     _textures.clear();
   }
 }
-
