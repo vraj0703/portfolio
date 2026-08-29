@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 
@@ -51,8 +52,6 @@ class GalleryOverlay extends StatelessWidget {
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
 
-  static const Color ink = Color(0xFFF0E4CC);
-  static const Color plate = Color(0xCC1A1512);
 
   @override
   Widget build(BuildContext context) {
@@ -150,11 +149,9 @@ class _Control extends StatelessWidget {
             width: size,
             height: size,
             decoration: BoxDecoration(
-              color: GalleryOverlay.plate,
+              color: context.colors.galleryControlPlate,
               shape: BoxShape.circle,
-              border: Border.all(
-                color: GalleryOverlay.ink.withValues(alpha: 0.45),
-              ),
+              border: Border.all(color: context.colors.galleryControlEdge),
             ),
             alignment: Alignment.center,
             child: Text(glyph, style: context.typography.galleryControl),

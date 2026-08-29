@@ -27,6 +27,9 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<AdvanceRequested>(_onAdvanceRequested);
     on<BoldTextCompleted>(_onBoldTextCompleted);
     on<GalleryExited>(_onGalleryExited);
+    on<ContactRequested>(_onContactRequested);
+    on<GalleryRequested>(_onGalleryRequested);
+    on<HomeRequested>(_onHomeRequested);
   }
 
   @override
@@ -98,6 +101,43 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // left — replaying its two-second entrance would be animating something
     // the visitor can already see.
     emit(const SceneState.title());
+  }
+
+  FutureOr<void> _onContactRequested(
+    ContactRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    // The sign hangs in the skills hall, so the gallery is the only place it
+    // can be pressed from.
+    if (state is! Gallery) return null;
+    emit(const SceneState.contact());
+  }
+
+  FutureOr<void> _onGalleryRequested(
+    GalleryRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    if (state is! Contact) return null;
+
+    // The corridor's view is rebuilt from scratch on the way in — it is
+    // unmounted while the contact screen is up — so it comes back at the
+    // entrance with a fresh scroll, which is what the mark promises.
+    emit(const SceneState.gallery());
+  }
+
+  FutureOr<void> _onHomeRequested(
+    HomeRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    if (state is! Contact) return null;
+
+    // The same door the visitor came in through, not a shortcut past it.
+    // The contact screen borrows the logo screen's composition, so leaving
+    // it is the logo screen's exit: the mark retreats to its corner, the
+    // ground rises and the affordance retracts, and `logoExitCompleted`
+    // carries the scene on to the title's entrance. Emitting `titleLoading`
+    // here instead would land on a stage none of that had happened to.
+    emit(const SceneState.logoOverlayRemoving());
   }
 
   FutureOr<void> _onTapped(Tapped event, Emitter<SceneState> emit) {

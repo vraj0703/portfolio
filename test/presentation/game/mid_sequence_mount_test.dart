@@ -13,6 +13,8 @@ void main() {
     SceneState.titleLoading(),
     SceneState.title(),
     SceneState.active(),
+    SceneState.gallery(),
+    SceneState.contact(),
   ];
 
   group('mounting part-way through the sequence', () {
@@ -25,10 +27,12 @@ void main() {
 
     test('the mark is retreated for every stage past the logo', () {
       for (final stage in stages) {
-        final isEarly = stage is Loading || stage is Logo;
+        // `showsMark` rather than a list spelled out here. The contact
+        // screen joined that composition later, and a list would have gone
+        // on describing the stages it had when it was written.
         expect(
           LogoMarkComponent.hasRetreatedBy(stage),
-          !isEarly,
+          !stage.showsMark,
           reason: '$stage',
         );
       }
@@ -36,8 +40,11 @@ void main() {
 
     test('the backdrop is up for every stage past the logo', () {
       for (final stage in stages) {
-        final isEarly = stage is Loading || stage is Logo;
-        expect(BackdropComponent.hasRisenBy(stage), !isEarly, reason: '$stage');
+        expect(
+          BackdropComponent.hasRisenBy(stage),
+          !stage.showsMark,
+          reason: '$stage',
+        );
       }
     });
 

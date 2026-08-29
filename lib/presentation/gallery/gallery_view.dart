@@ -60,6 +60,13 @@ class GalleryView extends StatefulWidget {
   /// feels the same, and only the new stretch is new.
   static const double scrollExtent = 8000;
 
+  /// How long the corridor takes to go dark on the way out.
+  ///
+  /// Short. This is the visitor being taken somewhere, not a scene change
+  /// being admired — long enough that the room is seen to go rather than to
+  /// vanish, and no longer.
+  static const Duration leaving = Duration(milliseconds: 380);
+
   @override
   State<GalleryView> createState() => _GalleryViewState();
 }
@@ -84,6 +91,26 @@ class _GalleryViewState extends State<GalleryView> {
   /// timeout and leaks through it. The gate waits for the input to go quiet
   /// instead, which is what actually separates one gesture from the next.
   final ScrollGate _gate = ScrollGate();
+
+  /// How far the lights have gone down on the way out, `0`..`1`.
+  ///
+  /// A notifier rather than a field behind `setState`. It is written from
+  /// the render loop, and rebuilding the whole corridor — the scene view,
+  /// the gate, the overlay — sixty times a second to darken one rectangle is
+  /// the exact cost this view already goes out of its way to avoid for the
+  /// camera. Only the rectangle listens.
+  final ValueNotifier<double> _leaving = ValueNotifier<double>(0);
+
+  /// What to raise once the lights are out, or null while the visitor is
+  /// still in the room.
+  ///
+  /// The corridor and the logo screen are different renderers, so there is
+  /// no frame in which both are drawing and no way to dissolve one into the
+  /// other. Going out through black is what makes the handover a transition
+  /// instead of a cut — and holding the event until the black is down is
+  /// what stops the scene changing underneath a room the visitor can still
+  /// see.
+  SceneEvent? _leavingFor;
 
   /// The order the visitor steps through the work in — by depth down the
   /// corridor, both walls interleaved. See [FocusOrder].
@@ -219,6 +246,15 @@ class _GalleryViewState extends State<GalleryView> {
     if (next != null) _focus(next);
   }
 
+  /// Takes the lights down, then raises [event].
+  ///
+  /// Ignores a second request: the visitor pressing the sign twice while the
+  /// room is going dark should not restart the fade or queue two events.
+  void _leave(SceneEvent event) {
+    if (_leavingFor != null) return;
+    setState(() => _leavingFor = event);
+  }
+
   void _pick(Offset at) {
     final camera = _lastCamera;
     final gallery = _gallery;
@@ -230,7 +266,16 @@ class _GalleryViewState extends State<GalleryView> {
       _pickable,
       camera.position,
       (world) => camera.worldToScreen(world, _viewSize),
-      kinds: const <SurfaceKind>{SurfaceKind.frame, SurfaceKind.exitSign},
+      kinds: <SurfaceKind>{
+        SurfaceKind.frame,
+        SurfaceKind.exitSign,
+        // Only once they are standing in the hall. Every sign in the room
+        // projects to somewhere on screen whether or not there is a wall in
+        // front of it, and an invitation that can be pressed through the
+        // back of the corridor would take the visitor out of a gallery they
+        // had not finished walking.
+        if (_inHall) SurfaceKind.connectSign,
+      },
     );
 
     // The board is only reachable once the visitor has arrived at it, and
@@ -273,7 +318,12 @@ class _GalleryViewState extends State<GalleryView> {
     }
 
     if (hit?.kind == SurfaceKind.exitSign) {
-      context.read<SceneBloc>().add(const SceneEvent.galleryExited());
+      _leave(const SceneEvent.galleryExited());
+      return;
+    }
+
+    if (hit?.kind == SurfaceKind.connectSign) {
+      _leave(const SceneEvent.contactRequested());
       return;
     }
 
@@ -352,8 +402,24 @@ class _GalleryViewState extends State<GalleryView> {
         .action;
   }
 
+  /// Runs the lights down and raises the held event when they are out.
+  void _advanceLeaving(double dt) {
+    final event = _leavingFor;
+    if (event == null || _leaving.value >= 1) return;
+
+    final step = dt / (GalleryView.leaving.inMilliseconds / 1000);
+    final next = (_leaving.value + step).clamp(0.0, 1.0);
+    _leaving.value = next;
+    if (next < 1) return;
+
+    // Raised from the render loop, so it cannot go out during a build.
+    // `queue` is the bloc's own inbox and defers to the next turn.
+    if (mounted) context.read<SceneBloc>().queue(event: event);
+  }
+
   @override
   void dispose() {
+    _leaving.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it
     // down every time the visitor steps out threw away seconds of decoding
@@ -444,6 +510,28 @@ class _GalleryViewState extends State<GalleryView> {
               mirrored: !(_focused?.position.x.isNegative ?? true),
               asFallback: _gallery?.controls == null,
             ),
+
+            // Over the room *and* over its controls. A ✕ still lit on a
+            // corridor that has gone dark reads as the page having failed
+            // rather than as a door closing.
+            ValueListenableBuilder<double>(
+              valueListenable: _leaving,
+              builder: (context, leaving, _) => leaving <= 0
+                  ? const SizedBox.shrink()
+                  : AbsorbPointer(
+                      // Absorbing, not passing through: once the lights are
+                      // going down the room stops answering. `IgnorePointer`
+                      // is the wrong tool however it is configured — off, it
+                      // is a no-op, and a `ColoredBox` does not hit-test
+                      // itself, so every click and scroll went straight
+                      // through to the room behind.
+                      child: ColoredBox(
+                        color: context.colors.sceneVeil.withValues(
+                          alpha: leaving,
+                        ),
+                      ),
+                    ),
+            ),
           ],
         );
       },
@@ -495,6 +583,7 @@ class _GalleryViewState extends State<GalleryView> {
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);
+        _advanceLeaving(deltaSeconds);
       },
       cameraBuilder: (_) {
         final camera = PerspectiveCamera(
@@ -593,7 +682,7 @@ class GalleryFailure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ColoredBox(
-      color: const Color(0xFF1A1A1A),
+      color: context.colors.galleryFailureGround,
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),

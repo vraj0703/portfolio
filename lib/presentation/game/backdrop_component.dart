@@ -33,8 +33,7 @@ class BackdropComponent extends PositionComponent
   bool get isOpaque => _opacity >= 1;
 
   /// Whether the backdrop is already up by the time [state] is reached.
-  static bool hasRisenBy(SceneState state) =>
-      state is! Loading && state is! Logo;
+  static bool hasRisenBy(SceneState state) => !state.showsMark;
 
   @override
   void onInitialState(SceneState state) {
@@ -56,12 +55,24 @@ class BackdropComponent extends PositionComponent
       // Starts with the mark's retreat, not with the title, so the two
       // overlap rather than queue.
       logoOverlayRemoving: () => _isRising = true,
-      logo: (_) {
-        _isRising = false;
-        _opacity = 0;
+      logo: (_) => _fall(),
+      contact: _fall,
+      orElse: () {
+        // Up already by this stage, and never seen to rise. Same reason as
+        // the mark's: the ways out of the contact screen do not pass through
+        // the stage that raises it, and a title with no ground under it is
+        // the mark and the words floating on nothing.
+        if (hasRisenBy(state) && !_isRising) {
+          _isRising = true;
+          _opacity = 1;
+        }
       },
-      orElse: () {},
     );
+  }
+
+  void _fall() {
+    _isRising = false;
+    _opacity = 0;
   }
 
   @override

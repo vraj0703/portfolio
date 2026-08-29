@@ -1,31 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
-Future<void> settle() => Future<void>.delayed(Duration.zero);
-
-/// Drives the scene all the way to the gallery, the way a visitor does.
-Future<SceneBloc> inTheGallery() async {
-  final bloc = SceneBloc()..add(const SceneEvent.initialize());
-  for (final phase in LoadingPhase.values) {
-    bloc.add(SceneEvent.loadingProgressed(phase: phase, value: 1));
-  }
-  bloc.add(const SceneEvent.logoEntranceCompleted());
-  await settle();
-
-  bloc.add(const SceneEvent.tapped());
-  await settle();
-  bloc.add(const SceneEvent.logoExitCompleted());
-  await settle();
-  bloc.add(const SceneEvent.titleEntranceCompleted());
-  await settle();
-  bloc.add(const SceneEvent.advanceRequested());
-  await settle();
-  bloc.add(const SceneEvent.boldTextCompleted());
-  await settle();
-
-  return bloc;
-}
+import '../../support/scene_journey.dart';
 
 void main() {
   test('the sign on the left wall returns the visitor to the title', () async {

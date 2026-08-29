@@ -147,7 +147,18 @@ class TitleLayerComponent extends PositionComponent
       // Returning to the logo rewinds the stage so it plays again rather than
       // snapping straight to the finished pose.
       logo: (_) => _rewind(),
-      orElse: () {},
+      // The contact screen clears the stage the same way. Home then arrives
+      // as `titleLoading`, so the entrance plays again from the top rather
+      // than the titles snapping back on.
+      contact: _rewind,
+      orElse: () {
+        // Reached the title without passing through its loading stage —
+        // which is what walking back out of the gallery does, and what the
+        // contact screen's rewind leaves behind when the visitor goes round
+        // by the gallery. Started rather than snapped: they are looking at
+        // the screen when it happens.
+        if (hasBegunBy(state)) _elapsed ??= 0;
+      },
     );
   }
 

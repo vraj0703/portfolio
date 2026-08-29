@@ -29,6 +29,7 @@ class ScenePalette {
     required this.titleSecondaryStyle,
     required this.titleBase,
     required this.scrollCue,
+    required this.scrollCueShadow,
     required this.boldText,
     required this.boldTextStyle,
   });
@@ -52,6 +53,7 @@ class ScenePalette {
       titleSecondaryStyle: context.typography.titleSecondary,
       titleBase: colors.titleBase,
       scrollCue: colors.scrollCue,
+      scrollCueShadow: colors.scrollCueShadow,
       boldText: context.strings.boldText,
       boldTextStyle: context.typography.boldText,
     );
@@ -81,6 +83,10 @@ class ScenePalette {
 
   /// The downward arrow inviting the user onward.
   final Color scrollCue;
+
+  /// Laid under the arrow so it survives the lighter passages of the
+  /// backdrop it travels over.
+  final Color scrollCueShadow;
 
   /// The bold-text stage's line, and how it is set.
   final String boldText;

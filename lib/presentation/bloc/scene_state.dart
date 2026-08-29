@@ -34,6 +34,25 @@ class SceneState with _$SceneState {
   /// The gallery: the corridor of work the bold text hands over to.
   const factory SceneState.gallery() = Gallery;
 
+  /// The contact screen.
+  ///
+  /// Presented as the logo screen is — the mark back in the middle of an
+  /// empty ground — with the horizontal menu standing where "TAP TO ENTER"
+  /// stands. Reusing that stage rather than building a second one is the
+  /// point of it: the visitor has seen this composition before, and meeting
+  /// it again reads as arriving somewhere rather than as a page change.
+  const factory SceneState.contact() = Contact;
+
+  /// Whether the mark is the subject of the screen, centred and full size.
+  ///
+  /// Three stages share the logo screen's composition — the loading curtain,
+  /// the logo itself and the contact screen — and the layers that make it up
+  /// each used to spell that list out for themselves. Three copies of one
+  /// rule is three chances to add a stage to two of them, which is exactly
+  /// what shows up as the mark sitting in its corner over a contact screen
+  /// with no subject.
+  bool get showsMark => this is Loading || this is Logo || this is Contact;
+
   bool get isScrollable => this is Active || this is Gallery;
 
   bool get isInteractable => this is Logo || this is Title;

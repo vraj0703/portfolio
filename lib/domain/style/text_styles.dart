@@ -35,6 +35,23 @@ abstract class AppTypography {
 
   /// The message shown when the gallery cannot be built.
   TextStyle get galleryFailure;
+
+  /// The contact menu's destinations.
+  ///
+  /// Larger than [enter], and tracked far tighter. "TAP TO ENTER" is three
+  /// words with the whole width to spread across; this is seven destinations
+  /// and a row of separators, and the letterspacing that gives the
+  /// affordance its poise pulls each word apart until the row reads as
+  /// loose characters rather than as things to press.
+  TextStyle get contactMenu;
+
+  /// The credits: its title, the line under it, each heading, the things
+  /// credited, and the way out.
+  TextStyle get creditsTitle;
+  TextStyle get creditsSubtitle;
+  TextStyle get creditsHeading;
+  TextStyle get creditsBody;
+  TextStyle get creditsAction;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -56,6 +73,48 @@ class DefaultAppTypography implements AppTypography {
     letterSpacing: 5,
     color: loadingTextColor,
     fontFamily: "Apertura",
+  );
+
+  @override
+  TextStyle get contactMenu => const TextStyle(
+    fontSize: 21,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 1.4,
+    fontFamily: 'Apertura',
+  );
+
+  @override
+  TextStyle get creditsTitle => const TextStyle(
+    fontSize: 19,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.4,
+    fontFamily: 'Apertura',
+  );
+
+  @override
+  TextStyle get creditsSubtitle => const TextStyle(
+    fontSize: 13,
+    fontStyle: FontStyle.italic,
+    fontFamily: 'Apertura',
+  );
+
+  @override
+  TextStyle get creditsHeading => const TextStyle(
+    fontSize: 11,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 1.6,
+    fontFamily: 'Apertura',
+  );
+
+  @override
+  TextStyle get creditsBody =>
+      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Apertura');
+
+  @override
+  TextStyle get creditsAction => const TextStyle(
+    fontSize: 14,
+    letterSpacing: 1.2,
+    fontFamily: 'Apertura',
   );
 
   @override

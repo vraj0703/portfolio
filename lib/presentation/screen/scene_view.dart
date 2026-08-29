@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/style/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/domain/config/durations.dart';
@@ -9,6 +10,7 @@ import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/gallery/gallery_warm_render.dart';
+import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/screen/scene_input.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
@@ -105,6 +107,11 @@ class SceneView extends StatelessWidget {
             ),
           ),
 
+          // Over the game and under the curtain. The composition beneath is
+          // the logo screen's, drawn by the same components that drew it the
+          // first time; this is only what stands where "TAP TO ENTER" stood.
+          const ContactMenuLayer(),
+
           BlocBuilder<SceneBloc, SceneState>(
             builder: (context, state) {
               final isLoading = state is Loading;
@@ -122,7 +129,7 @@ class SceneView extends StatelessWidget {
                     children: <Widget>[
                       ClipPath(
                         clipper: CurtainClipper(revealProgress: reveal),
-                        child: const ColoredBox(color: Colors.black),
+                        child: ColoredBox(color: context.colors.curtain),
                       ),
 
                       // Leaves *with* the curtain rather than popping out a

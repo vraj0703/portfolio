@@ -83,6 +83,12 @@ flutter:
         - asset: fonts/modrnt_urban.otf
 
   assets:
+    # The three marks on the contact menu, the dot between them, and the
+    # heart again in its dialog.
+    - assets/vectors/circle.svg
+    - assets/vectors/gallery.svg
+    - assets/vectors/heart.svg
+    - assets/vectors/home.svg
     # Listed file by file rather than by directory, and the omissions are
     # deliberate. Between them these three downloads also carry 65MB of
     # displacement and OpenEXR normal maps, Blender/USD/MaterialX sources and

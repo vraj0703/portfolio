@@ -15,6 +15,7 @@ import 'package:portfolio/presentation/gallery/skill_keyboard.dart';
 import 'package:portfolio/presentation/gallery/control_icons.dart';
 import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
+import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/gallery/wall_text.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
@@ -179,6 +180,14 @@ class GalleryScene {
 
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.
+  /// How far the rule under each sign runs, in the texture's own pixels.
+  ///
+  /// Measured against the lettering above it: a rule shorter than its word
+  /// reads as an underline that ran out, and one much longer reads as a
+  /// separate mark the word happens to sit on.
+  static const double backRuleWidth = 300;
+  static const double connectRuleWidth = 560;
+
   static const double _shaderShare = 0.15;
 
   /// Where the bar stands once everything after the surfaces is in.
@@ -258,7 +267,8 @@ class GalleryScene {
     // beside the photographs, but silence is silence — a bar that stops is
     // read as a bar that has died, whatever it is waiting for.
     const proceduralSteps = 4;
-    const signSteps = 1;
+    // One rasterise and one upload each, for the two signs.
+    const signSteps = 2;
 
     final totalSteps =
         sets.values.fold<int>(0, (sum, s) => sum + s.stepCount) +
@@ -293,8 +303,20 @@ class GalleryScene {
         transform.rotateY(SceneAxes.rotationY(piece.rotationY));
       }
 
-      if (piece.kind == SurfaceKind.exitSign) {
-        await _paintExitSign(scene, piece, artwork, textures, transform);
+      if (piece.kind == SurfaceKind.exitSign ||
+          piece.kind == SurfaceKind.connectSign) {
+        const strings = DefaultAppStrings();
+        final isExit = piece.kind == SurfaceKind.exitSign;
+
+        await _paintWallSign(
+          scene,
+          piece,
+          isExit ? strings.galleryBack : strings.letsConnect,
+          isExit ? backRuleWidth : connectRuleWidth,
+          artwork,
+          textures,
+          transform,
+        );
         stepsDone++;
         await _report(
           onProgress,
@@ -457,9 +479,17 @@ class GalleryScene {
   /// On the wall rather than floating over the view, so it tilts with the
   /// corridor and reads as part of the room — lettering on plaster, not a
   /// button on a page.
-  static Future<void> _paintExitSign(
+  /// Letters one of the room's two signs onto the plaster.
+  ///
+  /// One routine for both, because they are the same object: a word and a
+  /// rule under it, glowing, with nothing behind them. No arrow and no plate
+  /// — a glyph plus a border is a button drawn on a wall rather than a word
+  /// written on one, and the difference is the whole look of the room.
+  static Future<void> _paintWallSign(
     Scene scene,
     Placement piece,
+    String text,
+    double ruleWidth,
     List<ui.Image> images,
     List<Texture2D> textures,
     Matrix4 transform,
@@ -471,15 +501,14 @@ class GalleryScene {
     final image = await WallText.render(
       width: width,
       height: height,
-      lines: <TextSpan>[
-        // No arrow and no plate: the visitor asked for lettering on plaster,
-        // and a glyph plus a border is a button drawn on a wall rather than
-        // a word written on one.
-        TextSpan(text: 'BACK', style: type.wallSign),
-      ],
+      lines: <TextSpan>[TextSpan(text: text, style: type.wallSign)],
       rulePosition: 172,
       ruleColour: DefaultAppTypography.wallInk,
-      ruleWidth: 300,
+      // Given rather than derived. "LET'S CONNECT" is three times the length
+      // of "BACK", so one width would leave a line floating clear of the
+      // short word or lost under the long one — and deriving it from the
+      // character count only looks right in a monospace, which this is not.
+      ruleWidth: ruleWidth,
     );
     images.add(image);
 

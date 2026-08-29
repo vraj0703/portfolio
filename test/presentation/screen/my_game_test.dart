@@ -36,6 +36,7 @@ ScenePalette _palette() {
     titleSecondaryStyle: type.titleSecondary,
     titleBase: colors.titleBase,
     scrollCue: colors.scrollCue,
+    scrollCueShadow: colors.scrollCueShadow,
     boldText: strings.boldText,
     boldTextStyle: type.boldText,
   );

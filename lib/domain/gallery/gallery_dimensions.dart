@@ -119,6 +119,15 @@ abstract final class GalleryDimensions {
   /// straight run from the end of the pan into the hall depends on all of
   /// them being the same number.
   static double get kbZ => wallLockZ;
+  /// How high the "let's connect" sign hangs on the hall's entry wall.
+  ///
+  /// Level with the visitor at the board rather than with the corridor's
+  /// pictures. They meet this sign from one place only — standing at the
+  /// keyboard, turned back toward the door — and [KeyboardLayout.hoverHeight]
+  /// plus the camera's rise above the board is where their eye is when they
+  /// do. Hung at picture height it would sit below the frame on every screen.
+  static const double connectSignY = 1.5;
+
   static double get kbEntryX => kbX - kbDepth / 2;
   static double get kbEndX => kbX + kbDepth / 2;
 }

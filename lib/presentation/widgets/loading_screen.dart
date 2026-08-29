@@ -178,8 +178,12 @@ class _FlashBurst extends StatelessWidget {
               center: center,
               radius: 0.85,
               colors: <Color>[
-                const Color(0xD9FFF4DE),
-                Color.lerp(accent, Colors.white, 0.55)!.withValues(alpha: 0.62),
+                context.colors.loadingBloomCore,
+                Color.lerp(
+                  accent,
+                  context.colors.loadingBloomHighlight,
+                  0.55,
+                )!.withValues(alpha: 0.62),
                 accent.withValues(alpha: 0.28),
                 accent.withValues(alpha: 0),
               ],

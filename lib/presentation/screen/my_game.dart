@@ -79,8 +79,12 @@ class MyGame extends FlameGame
   /// different mute state, and hid a real dependency behind a value object.
   final AppAudio audio;
 
-  /// One-shot: the handover to the title happens once, when both halves of
-  /// the logo layer have finished leaving.
+  /// One-shot *per visit to the logo screen*: the handover to the title
+  /// happens once both halves of the logo layer have finished leaving.
+  ///
+  /// Armed again whenever that screen comes back — which it does on the
+  /// contact screen, since that borrows the same composition and leaves it
+  /// the same way.
   bool _exitReported = false;
 
   @override
@@ -167,6 +171,7 @@ class MyGame extends FlameGame
     _scrollCue = ScrollCueComponent(
       onAdvance: requestAdvance,
       color: palette.scrollCue,
+      shadow: palette.scrollCueShadow,
       priority: SceneLayers.scrollCue,
     );
 
@@ -290,6 +295,14 @@ class MyGame extends FlameGame
   bool _boldTextHandedOver = false;
 
   void _playCueFor(SceneState state) {
+    // The handover to the title is a one-shot *per visit to the logo
+    // screen*, and the contact screen is a second visit — it borrows that
+    // composition and leaves it the same way. Left spent, the exit plays in
+    // full and reports nothing, so the scene stops on `logoOverlayRemoving`
+    // and the title never arrives. Keyed off the same rule the layers read,
+    // so a further stage joining that composition cannot miss it.
+    if (state.showsMark) _exitReported = false;
+
     state.maybeWhen(
       logoOverlayRemoving: () => audio.play(AudioCue.enter),
       title: () {
@@ -297,6 +310,9 @@ class MyGame extends FlameGame
 
         _rewindBoldTextStage();
       },
+      // Nothing of the corridor's approach may be left standing under the
+      // contact screen.
+      contact: _rewindBoldTextStage,
       active: (_, _) {
         if (_boldTextActive) return;
         _boldTextActive = true;

@@ -23,12 +23,17 @@ class ScrollCueComponent extends PositionComponent
   ScrollCueComponent({
     required this.onAdvance,
     required this.color,
+    required this.shadow,
     super.priority,
   });
 
   /// Called when the user asks to move on.
   final VoidCallback onAdvance;
   final Color color;
+
+  /// Laid under the arrow, so it survives the lighter passages of the
+  /// backdrop it travels over.
+  final Color shadow;
 
   /// The chevron, in the artwork's own 24x24 space.
   static const List<Offset> _chevron = <Offset>[
@@ -155,7 +160,7 @@ class ScrollCueComponent extends PositionComponent
 
     // Shadow first: without it the arrow disappears against the lighter
     // passages of the animated backdrop.
-    _shadowPaint.color = const Color(0xFF000000).withValues(
+    _shadowPaint.color = shadow.withValues(
       alpha: 0.55 * shown,
     );
     canvas.save();

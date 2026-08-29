@@ -62,8 +62,7 @@ class LogoMarkComponent extends PositionComponent
   ///
   /// A predicate rather than an inline check, because it is the whole of the
   /// rule and the component around it cannot be built without a GPU.
-  static bool hasRetreatedBy(SceneState state) =>
-      state is! Loading && state is! Logo;
+  static bool hasRetreatedBy(SceneState state) => !state.showsMark;
 
   @override
   void onInitialState(SceneState state) {
@@ -83,15 +82,30 @@ class LogoMarkComponent extends PositionComponent
     super.onNewState(state);
     state.maybeWhen(
       logoOverlayRemoving: () => _exitElapsed ??= 0,
-      // Coming back to the logo returns the mark to the middle.
-      logo: (_) {
-        if (_exitElapsed == null) return;
-        _exitElapsed = null;
-        position = homePosition.clone();
-        size = homeSize.clone();
+      // Coming back to the logo returns the mark to the middle, and so does
+      // arriving at the contact screen — it is the same composition.
+      logo: (_) => _returnHome(),
+      contact: _returnHome,
+      orElse: () {
+        // Arrived somewhere past the logo screen without having played the
+        // retreat. Leaving the contact screen for the gallery does exactly
+        // that, and so does walking back out of the gallery afterwards —
+        // neither passes through the stage that starts it. The game is not
+        // on screen for either, so the mark parks rather than animating; the
+        // alternative is a full-size mark sitting over the title.
+        if (hasRetreatedBy(state)) _exitElapsed ??= _retreatSeconds;
       },
-      orElse: () {},
     );
+  }
+
+  static double get _retreatSeconds =>
+      LogoConfig.exitDuration.inMilliseconds / 1000;
+
+  void _returnHome() {
+    if (_exitElapsed == null) return;
+    _exitElapsed = null;
+    position = homePosition.clone();
+    size = homeSize.clone();
   }
 
   @override

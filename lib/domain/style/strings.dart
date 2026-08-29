@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/contact/contact_menu.dart';
 
 /// [AppStrings] defines the contract for localized or global strings across the application.
 /// Following the **Dependency Inversion Principle (DIP)**, the UI layer depends on this
@@ -13,6 +14,28 @@ abstract class AppStrings {
 
   /// The bold-text stage's line.
   String get boldText;
+
+  /// The two signs painted on the gallery's plaster.
+  String get galleryBack;
+  String get letsConnect;
+
+  /// The contact menu, in the order [ContactMenu] reads.
+  String get contactCv;
+  String get contactEmail;
+  String get contactGithub;
+  String get contactLinkedIn;
+
+  /// Reads with the heart drawn after it, in the menu and again as the
+  /// credits' own title — one string, because they are the same words
+  /// saying the same thing in two places.
+  String get madeWith;
+
+  /// The credits dialog, opened by the heart.
+  String get creditsSubtitle;
+  String get creditsClose;
+
+  /// What each mark on the menu is, for anyone who cannot see it.
+  String contactMarkLabel(ContactDestination destination);
 
   /// Formats the loading readout, e.g. "LOADING... 007%".
   String loadingProgress(double progress);
@@ -38,6 +61,45 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get boldText => 'Crafting Clarity from Chaos.';
+
+  @override
+  String get galleryBack => 'BACK';
+
+  @override
+  String get letsConnect => "LET'S CONNECT";
+
+  @override
+  String get contactCv => 'cv';
+
+  @override
+  String get contactEmail => 'e-mail';
+
+  @override
+  String get contactGithub => 'github';
+
+  @override
+  String get contactLinkedIn => 'linkedin';
+
+  @override
+  String get madeWith => 'Made with';
+
+  @override
+  String get creditsSubtitle => 'When creativity meets boredom';
+
+  @override
+  String get creditsClose => 'close';
+
+  @override
+  String contactMarkLabel(ContactDestination destination) =>
+      switch (destination) {
+        ContactDestination.gallery => 'Back to the gallery',
+        ContactDestination.credits => 'Made with heart',
+        ContactDestination.home => 'Back to the start',
+        ContactDestination.cv => contactCv,
+        ContactDestination.email => contactEmail,
+        ContactDestination.github => contactGithub,
+        ContactDestination.linkedin => contactLinkedIn,
+      };
 
   @override
   String loadingProgress(double progress) {

@@ -57,4 +57,17 @@ class SceneEvent with _$SceneEvent {
   /// a scroll that has already been spent, and dropping someone back into
   /// the middle of it would strand them halfway through an animation.
   const factory SceneEvent.galleryExited() = GalleryExited;
+
+  /// The visitor pressed the sign on the skills hall's entry wall.
+  const factory SceneEvent.contactRequested() = ContactRequested;
+
+  /// They chose the gallery mark on the contact menu.
+  ///
+  /// Distinct from [SceneEvent.contactRequested]'s inverse: this puts them
+  /// back at the *entrance*, not at the skills hall they came from. The
+  /// gallery is a walk, and the mark offers to take it again.
+  const factory SceneEvent.galleryRequested() = GalleryRequested;
+
+  /// They chose the home mark.
+  const factory SceneEvent.homeRequested() = HomeRequested;
 }

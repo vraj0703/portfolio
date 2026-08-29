@@ -87,6 +87,22 @@ abstract final class LogoConfig {
   static const double lineLength = 80;
   static const double lineGap = 120;
 
+  /// How far the lines stand apart on the contact screen.
+  ///
+  /// Wider, because what stands between them there is a row of seven
+  /// destinations rather than three words. Derived from the viewport rather
+  /// than fixed: the menu is the widest thing on that screen, and a constant
+  /// clear enough for a desktop puts both lines off the edge of a phone.
+  ///
+  /// Read by the lines *and* by the menu, so the two cannot drift — the
+  /// failure otherwise is a menu that overruns its own rules, which reads as
+  /// a layout bug rather than as a design.
+  static double contactGap(double viewportWidth) =>
+      (viewportWidth * 0.34).clamp(minContactGap, maxContactGap);
+
+  static const double minContactGap = 130;
+  static const double maxContactGap = 300;
+
   /// How far the lines travel at the extremes of cursor movement.
   static const double lineTravel = 300;
 

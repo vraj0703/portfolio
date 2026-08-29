@@ -26,7 +26,15 @@ class LogoOverlayComponent extends PositionComponent
   final ScenePalette palette;
   final Queuer queuer;
 
-  String get label => palette.tapToEnter;
+  /// Nothing, once the menu is standing where the label does.
+  ///
+  /// The contact screen keeps this component for its two lines and replaces
+  /// what they flank. Blanking the label rather than hiding the component is
+  /// what keeps the lines' spring, their entrance and their pointer-tracking
+  /// as one piece of behaviour instead of two.
+  String get label => _isContact ? '' : palette.tapToEnter;
+
+  bool _isContact = false;
 
   final BouncyLine _left = BouncyLine();
   final BouncyLine _right = BouncyLine();
@@ -101,23 +109,45 @@ class LogoOverlayComponent extends PositionComponent
     super.onNewState(state);
 
     state.maybeWhen(
+      contact: () {
+        _isContact = true;
+        _replay();
+      },
       logo: (_) {
+        _isContact = false;
         _isOnShow = true;
         // Re-entering the logo (e.g. returning from a later section) replays
         // the entrance rather than snapping to the finished pose.
-        if (_isLeaving) {
-          _isLeaving = false;
-          _entrance = 0;
-          _exit = 0;
-          _entranceReported = false;
-          _left.reset();
-          _right.reset();
-        }
+        if (_isLeaving) _replay();
       },
       logoOverlayRemoving: () => _isLeaving = true,
-      orElse: () {},
+      // Loading is the one stage where nothing has happened yet: the layer
+      // is waiting behind the curtain and must not be told it is leaving.
+      loading: (_) {},
+      orElse: () {
+        // Anywhere past the logo screen the affordance has no business on
+        // the stage. Going from the contact screen into the gallery never
+        // runs the exit that normally clears it, so without this the two
+        // lines stay lit and reappear over the title on the way back.
+        _isLeaving = true;
+      },
     );
   }
+
+  /// Winds the affordance back so its entrance plays again.
+  void _replay() {
+    _isOnShow = true;
+    _isLeaving = false;
+    _entrance = 0;
+    _exit = 0;
+    _entranceReported = false;
+    _left.reset();
+    _right.reset();
+  }
+
+  /// Half the clear space the lines leave between them.
+  double get _gap =>
+      _isContact ? LogoConfig.contactGap(_viewport.x) : LogoConfig.lineGap;
 
   @override
   void update(double dt) {
@@ -207,8 +237,8 @@ class LogoOverlayComponent extends PositionComponent
     final opacity = _lineOpacity;
     if (opacity <= 0.001) return;
 
-    _drawLine(canvas, line: _right, path: _rightPath, gap: LogoConfig.lineGap);
-    _drawLine(canvas, line: _left, path: _leftPath, gap: -LogoConfig.lineGap);
+    _drawLine(canvas, line: _right, path: _rightPath, gap: _gap);
+    _drawLine(canvas, line: _left, path: _leftPath, gap: -_gap);
   }
 
   /// Draws one tapered line: thick at the inner end, near-nothing at the

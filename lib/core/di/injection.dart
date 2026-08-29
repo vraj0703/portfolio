@@ -2,6 +2,8 @@ import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/data/audio/flame_app_audio.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/data/config/durations.dart';
+import 'package:portfolio/data/contact/url_contact_links.dart';
+import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -23,4 +25,11 @@ Future<void> initDependencies() async {
   // One shared audio backend: it owns a cache and a pool of players, so a
   // second instance would duplicate both and let cues talk over each other.
   di.registerLazySingleton<AppAudio>(FlameAppAudio.new);
+
+  // Everything the contact menu reaches for outside the scene. Stateless, and
+  // behind an interface so the menu can be exercised without a platform
+  // channel underneath it.
+  di.registerLazySingleton<ContactLinks>(
+    () => UrlContactLinks(profile: ContactProfile.vishal),
+  );
 }
