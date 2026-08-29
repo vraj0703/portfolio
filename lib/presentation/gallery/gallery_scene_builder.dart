@@ -11,6 +11,7 @@ import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/skill_keyboard.dart';
 import 'package:portfolio/presentation/gallery/control_icons.dart';
 import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
@@ -29,6 +30,7 @@ class GalleryScene {
     this.scene,
     this.arrow,
     this.controls,
+    this.keyboard,
     this._artwork,
     this._textures,
   );
@@ -42,6 +44,9 @@ class GalleryScene {
   /// The three controls that appear under a focused piece, as objects in the
   /// room. Null when their models could not be read.
   final ControlIcons? controls;
+
+  /// The skills board in its hall, exposed so the view can turn it.
+  final SkillKeyboard keyboard;
 
   /// Rasterised project art. Owned here, not by the materials that sample it:
   /// a material holding the only reference to an image has no moment at which
@@ -106,17 +111,49 @@ class GalleryScene {
 
     await _populate(scene, artwork, textures, artworkSize, onProgress);
     _light(scene);
+
+    var tail = 0;
+    Future<void> step() => _report(
+      onProgress,
+      _surfaceShare + (_tailShare - _surfaceShare) * (++tail / _tailSteps),
+    );
+
     await _hangStatement(scene, artwork, textures);
+    await step();
 
     final arrow = await ScrollArrow.load();
     if (arrow != null) scene.add(arrow.node);
+    await step();
 
-    final controls = await ControlIcons.load();
+    final controls = await ControlIcons.load(onStep: step);
     if (controls != null) scene.add(controls.node);
+
+    final base = await SurfaceMaps.load(
+      GallerySurfaces.keyboardBase,
+      artwork,
+      textures,
+      onStep: step,
+    );
+
+    final rows = <SurfaceMaps?>[
+      for (final set in GallerySurfaces.keyRows)
+        await SurfaceMaps.load(set, artwork, textures, onStep: step),
+    ];
+
+    final keyboard = SkillKeyboard.build(base: base, rows: rows);
+    scene.add(keyboard.node);
+    await step();
 
     await _report(onProgress, 1);
 
-    return _ready = GalleryScene._(scene, arrow, controls, artwork, textures);
+    return _ready = GalleryScene._(
+      scene,
+      arrow,
+      controls,
+      keyboard,
+      artwork,
+      textures,
+    );
   }
 
   /// Reports [value] and hands a frame back to the engine.
@@ -143,6 +180,25 @@ class GalleryScene {
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.
   static const double _shaderShare = 0.15;
+
+  /// Where the bar stands once everything after the surfaces is in.
+  ///
+  /// The tail used to be unaccounted for entirely. When the project cards went
+  /// blank the seven artwork reports went with them, and nothing replaced
+  /// them — so the bar ran smoothly to eighty and then sat there through the
+  /// wall lettering, three model loads, the entrance arrow and the whole
+  /// keyboard before jumping to the end. Everything the build actually does
+  /// now reports, so the bar finishes where the work does.
+  static const double _tailShare = 1.0;
+
+  /// Steps in that tail.
+  ///
+  /// The baked statement, the entrance arrow, three control models, the
+  /// board's case — six, being three files decoded and uploaded — the three
+  /// keycap metals at seven apiece, and the board itself. Counted rather than
+  /// guessed, because a denominator that is too small makes the bar finish
+  /// early and then wait, which is the same complaint in a different place.
+  static const int _tailSteps = 33;
 
   /// Where the bar stands once the photographed surfaces are in.
   ///
@@ -191,12 +247,24 @@ class GalleryScene {
       SurfaceKind.floor: GallerySurfaces.floor,
       SurfaceKind.ceiling: GallerySurfaces.ceiling,
       SurfaceKind.sideWall: GallerySurfaces.wall,
+      SurfaceKind.hallWall: GallerySurfaces.wall,
       SurfaceKind.frame: GallerySurfaces.frame,
       SurfaceKind.testimonialFrame: GallerySurfaces.testimonialFrame,
     };
 
-    final totalSteps = sets.values.fold<int>(0, (sum, s) => sum + s.stepCount);
-    var stepsDone = 0;
+    // The plaster generated above and the sign painted below are work like
+    // any other, and neither used to say so: two noise fields built pixel by
+    // pixel, their two uploads, and a sign rasterised and uploaded. Small
+    // beside the photographs, but silence is silence — a bar that stops is
+    // read as a bar that has died, whatever it is waiting for.
+    const proceduralSteps = 4;
+    const signSteps = 1;
+
+    final totalSteps =
+        sets.values.fold<int>(0, (sum, s) => sum + s.stepCount) +
+        proceduralSteps +
+        signSteps;
+    var stepsDone = proceduralSteps;
 
     final surfaces = <SurfaceKind, SurfaceMaps?>{};
     for (final entry in sets.entries) {
@@ -227,6 +295,12 @@ class GalleryScene {
 
       if (piece.kind == SurfaceKind.exitSign) {
         await _paintExitSign(scene, piece, artwork, textures, transform);
+        stepsDone++;
+        await _report(
+          onProgress,
+          _shaderShare +
+              (_surfaceShare - _shaderShare) * (stepsDone / totalSteps),
+        );
         continue;
       }
 

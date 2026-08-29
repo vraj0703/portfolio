@@ -32,6 +32,9 @@ abstract class AppTypography {
 
   /// The glyphs on the gallery's navigation controls.
   TextStyle get galleryControl;
+
+  /// The message shown when the gallery cannot be built.
+  TextStyle get galleryFailure;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -123,6 +126,10 @@ class DefaultAppTypography implements AppTypography {
     color: Color(0xFFF0E4CC),
     fontWeight: FontWeight.w300,
   );
+
+  @override
+  TextStyle get galleryFailure =>
+      const TextStyle(color: Color(0xFFE8C97A), fontSize: 13);
 
   @override
   TextStyle get loading => TextStyle(

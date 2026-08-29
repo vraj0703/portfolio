@@ -11,11 +11,14 @@ import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/project_focus.dart';
+import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
+import 'package:portfolio/domain/gallery/skill_data.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/style/colors.dart';
+import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
@@ -48,8 +51,14 @@ class GalleryView extends StatefulWidget {
   /// How far the visitor scrolls to walk the whole gallery.
   ///
   /// Long: the corridor is the substance of the site and hurrying it defeats
-  /// the point. Divided into a walk and a wall pan by [GalleryCameraPath].
-  static const double scrollExtent = 6000;
+  /// the point. Divided into a walk, a wall pan and the approach to the hall
+  /// by [GalleryCameraPath].
+  ///
+  /// Grown from 6000 when the hall was added, rather than the hall being
+  /// carved out of what was there. The corridor and the pan keep exactly the
+  /// scroll distance they had — everything already tuned against them still
+  /// feels the same, and only the new stretch is new.
+  static const double scrollExtent = 8000;
 
   @override
   State<GalleryView> createState() => _GalleryViewState();
@@ -83,6 +92,26 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// The piece being read, or null while walking the corridor.
   Placement? _focused;
+
+  /// The key the visitor last pressed on the skills board.
+  Skill? _skill;
+
+
+  /// How the visitor has turned the board.
+  late final KeyboardOrbit _orbit = KeyboardOrbit(
+    restElevation: GalleryCameraPath.hallRestElevation,
+  );
+
+  /// Where the drag started, and how far it has run.
+  ///
+  /// A drag and a press arrive as the same pair of events; only the distance
+  /// between them tells the two apart. Without this, turning the board would
+  /// also press whichever key the gesture happened to finish on.
+  Offset? _dragFrom;
+  double _dragDistance = 0;
+
+  /// How far the pointer may travel and still count as a press.
+  static const double _tapSlop = 6;
 
 
   /// Where the camera actually is, as opposed to where it is wanted.
@@ -192,7 +221,8 @@ class _GalleryViewState extends State<GalleryView> {
 
   void _pick(Offset at) {
     final camera = _lastCamera;
-    if (camera == null || _viewSize.isEmpty) return;
+    final gallery = _gallery;
+    if (camera == null || gallery == null || _viewSize.isEmpty) return;
 
     final hit = FramePicker.at(
       at,
@@ -202,6 +232,30 @@ class _GalleryViewState extends State<GalleryView> {
       (world) => camera.worldToScreen(world, _viewSize),
       kinds: const <SurfaceKind>{SurfaceKind.frame, SurfaceKind.exitSign},
     );
+
+    // The board is only reachable once the visitor has arrived at it, and
+    // only then is it still enough to aim at.
+    if (_inHall) {
+      final caps = gallery.keyboard.keycaps();
+      final hit = FramePicker.at(
+        at,
+        _viewSize,
+        caps,
+        camera.position,
+        (world) => camera.worldToScreen(world, _viewSize),
+        kinds: const <SurfaceKind>{SurfaceKind.keycap},
+      );
+
+      if (hit != null) {
+        final skill = gallery.keyboard.skillAt(hit);
+        // Pressing the key already up releases it, so the board is never
+        // stuck showing a choice the visitor has moved on from.
+        final next = skill?.id == _skill?.id ? null : skill;
+        gallery.keyboard.select(next);
+        setState(() => _skill = next);
+        return;
+      }
+    }
 
     // The controls sit in front of the work, so they are offered the tap
     // first — otherwise pressing one would also pick the piece behind it.
@@ -227,6 +281,42 @@ class _GalleryViewState extends State<GalleryView> {
     // dismissing on any miss would make the room feel like it was trying to
     // get rid of you.
     if (hit != null) _focus(hit);
+  }
+
+  /// Whether the visitor has arrived at the board, close enough that the
+  /// orbit may take the camera over from the path.
+  ///
+  /// Asked of the scroll, and it has to be: asking the *camera* whether it
+  /// had reached the stop created a loop that made orbiting impossible.
+  /// Walking round the board moves the camera away from the stop, which
+  /// ended the orbit, which handed the camera back to the path, which pulled
+  /// it to the stop, which started the orbit again — the board and the room
+  /// each yanking the view back a frame at a time, and neither turning.
+  ///
+  /// The scroll has no such feedback: it says where the visitor asked to be,
+  /// not where the camera happens to have got to. It never quite reaches one
+  /// — see `ScrollDriver` — so this asks for very nearly the end rather than
+  /// the end itself.
+  bool get _atBoard =>
+      _scroll.progress >
+      GalleryCameraPath.panEnd + GalleryCameraPath.hallFraction * 0.98;
+
+  /// Whether the visitor is actually standing in the skills hall.
+  ///
+  /// Asked of the camera, not of the scroll, and that distinction is the
+  /// whole of a bug that made the keyboard completely inert. The obvious
+  /// test — "the approach has finished", `_hallArrival >= 1` — requires the
+  /// scroll's progress to reach exactly one, and it never does: the driver
+  /// chases its target with an exponential spring, so it closes on the end
+  /// asymptotically and settles at 0.9999999999999996. Every gate behind
+  /// that condition was unreachable, so neither turning the board nor
+  /// pressing a key ever became possible.
+  ///
+  /// Where the camera has got to is the thing actually being asked about,
+  /// and it answers plainly: past the doorway, the visitor is in the room.
+  bool get _inHall {
+    final eye = _eye;
+    return eye != null && eye.x > GalleryDimensions.kbEntryX;
   }
 
   /// Which control is under [at], if any.
@@ -312,7 +402,29 @@ class _GalleryViewState extends State<GalleryView> {
               // Without this the placeholder is not a hit-test target, and
               // the events it is here to swallow go straight past it.
               behavior: HitTestBehavior.opaque,
-              onPointerUp: (event) => _pick(event.localPosition),
+              onPointerDown: (event) {
+                _dragFrom = event.localPosition;
+                _dragDistance = 0;
+              },
+              onPointerMove: (event) {
+                final from = _dragFrom;
+                if (from == null) return;
+                _dragDistance += event.delta.distance;
+
+                // Only the board turns by dragging. Everywhere else in the
+                // gallery a drag means nothing, and treating it as one would
+                // fight the scroll.
+                if (_inHall) {
+                  _orbit.drag(event.delta.dx, event.delta.dy);
+                }
+              },
+              onPointerUp: (event) {
+                final dragged = _dragDistance > _tapSlop;
+                _dragFrom = null;
+                if (dragged) return;
+                _pick(event.localPosition);
+              },
+              onPointerCancel: (_) => _dragFrom = null,
               child: _surface(context),
             ),
 
@@ -340,20 +452,10 @@ class _GalleryViewState extends State<GalleryView> {
 
   Widget _surface(BuildContext context) {
     final error = _error;
-    if (error != null) return _failure(error);
+    if (error != null) return GalleryFailure(error: error);
 
     final gallery = _gallery;
-    if (gallery == null) {
-      // Only reached on a machine slow enough that the gallery is still
-      // building when the visitor arrives. It carries the ground colour of
-      // the stage that just ended rather than the corridor's, so the wait
-      // continues from what was on screen instead of cutting to a new plate.
-      return ColoredBox(
-        key: GalleryView.placeholderKey,
-        color: context.colors.sceneBackground,
-        child: const SizedBox.expand(),
-      );
-    }
+    if (gallery == null) return const GalleryPlaceholder();
 
     return SceneView(
       gallery.scene,
@@ -366,10 +468,32 @@ class _GalleryViewState extends State<GalleryView> {
         // nothing — so leaving focus hands the visitor back to exactly the
         // spot they left rather than to wherever the wheel wandered.
         if (_focused == null) _scroll.update(deltaSeconds);
-        gallery.arrow?.update(
-          elapsed.inMicroseconds / 1e6,
-          _scroll.progress,
+        final seconds = elapsed.inMicroseconds / 1e6;
+        gallery.arrow?.update(seconds, _scroll.progress);
+
+        // Until the visitor has arrived the board turns gently on its own;
+        // after that it is theirs to turn, and carries their flick on.
+        // The board rises into view before the visitor sets off to meet it,
+        // and stays put thereafter — it is the camera that moves around it.
+        // No warm-up frame here any more. It was meant to compile the
+        // board's shaders early by drawing it once, and it could not: the
+        // board is thirty units away behind two walls at that point, so
+        // there is every chance it is culled and nothing is submitted at
+        // all. The board now uses the same plain material as the corridor,
+        // so there is no shader left that needs warming.
+        gallery.keyboard.reveal(
+          GalleryCameraPath.revealAt(_scroll.progress),
+          elapsed: seconds,
         );
+
+        if (!_atBoard) {
+          // Leaving. Eased back to the doorway view so a reverse scroll walks
+          // the visitor out facing the way they came, rather than sideways
+          // from wherever they had wandered round to.
+          _orbit.settle(deltaSeconds);
+        } else if (_dragFrom == null) {
+          _orbit.update(deltaSeconds);
+        }
         _advanceCamera(deltaSeconds);
       },
       cameraBuilder: (_) {
@@ -402,13 +526,29 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
+  /// The pose the camera is aiming for, orbit included.
+  ///
+  /// Once at the board the orbit owns the camera outright. It is seeded from
+  /// exactly where the approach ends — same radius, same elevation — so the
+  /// handover is a continuation rather than a cut.
+  FocusPose _cameraTarget() {
+    if (_focused == null && _atBoard) {
+      final pose = GalleryCameraPath.orbitPose(
+        _orbit.azimuth,
+        _orbit.elevation,
+      );
+      return FocusPose(position: pose.position, target: pose.target);
+    }
+    return _targetPose();
+  }
+
   /// Moves the camera toward where it wants to be.
   ///
   /// Frame-rate independent, rather than a fixed fraction per frame: the
   /// latter closes a different amount of the gap at 60fps than at 120, so
   /// the same move reads as a different speed on a different machine.
   void _advanceCamera(double dt) {
-    final target = _targetPose();
+    final target = _cameraTarget();
     final eye = _eye ??= target.position.clone();
     final look = _look ??= target.target.clone();
 
@@ -419,7 +559,39 @@ class _GalleryViewState extends State<GalleryView> {
     look.setFrom(look + (target.target - look) * t);
   }
 
-  Widget _failure(Object error) {
+}
+
+/// Shown while the corridor is still being built.
+///
+/// Only reached on a machine slow enough that the scene has not finished by
+/// the time the visitor arrives. It carries the ground colour of the stage
+/// that just ended rather than the corridor's, so the wait continues from
+/// what was on screen instead of cutting to a new plate.
+class GalleryPlaceholder extends StatelessWidget {
+  const GalleryPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      key: GalleryView.placeholderKey,
+      color: context.colors.sceneBackground,
+      child: const SizedBox.expand(),
+    );
+  }
+}
+
+/// Shown when the corridor cannot be built at all.
+///
+/// Deliberately plain and deliberately present: the alternative is a black
+/// screen with no explanation, and a visitor who has scrolled this far has
+/// earned being told what happened.
+class GalleryFailure extends StatelessWidget {
+  const GalleryFailure({required this.error, super.key});
+
+  final Object error;
+
+  @override
+  Widget build(BuildContext context) {
     return ColoredBox(
       color: const Color(0xFF1A1A1A),
       child: Center(
@@ -428,7 +600,7 @@ class _GalleryViewState extends State<GalleryView> {
           child: Text(
             'The gallery failed to open:\n$error',
             textAlign: TextAlign.center,
-            style: const TextStyle(color: Color(0xFFE8C97A), fontSize: 13),
+            style: context.typography.galleryFailure,
           ),
         ),
       ),

@@ -74,7 +74,7 @@ class ControlIcons {
   /// own face rather than swinging it out of the wall.
   static const double crossRoll = math.pi / 4;
 
-  static Future<ControlIcons?> load() async {
+  static Future<ControlIcons?> load({Future<void> Function()? onStep}) async {
     final root = Node();
     final slots = <_Slot>[];
 
@@ -102,6 +102,10 @@ class ControlIcons {
       final slot = Node()..add(scaled);
       root.add(slot);
       slots.add(_Slot(slot, action, isCross));
+
+      // One report per model. Three files is not a lot, but they land at the
+      // very end of the build where the bar was previously silent.
+      await onStep?.call();
     }
 
     final lamp = PointLight(color: Vector3(1, 0.86, 0.62), range: 4);

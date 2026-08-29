@@ -10,6 +10,10 @@ void main() {
     'floor': GallerySurfaces.floor,
     'wall': GallerySurfaces.wall,
     'ceiling': GallerySurfaces.ceiling,
+    'keyboardBase': GallerySurfaces.keyboardBase,
+    'keys1': GallerySurfaces.keyRows[0],
+    'keys2': GallerySurfaces.keyRows[1],
+    'keys3': GallerySurfaces.keyRows[2],
   };
 
   group('every declared map is in the bundle and decodes', () {
@@ -99,9 +103,16 @@ void main() {
       ].nonNulls.length;
 
       expect(set.mapCount, declared, reason: name);
-      // Two steps per file: it is decoded, then uploaded. Counting only the
-      // decodes is what left the bar silent through every upload.
-      expect(set.stepCount, declared * 2, reason: name);
+      // Two steps per bound file: it is decoded, then uploaded. Counting only
+      // the decodes is what left the bar silent through every upload.
+      //
+      // A metalness map adds one, not two: it is folded into the roughness
+      // map's blue channel rather than uploaded on its own.
+      expect(
+        set.stepCount,
+        declared * 2 + (set.metalness == null ? 0 : 1),
+        reason: name,
+      );
     });
   });
 }

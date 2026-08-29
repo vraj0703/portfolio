@@ -20,6 +20,12 @@ enum SurfaceKind {
   /// The way out, painted on the left wall by the entrance.
   exitSign,
 
+  /// A wall of the skills hall, off the end of the testimonial wing.
+  hallWall,
+
+  /// One key on the skills board.
+  keycap,
+
   /// A frame on the far wall, for a recommendation.
   ///
   /// Distinct from [frame] rather than another of them: these hang on a
@@ -178,7 +184,7 @@ abstract final class GalleryLayout {
         position: Vector3(
           (GalleryDimensions.kbEntryX + GalleryDimensions.wallX) / 2,
           0.5,
-          GalleryDimensions.backWallZ + GalleryDimensions.corridorWidth,
+          GalleryDimensions.backWallZ + GalleryDimensions.wingWidth,
         ),
         extents: Vector3(
           GalleryDimensions.kbEntryX - GalleryDimensions.wallX,
@@ -198,10 +204,64 @@ abstract final class GalleryLayout {
         extents: Vector3(1.7, 0.62, 0.02),
         rotationY: quarterTurn,
       ),
+      ..._skillHall(),
       ..._testimonialFrames(),
       ..._frames(GalleryProjects.left, onLeft: true),
       ..._frames(GalleryProjects.right, onLeft: false),
     ];
+  }
+
+  /// The room the keyboard hangs in, and the passage into it.
+  ///
+  /// A square hall at the end of the testimonial wing, walled on three sides
+  /// with the fourth left open in the middle so the visitor can walk through.
+  /// That opening is why the entry side is two pieces rather than one: a
+  /// single wall across it would seal the hall off, and the camera would
+  /// arrive facing plaster.
+  static Iterable<Placement> _skillHall() sync* {
+    final height = GalleryDimensions.corridorHeight + 2;
+    final width = GalleryDimensions.kbWidth;
+    final depth = GalleryDimensions.kbDepth;
+    final x = GalleryDimensions.kbX;
+    final z = GalleryDimensions.kbZ;
+
+    Placement wall(Vector3 position, Vector3 extents) => Placement(
+      kind: SurfaceKind.hallWall,
+      position: position,
+      extents: extents,
+    );
+
+    // The two sides running away from the corridor, and the far end. The
+    // sides run the room's *depth*; the far wall spans its width.
+    yield wall(
+      Vector3(x, 0.5, z + width / 2),
+      Vector3(depth, height, wallThickness),
+    );
+    yield wall(
+      Vector3(x, 0.5, z - width / 2),
+      Vector3(depth, height, wallThickness),
+    );
+    yield wall(
+      Vector3(GalleryDimensions.kbEndX, 0.5, z),
+      Vector3(wallThickness, height, width),
+    );
+
+    // The entry side, in two pieces with the passage between them. The
+    // opening is exactly the alley's cross-section, so walking out of the
+    // alley is walking through the door — anything wider would show the
+    // hall's own walls from inside the alley, and anything narrower would
+    // make the visitor thread a gap they cannot see the sides of.
+    final segment = (width - GalleryDimensions.wingWidth) / 2;
+    for (final side in <double>[-1, 1]) {
+      yield wall(
+        Vector3(
+          GalleryDimensions.kbEntryX,
+          0.5,
+          z + side * (GalleryDimensions.wingWidth + segment) / 2,
+        ),
+        Vector3(wallThickness, height, segment),
+      );
+    }
   }
 
   /// How far a far-wall frame stands off the plaster.

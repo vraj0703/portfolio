@@ -21,8 +21,11 @@ void main() {
 
     test('stops short of the back wall rather than at it', () {
       // Walking into the wall would put the testimonials past the near plane.
+      // Sampled just inside the end of the walk. The epsilon is a fraction
+      // of the walk rather than of the whole scroll, so shortening the walk
+      // to make room for the hall does not turn it into a bigger step.
       final arrival = GalleryCameraPath.poseAt(
-        GalleryCameraPath.walkFraction - 0.001,
+        GalleryCameraPath.walkFraction * 0.999,
       );
 
       expect(arrival.position.z, greaterThan(GalleryDimensions.backWallZ));
@@ -59,21 +62,27 @@ void main() {
     });
 
     test('tracks sideways to the last card', () {
-      final pose = GalleryCameraPath.poseAt(1);
+      // The pan ends at `panEnd`, not at 1: the route carries on into the
+      // hall from there.
+      final pose = GalleryCameraPath.poseAt(GalleryCameraPath.panEnd);
       expect(pose.position.x, closeTo(GalleryCameraPath.panEndX, 0.01));
     });
 
     test('views the wall square-on the whole way', () {
       // Letting the target lag behind the position would skew every card as
       // it passed.
-      for (var p = GalleryCameraPath.walkFraction; p <= 1; p += 0.02) {
+      for (var p = GalleryCameraPath.walkFraction;
+          p < GalleryCameraPath.panEnd;
+          p += 0.02) {
         final pose = GalleryCameraPath.poseAt(p);
         expect(pose.target.x, closeTo(pose.position.x, 1e-9), reason: 'at $p');
       }
     });
 
     test('holds its distance from the wall', () {
-      for (var p = GalleryCameraPath.walkFraction; p <= 1; p += 0.05) {
+      for (var p = GalleryCameraPath.walkFraction;
+          p < GalleryCameraPath.panEnd;
+          p += 0.05) {
         expect(
           GalleryCameraPath.poseAt(p).position.z,
           closeTo(GalleryDimensions.wallLockZ, 1e-9),
@@ -86,11 +95,14 @@ void main() {
     test('does not jump between the two movements', () {
       // The one place a two-part path visibly breaks. A discontinuity here
       // reads as the camera being teleported mid-walk.
+      // Sampled tightly. A fixed slice of *progress* is a different physical
+      // step depending on how long the movement either side of it is, so a
+      // loose epsilon here measures the sampling rather than the path.
       const seam = GalleryCameraPath.walkFraction;
-      final before = GalleryCameraPath.poseAt(seam - 0.0005);
-      final after = GalleryCameraPath.poseAt(seam + 0.0005);
+      final before = GalleryCameraPath.poseAt(seam - 1e-5);
+      final after = GalleryCameraPath.poseAt(seam + 1e-5);
 
-      expect((after.position - before.position).length, lessThan(0.05));
+      expect((after.position - before.position).length, lessThan(0.01));
     });
 
     test('the eye height shifts only slightly across the seam', () {
@@ -107,7 +119,15 @@ void main() {
       for (var p = 0.0; p <= 1; p += 0.01) {
         final pose = GalleryCameraPath.poseAt(p);
 
-        expect(pose.position.x, inInclusiveRange(-1, GalleryCameraPath.panEndX + 1));
+        // The route now reaches past the wing into the hall, so the far
+        // bound is the hall's end wall rather than the last testimonial.
+        expect(
+          pose.position.x,
+          inInclusiveRange(
+            -1,
+            GalleryDimensions.kbX + GalleryDimensions.kbDepth / 2,
+          ),
+        );
         expect(pose.position.z, greaterThan(GalleryDimensions.backWallZ));
         expect(pose.position.z, lessThanOrEqualTo(GalleryCameraPath.startZ));
       }

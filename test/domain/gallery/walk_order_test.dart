@@ -110,12 +110,4 @@ void main() {
     });
   });
 
-  test('nearest finds the piece the visitor is standing at', () {
-    for (final frame in frames) {
-      expect(
-        order.nearestTo(frame.position.z).position.z,
-        frame.position.z,
-      );
-    }
-  });
 }

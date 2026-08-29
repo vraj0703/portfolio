@@ -53,8 +53,23 @@ abstract final class GalleryDimensions {
   /// Extra breathing room around a frame when the camera focuses it.
   static const double focusMargin = 1.5;
 
+  /// How wide the testimonial alley is, front wall to back.
+  ///
+  /// Narrower than the corridor that feeds it. Standing in the skills hall
+  /// and looking back down the alley, a wider one puts the far end of the
+  /// project corridor — and the end of its right-hand wall — in view through
+  /// the doorway, so the hall never reads as its own room. Six leaves the
+  /// alley reading as a passage between two rooms rather than a window into
+  /// the first one.
+  static const double wingWidth = 6;
+
   /// How far from the back wall the forward walk stops.
-  static const double wallLockDistance = 4;
+  ///
+  /// Half the alley, so the pan runs down its centre line. That is not just
+  /// tidiness: the hall's doorway is cut on the same line, so an off-centre
+  /// pan would arrive at the threshold offset from the opening and have to
+  /// dogleg through it.
+  static const double wallLockDistance = wingWidth / 2;
   static double get wallLockZ => backWallZ + wallLockDistance;
 
   /* -- Testimonial wing ------------------------------ */
@@ -76,11 +91,34 @@ abstract final class GalleryDimensions {
 
   /* -- Keyboard exhibition hall ---------------------- */
 
-  static const double kbRoom = 24;
+  /// The skills hall is a room, not a concourse.
+  ///
+  /// Twenty-four units square left a six-metre board adrift in the middle of
+  /// nine metres of empty floor, under a ceiling only five high — the
+  /// proportions of a warehouse rather than a gallery.
+  ///
+  /// It is no longer square. Across the visitor's view fourteen reads well:
+  /// the board is six of it, with a comfortable margin either side. In the
+  /// direction they are *facing* that same fourteen put the far wall seven
+  /// units behind the board and only three and a half in front, so the room
+  /// read as a long hall the board happened to be standing in rather than a
+  /// room built around it. Ten puts equal floor on both sides of it.
+  /// Narrowed with the board. Fourteen was right for a board 6.3 across;
+  /// once the board came down to 4.5 to survive a square window, the same
+  /// fourteen put more empty floor either side of it than there was board,
+  /// which is the proportion this room was reshaped to avoid in the first
+  /// place.
+  static const double kbWidth = 12;
+  static const double kbDepth = 10;
 
   /// The hall opens 8 units past the final testimonial card.
-  static double get kbX => testPanEndX + 8 + kbRoom / 2;
-  static double get kbZ => backWallZ + corridorWidth / 2;
-  static double get kbEntryX => kbX - kbRoom / 2;
-  static double get kbEndX => kbX + kbRoom / 2;
+  static double get kbX => testPanEndX + 8 + kbDepth / 2;
+  /// The hall's centre line, which is the alley's, which is the pan's.
+  ///
+  /// Derived rather than restated so the three cannot drift apart — the
+  /// straight run from the end of the pan into the hall depends on all of
+  /// them being the same number.
+  static double get kbZ => wallLockZ;
+  static double get kbEntryX => kbX - kbDepth / 2;
+  static double get kbEndX => kbX + kbDepth / 2;
 }

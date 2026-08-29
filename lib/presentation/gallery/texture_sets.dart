@@ -25,6 +25,7 @@ class TextureSet {
     required this.unitsPerRepeat,
     this.normal,
     this.occlusion,
+    this.metalness,
     this.metallic = 0.05,
   });
 
@@ -45,10 +46,20 @@ class TextureSet {
   /// runtime light in this scene is going to produce.
   final String? occlusion;
 
+  /// A map of where the surface is metal and where it is not.
+  ///
+  /// Usually absent, and rightly: most of these downloads ship a uniform one
+  /// as a placeholder, which says in a megabyte what [metallic] says in a
+  /// number. Worth binding only when it is measured to vary — the keycap
+  /// metals average 0.51, 0.57 and 0.86 across their faces rather than
+  /// sitting at one value, and a scalar would flatten exactly the patina
+  /// that makes them look like three different alloys.
+  final String? metalness;
+
   /// World units spanned by one repeat.
   final double unitsPerRepeat;
 
-  /// Metallic written into every texel. These are all dielectric.
+  /// Metallic written into every texel, when there is no [metalness] map.
   final double metallic;
 
   /// How many files this set is made of.
@@ -62,8 +73,12 @@ class TextureSet {
   /// Counting only the decodes left the bar silent through every upload,
   /// which is what made it stall with the work still running.
   ///
+  /// A metalness map adds one and not two: it is decoded and then folded into
+  /// the roughness map's blue channel, so it never becomes a texture of its
+  /// own.
+  ///
   /// The bar needs this *before* the work starts, to have a denominator.
-  int get stepCount => mapCount * 2;
+  int get stepCount => mapCount * 2 + (metalness == null ? 0 : 1);
 }
 
 /// The photographed sets the gallery is surfaced with.
@@ -131,6 +146,63 @@ abstract final class GallerySurfaces {
     unitsPerRepeat: 0.6,
     metallic: 0,
   );
+
+  /// ambientCG `Metal048B`, for the keyboard's case.
+  ///
+  /// A long repeat, because the case is a single milled block: seeing the
+  /// pattern twice across it reads as a wrap rather than as the material.
+  ///
+  /// Its `Metalness` map is not listed — measured at 199..255 with a mean of
+  /// 254.7, so it is white but for a scatter, which [metallic] says in one
+  /// number. Its roughness is what earns its place: a mean of 37/255 makes
+  /// this the most polished thing in the gallery, which is right for the one
+  /// manufactured object in a room full of plaster and timber.
+  static const TextureSet keyboardBase = TextureSet(
+    colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.jpg',
+    roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.jpg',
+    normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.jpg',
+    unitsPerRepeat: 2.5,
+    metallic: 1,
+  );
+
+  /// The three metals the keycap rows are cut from.
+  ///
+  /// One per row, cycled — there are four rows and three sets, so the last
+  /// row repeats the first. Different alloys per row is doing the job the
+  /// original's row tints did: telling the eye at a glance that the board is
+  /// grouped, without a label on it.
+  ///
+  /// All three bind their metalness maps, unlike every other set here, and
+  /// for a measured reason: they vary across the face rather than sitting at
+  /// one value.
+  static const List<TextureSet> keyRows = <TextureSet>[
+    TextureSet(
+      colour: 'assets/textures/keys/set_1/Metal023_1K-JPG_Color.jpg',
+      roughness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.jpg',
+      normal: 'assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.jpg',
+      metalness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.jpg',
+      // One repeat across a cap: the cap is the size of the detail, so
+      // anything longer shows a single flat patch of it.
+      unitsPerRepeat: 0.4,
+      metallic: 1,
+    ),
+    TextureSet(
+      colour: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Color.jpg',
+      roughness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.jpg',
+      normal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.jpg',
+      metalness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.jpg',
+      unitsPerRepeat: 0.4,
+      metallic: 1,
+    ),
+    TextureSet(
+      colour: 'assets/textures/keys/set_3/Metal022_1K-JPG_Color.jpg',
+      roughness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.jpg',
+      normal: 'assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.jpg',
+      metalness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.jpg',
+      unitsPerRepeat: 0.4,
+      metallic: 1,
+    ),
+  ];
 
   /// ambientCG `OfficeCeiling001`.
   ///
@@ -205,7 +277,7 @@ class SurfaceMaps {
   }) async {
     final colour = await decodeMap(set.colour);
     await onStep?.call();
-    final roughness = await packRoughness(set);
+    final roughness = await packRoughness(set, onStep: onStep);
     await onStep?.call();
     if (colour == null || roughness == null) {
       colour?.dispose();
@@ -306,9 +378,21 @@ class SurfaceMaps {
   /// the shader ignores — leaving the surface uniformly glossy while looking
   /// entirely correct in an image viewer.
   @visibleForTesting
-  static Future<ui.Image?> packRoughness(TextureSet set) async {
+  static Future<ui.Image?> packRoughness(
+    TextureSet set, {
+    Future<void> Function()? onStep,
+  }) async {
     final source = await decodeMap(set.roughness);
     if (source == null) return null;
+
+    // Read alongside the roughness so the two can be packed into one texture.
+    // Both are single-channel data; keeping them apart would cost a second
+    // sampler and a second upload to carry no more information.
+    ui.Image? metalMap;
+    if (set.metalness != null) {
+      metalMap = await decodeMap(set.metalness!);
+      await onStep?.call();
+    }
 
     try {
       final grey = await source.toByteData(
@@ -316,14 +400,21 @@ class SurfaceMaps {
       );
       if (grey == null) return null;
 
+      final metal = await metalMap?.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      );
+
       final src = grey.buffer.asUint8List();
+      final metalSrc = metal?.buffer.asUint8List();
       final packed = Uint8List(src.length);
       final metallicByte = (set.metallic * 255).round().clamp(0, 255);
 
       for (var i = 0; i < src.length; i += 4) {
         packed[i] = 0;
         packed[i + 1] = src[i]; // grey, so any channel is the roughness
-        packed[i + 2] = metallicByte;
+        packed[i + 2] = metalSrc != null && i < metalSrc.length
+            ? metalSrc[i]
+            : metallicByte;
         packed[i + 3] = 255;
       }
 
@@ -332,6 +423,7 @@ class SurfaceMaps {
       return await _fromPixels(packed, source.width, source.height);
     } finally {
       source.dispose();
+      metalMap?.dispose();
     }
   }
 

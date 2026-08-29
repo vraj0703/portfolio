@@ -86,20 +86,4 @@ class WalkOrder {
     return i >= 0 && i < wall.length - 1 ? wall[i + 1] : null;
   }
 
-  /// The piece nearest a point along the corridor, used when focus is
-  /// entered from somewhere other than a click.
-  Placement nearestTo(double z) {
-    var best = _frames.first;
-    var bestGap = (best.position.z - z).abs();
-
-    for (final frame in _frames.skip(1)) {
-      final gap = (frame.position.z - z).abs();
-      if (gap < bestGap) {
-        bestGap = gap;
-        best = frame;
-      }
-    }
-
-    return best;
-  }
 }

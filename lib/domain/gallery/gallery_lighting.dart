@@ -104,8 +104,55 @@ abstract final class GalleryLighting {
     ..._frameLights(GalleryProjects.right, onLeft: false),
     ..._fill(),
     ..._testimonialLights(),
+    ..._hallLights(),
     _backWall(),
   ];
+
+  /// The skills hall.
+  ///
+  /// Lit as a room rather than as a corridor: the keyboard is the only thing
+  /// in it and it floats in the middle, so it needs light from every side or
+  /// it reads as a silhouette. One overhead to model it, four low fills at
+  /// the compass points to keep its sides and the far wall out of the dark.
+  static Iterable<LightPlacement> _hallLights() sync* {
+    yield LightPlacement(
+      kind: LightKind.point,
+      position: Vector3(
+        GalleryDimensions.kbX,
+        GalleryDimensions.ceilY - 0.5,
+        GalleryDimensions.kbZ,
+      ),
+      colour: fill,
+      intensity: 14,
+      range: 20,
+    );
+
+    // Placed as a fraction of the room rather than at a fixed distance, so
+    // reshaping the hall carries them with it. At a fixed six units they
+    // ended up standing exactly in its walls once it narrowed, lighting the
+    // plaster from inside.
+    final acrossHall = GalleryDimensions.kbWidth * 0.3;
+    final alongHall = GalleryDimensions.kbDepth * 0.3;
+
+    for (final offset in <Vector3>[
+      Vector3(0, 0, acrossHall),
+      Vector3(0, 0, -acrossHall),
+      Vector3(-alongHall, 0, 0),
+      Vector3(alongHall, 0, 0),
+    ]) {
+      yield LightPlacement(
+        kind: LightKind.point,
+        position: Vector3(
+          GalleryDimensions.kbX + offset.x,
+          GalleryDimensions.floorY + 3,
+          GalleryDimensions.kbZ + offset.z,
+        ),
+        colour: fill,
+        intensity: 6,
+        range: 14,
+      );
+    }
+  }
 
   /// One cone per frame on the far wall.
   ///

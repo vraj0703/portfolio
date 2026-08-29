@@ -99,6 +99,21 @@ flutter:
     - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg
     - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Color.jpg
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.jpg
+    - assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.jpg
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.jpg
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Color.jpg
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.jpg
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.jpg
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.jpg
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Color.jpg
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.jpg
+    - assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.jpg
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.jpg
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_Color.jpg
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.jpg
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.jpg
     - assets/textures/frame_testimonials/Wood020_1K-JPG_Color.jpg
     - assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.jpg
     - assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.jpg

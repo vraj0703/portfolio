@@ -8,15 +8,20 @@ void main() {
   final lights = GalleryLighting.build();
   final spots = lights.where((l) => l.kind == LightKind.spot).toList();
 
-  /// The corridor runs between the side walls; the testimonial wing is the
-  /// bay off it, past where the right wall stops. Several of these rules are
-  /// about the corridor specifically and were written when it was the only
-  /// place with lights in it.
+  // The gallery is three rooms now, and most of these rules were written
+  // when the corridor was the only one with lights in it. Classified rather
+  // than loosened: a single bound covering all three would have to be the
+  // widest of them and would stop catching anything.
   bool inCorridor(LightPlacement l) =>
       l.position.x.abs() < GalleryDimensions.wallX;
 
+  bool inHall(LightPlacement l) =>
+      l.position.x >= GalleryDimensions.kbEntryX;
+
+  bool inWing(LightPlacement l) => !inCorridor(l) && !inHall(l);
+
   final corridorSpots = spots.where(inCorridor).toList();
-  final wingSpots = spots.where((l) => !inCorridor(l)).toList();
+  final wingSpots = spots.where(inWing).toList();
   final frames = GalleryLayout.build()
       .where((p) => p.kind == SurfaceKind.frame)
       .toList();
@@ -47,8 +52,16 @@ void main() {
     test('lights sit inside the room, not behind the walls', () {
       // A light on the far side of the wall it is meant to illuminate lights
       // nothing at all, and there is no error to say so.
+      // Height is the one rule every room shares: they are all under the
+      // same ceiling.
       for (final light in lights) {
         expect(light.position.y, lessThan(GalleryDimensions.ceilY));
+      }
+
+      // Depth is not shared. The back wall closes the *corridor*; the hall is
+      // a room beyond the end of the wing and reaches well past it, so a rule
+      // written for the corridor rejects the hall's own fills.
+      for (final light in lights.where((l) => !inHall(l))) {
         expect(light.position.z, greaterThan(GalleryDimensions.backWallZ));
       }
 
@@ -71,6 +84,18 @@ void main() {
           light.position.x,
           lessThanOrEqualTo(GalleryDimensions.testPanEndX),
           reason: 'a light past the last frame lights bare wall',
+        );
+      }
+      for (final light in lights.where(inHall)) {
+        final half = GalleryDimensions.kbWidth / 2;
+        expect(
+          (light.position.x - GalleryDimensions.kbX).abs(),
+          lessThan(half),
+          reason: 'a hall light outside the hall lights its wall from behind',
+        );
+        expect(
+          (light.position.z - GalleryDimensions.kbZ).abs(),
+          lessThan(half),
         );
       }
     });
@@ -125,11 +150,34 @@ void main() {
       expect(deepest, lessThan(GalleryDimensions.backWallZ / 2));
     });
 
-    test('fill hangs from the ceiling, down the centre line', () {
-      for (final light in lights.where((l) => l.kind == LightKind.point)) {
+    test('corridor fill hangs from the ceiling, down the centre line', () {
+      // The corridor's own fill only. The hall is a room rather than a
+      // passage: its keyboard floats in the middle and needs light from every
+      // side, so its fills deliberately stand off the centre.
+      final corridorFill = lights.where(
+        (l) => l.kind == LightKind.point && inCorridor(l),
+      );
+
+      expect(corridorFill, isNotEmpty);
+      for (final light in corridorFill) {
         expect(light.position.x, 0);
         expect(light.position.y, greaterThan(GalleryDimensions.frameY));
       }
+    });
+
+    test('the hall is lit from every side, not just above', () {
+      // A single overhead leaves the board a silhouette, because it floats in
+      // the middle of the room rather than hanging on a wall.
+      final hallFill = lights.where(
+        (l) => l.kind == LightKind.point && inHall(l),
+      ).toList();
+
+      expect(hallFill.length, greaterThan(1));
+      expect(
+        hallFill.any((l) => l.position.x != GalleryDimensions.kbX),
+        isTrue,
+        reason: 'every hall light is on the same axis',
+      );
     });
 
     test('every light reaches something', () {

@@ -94,6 +94,26 @@ abstract final class FramePicker {
     final halfHeight = frame.extents.y / 2;
     final p = frame.position;
 
+    // A keycap is not flat and does not stay put: the visitor can turn the
+    // board it sits on, so no pair of axes stays square to the view. All
+    // eight corners are projected and the screen rectangle taken around them
+    // — slightly generous when the board is turned obliquely, which nothing
+    // suffers from here because the caps are spaced wider than they are big
+    // and the nearest one wins anyway.
+    if (frame.kind == SurfaceKind.keycap) {
+      final half = frame.extents / 2;
+      return <Vector3>[
+        for (final sx in <double>[-1, 1])
+          for (final sy in <double>[-1, 1])
+            for (final sz in <double>[-1, 1])
+              Vector3(
+                p.x + sx * half.x,
+                p.y + sy * half.y,
+                p.z + sz * half.z,
+              ),
+      ];
+    }
+
     return <Vector3>[
       Vector3(p.x, p.y - halfHeight, p.z - halfWidth),
       Vector3(p.x, p.y - halfHeight, p.z + halfWidth),
