@@ -7,6 +7,16 @@ import 'package:portfolio/domain/gallery/project_data.dart';
 void main() {
   final lights = GalleryLighting.build();
   final spots = lights.where((l) => l.kind == LightKind.spot).toList();
+
+  /// The corridor runs between the side walls; the testimonial wing is the
+  /// bay off it, past where the right wall stops. Several of these rules are
+  /// about the corridor specifically and were written when it was the only
+  /// place with lights in it.
+  bool inCorridor(LightPlacement l) =>
+      l.position.x.abs() < GalleryDimensions.wallX;
+
+  final corridorSpots = spots.where(inCorridor).toList();
+  final wingSpots = spots.where((l) => !inCorridor(l)).toList();
   final frames = GalleryLayout.build()
       .where((p) => p.kind == SurfaceKind.frame)
       .toList();
@@ -16,7 +26,16 @@ void main() {
       // A museum corridor is a dim room with the work picked out of it. One
       // light for the whole corridor would flatten it into a lobby.
       final backWall = 1;
-      expect(spots, hasLength(GalleryProjects.all.length + backWall));
+      expect(
+        corridorSpots,
+        hasLength(GalleryProjects.all.length + backWall),
+      );
+    });
+
+    test('so does every frame on the far wall', () {
+      // The wall wash reaches the plaster but not the work on it, and a thing
+      // nobody lights is a thing nobody sees.
+      expect(wingSpots, hasLength(GalleryDimensions.testimonialCount));
     });
 
     test('lights hang above the work, not level with it', () {
@@ -29,13 +48,30 @@ void main() {
       // A light on the far side of the wall it is meant to illuminate lights
       // nothing at all, and there is no error to say so.
       for (final light in lights) {
+        expect(light.position.y, lessThan(GalleryDimensions.ceilY));
+        expect(light.position.z, greaterThan(GalleryDimensions.backWallZ));
+      }
+
+      // Bounded per room rather than globally: the corridor's lights belong
+      // between its walls, and the wing's belong along the stretch of far
+      // wall the visitor pans across. One rule for both would have to be the
+      // looser of the two, and would stop catching anything.
+      for (final light in lights.where(inCorridor)) {
         expect(
           light.position.x.abs(),
           lessThan(GalleryDimensions.wallX),
           reason: 'a light outside the corridor illuminates nothing',
         );
-        expect(light.position.y, lessThan(GalleryDimensions.ceilY));
-        expect(light.position.z, greaterThan(GalleryDimensions.backWallZ));
+      }
+      for (final light in wingSpots) {
+        expect(light.position.x, greaterThanOrEqualTo(
+          GalleryDimensions.testStartX,
+        ));
+        expect(
+          light.position.x,
+          lessThanOrEqualTo(GalleryDimensions.testPanEndX),
+          reason: 'a light past the last frame lights bare wall',
+        );
       }
     });
 

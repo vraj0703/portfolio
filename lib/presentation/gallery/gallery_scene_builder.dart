@@ -192,6 +192,7 @@ class GalleryScene {
       SurfaceKind.ceiling: GallerySurfaces.ceiling,
       SurfaceKind.sideWall: GallerySurfaces.wall,
       SurfaceKind.frame: GallerySurfaces.frame,
+      SurfaceKind.testimonialFrame: GallerySurfaces.testimonialFrame,
     };
 
     final totalSteps = sets.values.fold<int>(0, (sum, s) => sum + s.stepCount);
@@ -229,8 +230,11 @@ class GalleryScene {
         continue;
       }
 
-      if (piece.kind == SurfaceKind.frame) {
-        _hangFrame(scene, piece, surfaces[SurfaceKind.frame], transform);
+      if (piece.kind == SurfaceKind.frame ||
+          piece.kind == SurfaceKind.testimonialFrame) {
+        // The same shell either way — a moulding with a blank card inside it
+        // — differing only in which timber it is cut from.
+        _hangFrame(scene, piece, surfaces[piece.kind], transform);
         continue;
       }
 

@@ -19,6 +19,15 @@ enum SurfaceKind {
 
   /// The way out, painted on the left wall by the entrance.
   exitSign,
+
+  /// A frame on the far wall, for a recommendation.
+  ///
+  /// Distinct from [frame] rather than another of them: these hang on a
+  /// different wall in a different orientation, they carry no project, and
+  /// they must stay out of the corridor's click-to-focus and its stepping
+  /// order — a visitor pressing "next work" should not be sent to the far
+  /// wall.
+  testimonialFrame,
 }
 
 /// One piece of the gallery, positioned in world space.
@@ -189,9 +198,41 @@ abstract final class GalleryLayout {
         extents: Vector3(1.7, 0.62, 0.02),
         rotationY: quarterTurn,
       ),
+      ..._testimonialFrames(),
       ..._frames(GalleryProjects.left, onLeft: true),
       ..._frames(GalleryProjects.right, onLeft: false),
     ];
+  }
+
+  /// How far a far-wall frame stands off the plaster.
+  ///
+  /// Must clear half the wall's thickness before anything else: the back wall
+  /// is a slab centred on its plane, so a frame nudged a few millimetres
+  /// toward the room is still inside it.
+  static double get testimonialStandoff =>
+      paintedOnWall + GalleryDimensions.frameDepth * 0.3 / 2;
+
+  /// The row of frames along the far wall.
+  ///
+  /// Unrotated, unlike the corridor's. The far wall faces down the corridor
+  /// already, so these span `x` and need no quarter turn — giving them one
+  /// would stand them edge-on to the only place anyone looks at them from.
+  static Iterable<Placement> _testimonialFrames() sync* {
+    for (var i = 0; i < GalleryDimensions.testimonialCount; i++) {
+      yield Placement(
+        kind: SurfaceKind.testimonialFrame,
+        position: Vector3(
+          GalleryDimensions.testStartX + i * GalleryDimensions.testSpacing,
+          GalleryDimensions.frameY,
+          GalleryDimensions.backWallZ + testimonialStandoff,
+        ),
+        extents: Vector3(
+          frameWidth,
+          GalleryDimensions.frameMaxHeight,
+          GalleryDimensions.frameDepth * 0.3,
+        ),
+      );
+    }
   }
 
   static Iterable<Placement> _frames(

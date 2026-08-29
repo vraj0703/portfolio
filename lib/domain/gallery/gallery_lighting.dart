@@ -103,8 +103,34 @@ abstract final class GalleryLighting {
     ..._frameLights(GalleryProjects.left, onLeft: true),
     ..._frameLights(GalleryProjects.right, onLeft: false),
     ..._fill(),
+    ..._testimonialLights(),
     _backWall(),
   ];
+
+  /// One cone per frame on the far wall.
+  ///
+  /// The wall wash alone reaches the plaster but not the work on it, and the
+  /// lesson from every other surface in this room is that a thing nobody
+  /// lights is a thing nobody sees. Hung in front of the wall and aimed back
+  /// at it, like the corridor's picture lights.
+  static Iterable<LightPlacement> _testimonialLights() sync* {
+    for (var i = 0; i < GalleryDimensions.testimonialCount; i++) {
+      yield LightPlacement(
+        kind: LightKind.spot,
+        position: Vector3(
+          GalleryDimensions.testStartX + i * GalleryDimensions.testSpacing,
+          GalleryDimensions.frameY + lightHeightAbove,
+          GalleryDimensions.backWallZ + lightStandoff + 0.6,
+        ),
+        direction: Vector3(0, -1, 1)..normalize(),
+        colour: frameLight,
+        intensity: 10,
+        range: 8,
+        innerCone: 0.2,
+        outerCone: 0.5,
+      );
+    }
+  }
 
   /// One cone per piece, hung above and slightly out from the wall, aimed
   /// back at the work.

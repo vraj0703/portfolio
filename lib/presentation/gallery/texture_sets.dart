@@ -117,6 +117,21 @@ abstract final class GallerySurfaces {
     metallic: 0,
   );
 
+  /// ambientCG `Wood020`, for the frames on the far wall.
+  ///
+  /// A different wood from the corridor's on purpose. The far wall is a
+  /// different room in all but name — a bay off the main run — and giving it
+  /// its own timber says so before any label does. Same short repeat, for the
+  /// same reason: a moulding is centimetres across.
+  static const TextureSet testimonialFrame = TextureSet(
+    colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.jpg',
+    roughness:
+        'assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.jpg',
+    normal: 'assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.jpg',
+    unitsPerRepeat: 0.6,
+    metallic: 0,
+  );
+
   /// ambientCG `OfficeCeiling001`.
   ///
   /// The download also carries `Emission` and `Metalness` maps, and neither

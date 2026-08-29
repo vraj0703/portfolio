@@ -62,9 +62,17 @@ abstract final class GalleryDimensions {
   static const double testSpacing = 5;
   static const double testStartX = 7;
 
+  /// How many frames hang on the far wall.
+  ///
+  /// Not taken from [GalleryTestimonials], deliberately. The frames are blank
+  /// for now and the data still carries the full set plus its closing card,
+  /// so deriving the count from it would run the wall — and the camera's pan
+  /// along it — well past the last thing hanging there.
+  static const int testimonialCount = 5;
+
   /// X coordinate the back-wall pan ends on — the last card, including CTA.
   static double get testPanEndX =>
-      testStartX + (GalleryTestimonials.all.length - 1) * testSpacing;
+      testStartX + (testimonialCount - 1) * testSpacing;
 
   /* -- Keyboard exhibition hall ---------------------- */
 
