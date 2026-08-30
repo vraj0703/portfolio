@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
+import 'package:portfolio/domain/utils/scroll_motion.dart';
 
 /// Runs the driver for [seconds] at a steady 60fps.
 void settle(ScrollDriver driver, {double seconds = 4}) {
@@ -8,6 +9,37 @@ void settle(ScrollDriver driver, {double seconds = 4}) {
   for (var t = 0.0; t < seconds; t += step) {
     driver.update(step);
   }
+}
+
+/// Runs the driver on until a pause takes hold, or gives up.
+///
+/// The scroll has to be seen to stop before a pause may claim it, and how
+/// many frames that takes is a property of the smoothing rather than
+/// something a test should pin.
+bool runUntilSnapping(ScrollDriver driver, {int maxFrames = 120}) {
+  for (var i = 0; i < maxFrames; i++) {
+    driver.update(1 / 60);
+    if (driver.isSnapping) return true;
+  }
+  return false;
+}
+
+/// How many times a pause takes hold while the visitor scrolls steadily at
+/// [perFrame] units a frame.
+int acquisitionsWhileScrolling(
+  ScrollDriver driver,
+  double perFrame, {
+  int frames = 120,
+}) {
+  var acquisitions = 0;
+  var was = false;
+  for (var i = 0; i < frames; i++) {
+    driver.scrollBy(perFrame);
+    driver.update(1 / 60);
+    if (driver.isSnapping && !was) acquisitions++;
+    was = driver.isSnapping;
+  }
+  return acquisitions;
 }
 
 void main() {
@@ -91,14 +123,14 @@ void main() {
       // as the page arguing with them.
       driver.scrollBy(1450);
 
-      // Two frames without input, so the scroll reads as having come to rest
-      // rather than as passing through. This used to pass on the very first
-      // frame, which was the bug: velocity was measured across the spring
-      // alone, so a scroll travelling at 87,000 units a second reported
-      // zero and every pause concluded the visitor had stopped.
-      driver.update(1 / 60);
-      driver.update(1 / 60);
-      expect(driver.isSnapping, isTrue);
+      // Run on until the pause takes hold rather than checking a fixed
+      // frame. The scroll has to be *seen* to stop first, and how long that
+      // takes is a property of the smoothing rather than something a test
+      // should be pinning. This used to pass on the very first frame, which
+      // was the bug: velocity was measured across the spring alone, so a
+      // scroll travelling at 87,000 units a second reported zero and every
+      // pause concluded the visitor had stopped.
+      expect(runUntilSnapping(driver), isTrue);
 
       driver.scrollBy(-600);
       expect(driver.isSnapping, isFalse);
@@ -106,9 +138,7 @@ void main() {
 
     test('a pause let go of does not take the scroll straight back', () {
       driver.scrollBy(1450);
-      driver.update(1 / 60);
-      driver.update(1 / 60);
-      expect(driver.isSnapping, isTrue);
+      expect(runUntilSnapping(driver), isTrue);
 
       // A small deliberate nudge, then rest. The pause is still well within
       // reach, and letting it reacquire here would mean nothing short of a
@@ -127,8 +157,7 @@ void main() {
 
     test('but takes hold again once the visitor comes back to it', () {
       driver.scrollBy(1450);
-      driver.update(1 / 60);
-      driver.update(1 / 60);
+      expect(runUntilSnapping(driver), isTrue);
       driver.scrollBy(-60);
       driver.update(1 / 60);
       expect(driver.isSnapping, isFalse);
@@ -146,27 +175,50 @@ void main() {
     test('reports the speed the visitor is actually scrolling at', () {
       // Read by the bold-text swell to decide how loud it is, so a velocity
       // that ignored the visitor made a fast scroll as quiet as a still one.
-      driver.scrollBy(100);
-      driver.update(1 / 60);
-      expect(driver.velocity, closeTo(6000, 1));
+      //
+      // Smoothed, so it converges on the true rate rather than arriving at
+      // it — a single frame is one sample of a figure that has to bridge the
+      // gaps between a wheel's notches to be worth anything.
+      // A driver with room to run: the default's travel is 3000 units, so
+      // scrolling a hundred a frame runs out of corridor half way through
+      // and the figure being measured decays instead of settling.
+      final long = ScrollDriver(
+        extent: 100000,
+        progressExtent: 100000,
+        snapPoints: const <double>[],
+      );
+
+      for (var i = 0; i < 60; i++) {
+        long.scrollBy(100);
+        long.update(1 / 60);
+      }
+      expect(long.velocity, closeTo(6000, 300));
     });
 
-    test('a scroll passing through at speed is not caught', () {
-      final passing = ScrollDriver();
-
-      var acquisitions = 0;
-      var was = false;
-      for (var i = 0; i < 120; i++) {
-        passing.scrollBy(40);
-        passing.update(1 / 60);
-        if (passing.isSnapping && !was) acquisitions++;
-        was = passing.isSnapping;
+    test('and forgets it soon after they stop', () {
+      for (var i = 0; i < 30; i++) {
+        driver.scrollBy(100);
+        driver.update(1 / 60);
       }
+      for (var i = 0; i < 30; i++) {
+        driver.update(1 / 60);
+      }
+      expect(driver.velocity.abs(), lessThan(ScrollMotion.catchSpeed));
+    });
 
-      // Thirteen, before the two fixes above: the pause grabbed on every
-      // frame the visitor scrolled through its catchment, and each grab was
-      // a sound.
-      expect(acquisitions, 0);
+    test('an ordinary scroll is caught once, and only once', () {
+      // 40 units a frame is 2400 a second: a brisk but ordinary scroll, and
+      // the pause is meant to catch it — that is what a detent is for.
+      //
+      // Thirteen, before the fixes: the pause grabbed on every frame the
+      // visitor spent inside its catchment, and each grab was a sound.
+      expect(acquisitionsWhileScrolling(ScrollDriver(), 40), 1);
+    });
+
+    test('a deliberate fling is let through', () {
+      // 150 a frame is 9000 a second, past even the braking gate. Someone
+      // moving that fast has decided where they are going.
+      expect(acquisitionsWhileScrolling(ScrollDriver(), 150), 0);
     });
   });
 

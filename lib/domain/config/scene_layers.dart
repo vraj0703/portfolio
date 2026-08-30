@@ -20,6 +20,15 @@ abstract final class SceneLayers {
   /// takes over.
   static const int backdrop = -10;
 
+  /// The dark the contact screen comes up out of.
+  ///
+  /// Above the ground and *below* the mark, which is the whole reason it is
+  /// a layer here rather than a sheet over the finished frame. The mark
+  /// flies in from the corridor and is the one thing carried across the
+  /// handover between the two renderers; a veil painted over it would blink
+  /// it out at exactly the moment it arrives.
+  static const int contactArrival = -5;
+
   /// The mark itself.
   static const int mark = 0;
 

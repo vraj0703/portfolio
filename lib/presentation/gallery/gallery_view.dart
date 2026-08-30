@@ -18,6 +18,7 @@ import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
+import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
@@ -78,6 +79,13 @@ class GalleryView extends StatefulWidget {
   /// vanish, and no longer.
   static const Duration leaving = Duration(milliseconds: 380);
 
+  /// How long it takes when the mark is flying home at the same time.
+  ///
+  /// Longer, because there is something to watch. The mark crosses most of
+  /// the screen and grows fivefold on the way, and at the pace the room goes
+  /// dark that reads as a jump rather than as a journey.
+  static const Duration leavingWithMark = Duration(milliseconds: 900);
+
   @override
   State<GalleryView> createState() => _GalleryViewState();
 }
@@ -96,8 +104,8 @@ class _GalleryViewState extends State<GalleryView> {
     // end of the walk is the one place there is something to *read*, and a
     // statement the visitor coasts past at scrolling speed may as well not
     // be on the wall. The detent only claims a scroll that has already
-    // slowed (see `BoldTextConfig.snapVelocityThreshold`), so it catches
-    // someone arriving and lets someone travelling through pass.
+    // slowed to an ordinary pace (see `ScrollMotion`), so it catches someone
+    // walking down the corridor and lets a deliberate fling through.
     snapPoints: <double>[GalleryView.backWallStop],
   );
 
@@ -124,6 +132,13 @@ class _GalleryViewState extends State<GalleryView> {
   /// retuned.
   /// Whether the far wall had hold of the scroll on the previous frame.
   bool _wasSnapping = false;
+
+  /// How far the header mark has flown back toward the middle.
+  ///
+  /// `1` parked in the corner, `0` at home. Only the contact screen pulls it
+  /// home — leaving for the title parks it there anyway, so animating it
+  /// would be moving something to where it already is.
+  final ValueNotifier<double> _markJourney = ValueNotifier<double>(1);
 
   final Crossing _boardRising = Crossing(
     at: GalleryCameraPath.revealBegins,
@@ -464,9 +479,21 @@ class _GalleryViewState extends State<GalleryView> {
     final event = _leavingFor;
     if (event == null || _leaving.value >= 1) return;
 
-    final step = dt / (GalleryView.leaving.inMilliseconds / 1000);
+    final journeying = event is ContactRequested;
+    final duration = journeying
+        ? GalleryView.leavingWithMark
+        : GalleryView.leaving;
+
+    final step = dt / (duration.inMilliseconds / 1000);
     final next = (_leaving.value + step).clamp(0.0, 1.0);
     _leaving.value = next;
+
+    // Eased at both ends, the way the mark's own retreat is, so it leaves
+    // the corner and arrives in the middle without a corner in the motion.
+    if (journeying) {
+      _markJourney.value = 1 - Curves.easeInOutCubic.transform(next);
+    }
+
     if (next < 1) return;
 
     // Raised from the render loop, so it cannot go out during a build.
@@ -477,6 +504,7 @@ class _GalleryViewState extends State<GalleryView> {
   @override
   void dispose() {
     _leaving.dispose();
+    _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it
     // down every time the visitor steps out threw away seconds of decoding
@@ -591,6 +619,15 @@ class _GalleryViewState extends State<GalleryView> {
                         ),
                       ),
                     ),
+            ),
+
+            // The header mark, above everything the room draws and above
+            // the dark it goes out through. It is the one thing that
+            // survives the handover between the two renderers, so covering
+            // it with the fade would defeat the point of drawing it here.
+            ValueListenableBuilder<double>(
+              valueListenable: _markJourney,
+              builder: (context, journey, _) => GalleryMark(journey: journey),
             ),
           ],
         );

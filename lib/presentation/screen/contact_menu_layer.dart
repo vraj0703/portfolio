@@ -29,17 +29,6 @@ import 'package:portfolio/presentation/screen/credits_dialog.dart';
 class ContactMenuLayer extends StatelessWidget {
   const ContactMenuLayer({super.key});
 
-  /// How long the screen takes to come up out of the dark.
-  ///
-  /// The other half of the corridor going out — see `GalleryView.leaving`.
-  /// Between them the two renderers hand over through black rather than
-  /// cutting, which is the only way they can: they are separate engines and
-  /// there is no frame in which both are drawing.
-  ///
-  /// Longer than the going-out, because a room being revealed reads slower
-  /// than a room being left.
-  static const Duration arrival = Duration(milliseconds: 620);
-
   /// Height of the row, used to put its centre exactly where the affordance's
   /// centre is in the game underneath.
   static const double rowHeight = 52;
@@ -62,7 +51,6 @@ class _ContactMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     final width = MediaQuery.sizeOf(context).width;
 
     return Stack(
@@ -94,25 +82,6 @@ class _ContactMenu extends StatelessWidget {
               ),
             ),
           ),
-        ),
-
-        // The dark the corridor went out through, lifting off everything at
-        // once — the ground, the mark and the menu together. Above the menu
-        // rather than under it, so the screen is revealed as one thing
-        // instead of a row of words already lit on a black field.
-        TweenAnimationBuilder<double>(
-          tween: Tween<double>(begin: 1, end: 0),
-          duration: ContactMenuLayer.arrival,
-          curve: Curves.easeOut,
-          builder: (context, veil, _) => veil <= 0.001
-              // Gone entirely once it has lifted, rather than a transparent
-              // sheet left lying over the menu swallowing taps.
-              ? const SizedBox.shrink()
-              : IgnorePointer(
-                  child: ColoredBox(
-                    color: colors.sceneVeil.withValues(alpha: veil),
-                  ),
-                ),
         ),
       ],
     );

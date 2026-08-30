@@ -31,6 +31,7 @@ class ScenePalette {
     required this.scrollCue,
     required this.scrollCueShadow,
     required this.contactDim,
+    required this.sceneVeil,
     required this.boldText,
     required this.boldTextStyle,
   });
@@ -56,6 +57,7 @@ class ScenePalette {
       scrollCue: colors.scrollCue,
       scrollCueShadow: colors.scrollCueShadow,
       contactDim: colors.contactDim,
+      sceneVeil: colors.sceneVeil,
       boldText: context.strings.boldText,
       boldTextStyle: context.typography.boldText,
     );
@@ -92,6 +94,9 @@ class ScenePalette {
 
   /// Laid over the contact screen's ground, carrying its own depth.
   final Color contactDim;
+
+  /// The dark the two renderers hand over through.
+  final Color sceneVeil;
 
   /// The bold-text stage's line, and how it is set.
   final String boldText;

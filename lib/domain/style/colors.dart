@@ -142,14 +142,25 @@ class DefaultAppColors implements AppColors {
   /// logo screen carries the contact screen with it.
   Color get _ink => logoOverlayText;
 
-  @override
-  Color get contactMenuText => _ink.withValues(alpha: 0.72);
+  /// The menu's own ink, which is not the logo screen's.
+  ///
+  /// It sits above the dim — it is a Flutter layer over the whole game,
+  /// where the dim is a pass inside it — so nothing is taking its colour
+  /// away. What made it read as dimmed was the colour itself: it was the
+  /// logo overlay's muted brick, chosen against an undimmed ground and left
+  /// there when the ground went dark under it. Lifted toward the scene's own
+  /// warm light instead, so the row is plainly the brightest thing on the
+  /// screen, which is what "above the dim" is actually asking for.
+  Color get _menuInk => const Color(0xFFF6E3C4);
 
   @override
-  Color get contactMenuTextActive => _ink;
+  Color get contactMenuText => _menuInk.withValues(alpha: 0.82);
 
   @override
-  Color get contactSeparator => _ink.withValues(alpha: 0.35);
+  Color get contactMenuTextActive => _menuInk;
+
+  @override
+  Color get contactSeparator => _menuInk.withValues(alpha: 0.4);
 
   @override
   Color get contactDim => sceneVeil.withValues(alpha: 0.32);

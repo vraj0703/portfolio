@@ -18,6 +18,18 @@ void run(ScrollDriver driver, double seconds) {
   }
 }
 
+/// Runs on until the wall takes hold, or gives up.
+///
+/// How many frames that takes is a property of how the motion is smoothed,
+/// not something a test about the wall should be pinning.
+bool runUntilSnapping(ScrollDriver driver, {int maxFrames = 120}) {
+  for (var i = 0; i < maxFrames; i++) {
+    driver.update(1 / 60);
+    if (driver.isSnapping) return true;
+  }
+  return false;
+}
+
 void main() {
   group('the pause at the far wall', () {
     test('sits where the walk ends, not somewhere near it', () {
@@ -49,12 +61,30 @@ void main() {
       );
     });
 
-    test('lets a visitor travelling through pass', () {
+    test('catches an ordinary scroll on its way past', () {
       final driver = corridor();
 
-      // Still scrolling hard as they reach it. The detent only claims a
-      // scroll that has already slowed, so someone crossing the room at
-      // speed is not yanked back to the wall behind them.
+      // 40 units a frame — 2400 a second, a brisk but ordinary scroll. This
+      // is the case the wall exists for and the one that used to miss: the
+      // old gate only admitted a scroll already at a standstill, so whether
+      // it fired came down to whether a still frame happened to land inside
+      // the catchment.
+      var caught = false;
+      for (var i = 0; i < 120 && !caught; i++) {
+        driver.scrollBy(40);
+        driver.update(1 / 60);
+        caught = driver.isSnapping;
+      }
+
+      expect(caught, isTrue);
+    });
+
+    test('lets a deliberate fling through', () {
+      final driver = corridor();
+
+      // 120 a frame is 7200 a second, past even the braking gate. Someone
+      // moving that fast has decided where they are going, and being yanked
+      // back to a wall behind them reads as the page arguing.
       for (var i = 0; i < 40; i++) {
         driver.scrollBy(120);
         driver.update(1 / 60);
@@ -68,11 +98,10 @@ void main() {
       final driver = corridor();
       driver.scrollBy(GalleryView.backWallStop - 200);
 
-      // Mid-draw. This window is what the sound is hung on — the wall taking
+      // The window this opens is what the sound is hung on — the wall taking
       // hold, not the camera arriving, because the deceleration is the part
       // that reads as being caught.
-      run(driver, 0.2);
-      expect(driver.isSnapping, isTrue);
+      expect(runUntilSnapping(driver), isTrue);
 
       // And released once it has settled, so the flag is free to rise again
       // the next time the visitor comes back to the wall.
@@ -84,8 +113,7 @@ void main() {
     test('lets go the moment the visitor scrolls on', () {
       final driver = corridor();
       driver.scrollBy(GalleryView.backWallStop - 200);
-      run(driver, 0.2);
-      expect(driver.isSnapping, isTrue);
+      expect(runUntilSnapping(driver), isTrue);
 
       // Reading is over. A pause that has to be fought out of reads as the
       // page holding on rather than as somewhere to rest.

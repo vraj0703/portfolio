@@ -1,13 +1,18 @@
 import 'dart:math' as math;
 
 import 'package:portfolio/domain/config/bold_text_config.dart';
+import 'package:portfolio/domain/utils/scroll_motion.dart';
 
-/// Owns the scroll position for the bold-text stage.
+/// Owns a scroll position: the bold-text stage's, and the corridor's.
 ///
 /// Deliberately *not* in the bloc. The offset changes every frame while the
 /// user scrolls, and a bloc emitting sixty states a second to carry a double
 /// is the wrong instrument — the bloc tracks which stage the scene is in, and
 /// this tracks where the user is within it.
+///
+/// Two stages, because they want the same thing: a scroll with weight, that
+/// can be paused at named positions. What differs is only how far they run
+/// and where their pauses are, and both are constructor arguments.
 ///
 /// Two positions rather than one: [target] is where the input has asked to
 /// be, [offset] is where the scene has actually reached. The gap between them
@@ -28,7 +33,6 @@ class ScrollDriver {
 
   double _target = 0;
   double _offset = 0;
-  double _velocity = 0;
   double _springVelocity = 0;
 
   double? _snappingTo;
@@ -37,8 +41,17 @@ class ScrollDriver {
   ///
   /// [scrollBy] runs *between* frames, so a window opened at the top of
   /// [update] cannot see the visitor's own scrolling — only what the spring
-  /// did. Measured from here instead, so [velocity] is the whole movement.
+  /// did. Measured from here instead, so the motion is the whole movement.
   double _previousTarget = 0;
+
+  /// How the scroll is moving, as opposed to where it is.
+  ///
+  /// A frame's worth of movement divided by the frame is not a usable answer
+  /// to "are they still going?" — see [ScrollMotion]. A wheel delivers its
+  /// output in lumps, so that figure is a train of spikes with stillness
+  /// between them, and a pause reading it was told the visitor had stopped
+  /// in every gap.
+  final ScrollMotion _motion = ScrollMotion();
 
   /// A pause the visitor has deliberately scrolled out of.
   ///
@@ -66,8 +79,12 @@ class ScrollDriver {
   /// True while a pause is claiming the scroll.
   bool get isSnapping => _snappingTo != null;
 
-  /// Speed of the target, in units per second.
-  double get velocity => _velocity;
+  /// Speed of the target, in units per second, smoothed.
+  ///
+  /// Read by the bold-text swell to decide how loud it is as well as by the
+  /// pauses here, and smoothing helps both: the raw figure made a steady
+  /// wheel scroll swell and duck on alternate frames.
+  double get velocity => _motion.speed;
 
   /// Moves the target by [delta], interrupting any pause it is settling into.
   void scrollBy(double delta) {
@@ -105,11 +122,11 @@ class ScrollDriver {
   void reset() {
     _target = 0;
     _offset = 0;
-    _velocity = 0;
     _springVelocity = 0;
     _snappingTo = null;
     _previousTarget = 0;
     _released = null;
+    _motion.reset();
   }
 
   /// The pause whose catchment [at] falls in, if any.
@@ -125,11 +142,11 @@ class ScrollDriver {
     if (step <= 0) return;
 
     // Across the whole frame, the visitor's own scrolling included, and
-    // measured *before* the pause is offered the scroll rather than after.
+    // sampled *before* the pause is offered the scroll rather than after.
     // Taken from the top of this method it saw only what the spring did —
     // which is nothing while the visitor is scrolling — so a pause asking
     // "have they stopped?" was always told yes.
-    _velocity = (_target - _previousTarget) / step;
+    _motion.sample(_target - _previousTarget, step);
 
     _settleOntoPause(step);
     _previousTarget = _target;
@@ -151,8 +168,7 @@ class ScrollDriver {
 
     // A pause may claim the scroll once it has slowed enough to be sitting
     // still rather than passing through.
-    if (_snappingTo == null &&
-        _velocity.abs() <= BoldTextConfig.snapVelocityThreshold) {
+    if (_snappingTo == null && _motion.hasArrived) {
       final point = _pauseNear(_target);
       if (point != null &&
           point != _released &&

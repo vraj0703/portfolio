@@ -56,6 +56,7 @@ class MyGame extends FlameGame
   late final BackdropComponent _backdrop;
   late final ScrollCueComponent _scrollCue;
   late final ContactDimComponent _contactDim;
+  late final ContactDimComponent _contactArrival;
   late final BoldTextComponent _boldText;
 
   /// Owns where the user is within the bold-text stage.
@@ -171,8 +172,20 @@ class MyGame extends FlameGame
     );
 
     _contactDim = ContactDimComponent(
-      palette: palette,
+      colour: palette.contactDim,
+      wash: ContactWash.dim,
       priority: SceneLayers.contactDim,
+    );
+
+    // The dark the corridor went out through, lifting off the ground the
+    // contact screen stands on — and off nothing else. Under the mark, so
+    // the mark that flew in from the corridor is not blinked out at the
+    // moment it arrives, and under the menu, which has an entrance of its
+    // own.
+    _contactArrival = ContactDimComponent(
+      colour: palette.sceneVeil,
+      wash: ContactWash.arrival,
+      priority: SceneLayers.contactArrival,
     );
 
     _scrollCue = ScrollCueComponent(
@@ -191,6 +204,7 @@ class MyGame extends FlameGame
         children: <Component>[
           _shadow,
           _backdrop,
+          _contactArrival,
           _mark,
           _contactDim,
           _overlay,

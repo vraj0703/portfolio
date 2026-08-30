@@ -27,10 +27,6 @@ abstract final class BoldTextConfig {
   /// How close the scroll has to be to a pause for it to take hold.
   static const double snapRadius = 500;
 
-  /// Below this speed the scroll is considered to have stopped, and a nearby
-  /// pause may claim it. Snapping under the user's finger feels like a fight.
-  static const double snapVelocityThreshold = 40;
-
   /// How quickly the visible offset chases the target.
   static const double inertia = 8;
 
