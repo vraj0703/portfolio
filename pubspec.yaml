@@ -81,6 +81,15 @@ flutter:
     - family: ModrntUrban
       fonts:
         - asset: fonts/modrnt_urban.otf
+    # The gallery's lettering. A serif for the headings and signs, cut the
+    # way lettering on a building is, and a grotesque for the running text
+    # beneath it.
+    - family: Marcellus
+      fonts:
+        - asset: fonts/marcellus.ttf
+    - family: Satoshi
+      fonts:
+        - asset: fonts/satoshi.ttf
 
   assets:
     # The three marks on the contact menu, the dot between them, and the

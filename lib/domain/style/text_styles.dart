@@ -27,8 +27,11 @@ abstract class AppTypography {
   /// The statement beneath it.
   TextStyle get wallStatement;
 
-  /// Lettering painted on a gallery wall — the way out, and its like.
+  /// Lettering cut into a gallery wall — the way out, and its like.
   TextStyle get wallSign;
+
+  /// The instruction on the skills hall's far wall.
+  TextStyle get wallInstruction;
 
   /// The glyphs on the gallery's navigation controls.
   TextStyle get galleryControl;
@@ -147,35 +150,66 @@ class DefaultAppTypography implements AppTypography {
     fontFamily: "Apertura",
   );
 
-  /// Warm and slightly over-bright: this is lettering meant to read as lit
-  /// rather than as printed, and it carries its own glow on the wall.
-  static const Color wallInk = Color(0xFFFFE6B0);
-  static const Color wallBody = Color(0xFFC4B496);
+  /// The two edges of a cut letter, and the stone between them.
+  ///
+  /// Lettering carved into a wall is not a colour on the wall — it is a
+  /// groove, and what the eye reads is the pair of edges the groove makes.
+  /// Light arrives from above, so the upper inside face of the cut is in
+  /// shadow and the lower one catches it. Those two, plus the marble itself
+  /// showing through the middle, are the whole effect.
+  ///
+  /// This replaced a warm cream that was painted *onto* the wall. It could
+  /// not be made to read at any weight, and the reason is measurable rather
+  /// than a matter of taste: the marble's own albedo is 0.875 and the ink
+  /// was 0.908 — a contrast ratio of 1.04:1 where text wants 4.5:1 — and
+  /// the wall is lit while the lettering, being unlit, is not. The wall
+  /// finished brighter than the sign on it. A cut carries its own contrast
+  /// wherever it is, because both edges move with the letter.
+  static const Color wallCutShadow = Color(0xFF2A211A);
+  static const Color wallCutLight = Color(0xFFFFF6E2);
 
   @override
   TextStyle get wallName => const TextStyle(
-    color: wallInk,
     fontSize: 132,
     height: 1.2,
     letterSpacing: 10,
-    fontWeight: FontWeight.w300,
+    fontWeight: FontWeight.w400,
+    // A serif with real stress and a fine hairline, which is what lettering
+    // cut into a building has always been set in. A geometric sans reads as
+    // vinyl applied to the wall however it is shaded.
+    fontFamily: 'Marcellus',
   );
 
   @override
   TextStyle get wallStatement => const TextStyle(
-    color: wallBody,
     fontSize: 40,
     height: 1.5,
     letterSpacing: 1.2,
+    // The running text under the heading, in a grotesque. Carving a serif
+    // this small would lose the hairlines to the width of the cut.
+    fontFamily: 'Satoshi',
   );
 
   @override
   TextStyle get wallSign => const TextStyle(
-    color: wallInk,
     fontSize: 104,
     height: 1.3,
     letterSpacing: 18,
     fontWeight: FontWeight.w400,
+    fontFamily: 'Marcellus',
+  );
+
+  /// The line telling the visitor how to handle the board.
+  ///
+  /// Smaller than a sign and tracked wide: it is an instruction, read once
+  /// and then ignored, so it must be legible without competing with the
+  /// board it is behind.
+  @override
+  TextStyle get wallInstruction => const TextStyle(
+    fontSize: 46,
+    height: 1.5,
+    letterSpacing: 6,
+    fontFamily: 'Satoshi',
   );
 
   @override

@@ -1,7 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
-import 'package:flutter/widgets.dart' show TextSpan;
+import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:flutter_scene/scene.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
@@ -267,8 +267,9 @@ class GalleryScene {
     // beside the photographs, but silence is silence — a bar that stops is
     // read as a bar that has died, whatever it is waiting for.
     const proceduralSteps = 4;
-    // One rasterise and one upload each, for the two signs.
-    const signSteps = 2;
+    // One rasterise and one upload each, for the two signs and the
+    // instruction behind the board.
+    const signSteps = 3;
 
     final totalSteps =
         sets.values.fold<int>(0, (sum, s) => sum + s.stepCount) +
@@ -304,15 +305,30 @@ class GalleryScene {
       }
 
       if (piece.kind == SurfaceKind.exitSign ||
-          piece.kind == SurfaceKind.connectSign) {
+          piece.kind == SurfaceKind.connectSign ||
+          piece.kind == SurfaceKind.hallInstruction) {
         const strings = DefaultAppStrings();
-        final isExit = piece.kind == SurfaceKind.exitSign;
+        const type = DefaultAppTypography();
+
+        // The three are one object cut three times: a line of lettering in
+        // the marble, with a rule under it where it is a sign and none where
+        // it is an instruction.
+        final (text, style, rule) = switch (piece.kind) {
+          SurfaceKind.exitSign => (strings.galleryBack, type.wallSign, backRuleWidth),
+          SurfaceKind.connectSign => (
+            strings.letsConnect,
+            type.wallSign,
+            connectRuleWidth,
+          ),
+          _ => (strings.keyboardInstruction, type.wallInstruction, 0.0),
+        };
 
         await _paintWallSign(
           scene,
           piece,
-          isExit ? strings.galleryBack : strings.letsConnect,
-          isExit ? backRuleWidth : connectRuleWidth,
+          text,
+          style,
+          rule,
           artwork,
           textures,
           transform,
@@ -427,7 +443,6 @@ class GalleryScene {
         ),
       ],
       rulePosition: 178,
-      ruleColour: DefaultAppTypography.wallInk,
       ruleWidth: 480,
     );
     images.add(image);
@@ -489,21 +504,20 @@ class GalleryScene {
     Scene scene,
     Placement piece,
     String text,
+    TextStyle style,
     double ruleWidth,
     List<ui.Image> images,
     List<Texture2D> textures,
     Matrix4 transform,
   ) async {
-    const type = DefaultAppTypography();
     const width = 680;
     const height = 248;
 
     final image = await WallText.render(
       width: width,
       height: height,
-      lines: <TextSpan>[TextSpan(text: text, style: type.wallSign)],
+      lines: <TextSpan>[TextSpan(text: text, style: style)],
       rulePosition: 172,
-      ruleColour: DefaultAppTypography.wallInk,
       // Given rather than derived. "LET'S CONNECT" is three times the length
       // of "BACK", so one width would leave a line floating clear of the
       // short word or lost under the long one — and deriving it from the

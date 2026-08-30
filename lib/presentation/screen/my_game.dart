@@ -16,6 +16,7 @@ import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
+import 'package:portfolio/presentation/game/contact_dim_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/cursor_tracker.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
@@ -54,6 +55,7 @@ class MyGame extends FlameGame
   late final TitleLayerComponent _title;
   late final BackdropComponent _backdrop;
   late final ScrollCueComponent _scrollCue;
+  late final ContactDimComponent _contactDim;
   late final BoldTextComponent _boldText;
 
   /// Owns where the user is within the bold-text stage.
@@ -168,8 +170,14 @@ class MyGame extends FlameGame
       priority: SceneLayers.boldText,
     );
 
+    _contactDim = ContactDimComponent(
+      palette: palette,
+      priority: SceneLayers.contactDim,
+    );
+
     _scrollCue = ScrollCueComponent(
       onAdvance: requestAdvance,
+      onPressed: () => audio.play(AudioCue.click),
       color: palette.scrollCue,
       shadow: palette.scrollCueShadow,
       priority: SceneLayers.scrollCue,
@@ -184,6 +192,7 @@ class MyGame extends FlameGame
           _shadow,
           _backdrop,
           _mark,
+          _contactDim,
           _overlay,
           _title,
           _boldText,
@@ -310,6 +319,10 @@ class MyGame extends FlameGame
 
         _rewindBoldTextStage();
       },
+      // Arriving in the corridor. Hung off the state rather than off the
+      // two things that reach it — the bold text running out, and the
+      // gallery mark on the contact menu — so both doors sound the same.
+      gallery: () => audio.play(AudioCue.galleryEntry),
       // Nothing of the corridor's approach may be left standing under the
       // contact screen.
       contact: _rewindBoldTextStage,

@@ -15,9 +15,12 @@ abstract class AppStrings {
   /// The bold-text stage's line.
   String get boldText;
 
-  /// The two signs painted on the gallery's plaster.
+  /// The two signs cut into the gallery's marble.
   String get galleryBack;
   String get letsConnect;
+
+  /// How to handle the skills board, cut into the wall behind it.
+  String get keyboardInstruction;
 
   /// The contact menu, in the order [ContactMenu] reads.
   String get contactCv;
@@ -67,6 +70,13 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get letsConnect => "LET'S CONNECT";
+
+  @override
+  // Two gestures and nothing else. The visitor has arrived at the end of a
+  // long walk and is looking at the board, not reading a manual — anything
+  // longer than a line goes unread, and a line that has to be studied is
+  // worse than no line, because it takes the attention the board wants.
+  String get keyboardInstruction => 'DRAG TO TURN   ·   CLICK A KEY';
 
   @override
   String get contactCv => 'cv';

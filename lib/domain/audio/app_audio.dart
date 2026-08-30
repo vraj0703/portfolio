@@ -39,6 +39,50 @@ enum AudioCue {
 
   /// The moment the bold text resolves.
   ting,
+
+  /// Any deliberate press: a frame, a sign, a destination on the contact
+  /// menu, the arrow at the foot of the title.
+  ///
+  /// One cue for all of them on purpose. A press is a press, and giving each
+  /// control its own voice makes an interface sound like a xylophone —
+  /// what the ear learns instead is that this sound means "that worked".
+  click,
+
+  /// The corridor's own controls, which are the exception: stepping back,
+  /// stepping on, and closing. Direction is the whole meaning of those
+  /// three, and a single click throws it away.
+  previous,
+  next,
+  close,
+
+  /// The skills board rising into the hall.
+  keyboardEntry,
+
+  /// One keycap pressed.
+  keyStroke,
+
+  /// Arriving in the corridor, by whichever route.
+  ///
+  /// Bound to the *state* rather than to the controls that reach it, because
+  /// there are two ways in — scrolling through the bold text, and the
+  /// gallery mark on the contact menu — and a room should not sound
+  /// different depending on which door was used.
+  galleryEntry,
+
+  /// The corridor catching the visitor at the far wall.
+  ///
+  /// Marks the scroll being claimed rather than the camera arriving: the two
+  /// are a moment apart, and the sound belongs with the deceleration, which
+  /// is the part that reads as being taken hold of.
+  snap,
+
+  /// Leaving one section of the site for another.
+  ///
+  /// The two signs cut into the marble. A press is a press everywhere else,
+  /// but these two do not act on the room the visitor is standing in — they
+  /// put it away and open something else, and that is a larger thing than a
+  /// click can say.
+  pageTurn,
 }
 
 /// Contract for the app's sound.

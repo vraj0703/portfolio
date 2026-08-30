@@ -107,6 +107,15 @@ abstract final class GalleryCameraPath {
   static double get revealStart => doorwayShare;
   static double get revealEnd => doorwayShare + revealShare;
 
+  /// The scroll position at which the board actually starts to move.
+  ///
+  /// [revealStart] is a share *of the hall*, not of the whole walk, and the
+  /// difference is nearly a tenth of the scroll — which is a second or two
+  /// of the visitor standing in a doorway listening to a sound describing
+  /// something that has not happened yet. Anything hung off the board
+  /// beginning to rise reads this rather than doing that arithmetic again.
+  static double get revealBegins => panEnd + revealStart * hallFraction;
+
   /// The camera's resting elevation above the board, in radians.
   ///
   /// Derived rather than stated, so the orbit's rest pose is the same place

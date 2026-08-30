@@ -23,6 +23,13 @@ abstract final class SceneLayers {
   /// The mark itself.
   static const int mark = 0;
 
+  /// The contact screen's dim.
+  ///
+  /// Above the ground and the mark, below the affordance. That is the whole
+  /// point of it being a layer rather than a sheet over the finished frame:
+  /// the room stands back and the thing being offered does not.
+  static const int contactDim = 3;
+
   /// "TAP TO ENTER" and its lines.
   static const int affordance = 5;
 

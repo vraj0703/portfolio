@@ -119,6 +119,13 @@ abstract final class GalleryDimensions {
   /// straight run from the end of the pan into the hall depends on all of
   /// them being the same number.
   static double get kbZ => wallLockZ;
+  /// How high the instruction is cut on the hall's far wall.
+  ///
+  /// Above the board, which hangs at [KeyboardLayout.hoverHeight] and tilts
+  /// toward the visitor. Level with it the two would overlap from the
+  /// doorway, and the line would be read through the keycaps.
+  static const double instructionY = 2.4;
+
   /// How high the "let's connect" sign hangs on the hall's entry wall.
   ///
   /// Level with the visitor at the board rather than with the corridor's

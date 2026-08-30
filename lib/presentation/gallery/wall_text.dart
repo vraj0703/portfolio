@@ -1,9 +1,9 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/painting.dart';
+import 'package:portfolio/domain/style/text_styles.dart';
 
-/// Text rasterised once, for painting onto a wall.
+/// Lettering cut into a wall, rasterised once.
 ///
 /// Not a `WidgetComponent`. A live widget surface re-rasterises on its update
 /// policy whether or not anyone can see it, which put a capture inside the
@@ -12,8 +12,9 @@ import 'package:flutter/painting.dart';
 /// the same pipeline the room's other textures already use: it renders, it is
 /// done after one frame, and it costs nothing thereafter.
 ///
-/// The image is transparent apart from the lettering, which only works if the
-/// material it is bound to actually blends — see [wallMaterialNote].
+/// The image is transparent apart from the two edges of the cut, which only
+/// works if the material it is bound to actually blends — see
+/// [wallMaterialNote].
 abstract final class WallText {
   /// Why the material matters as much as the image.
   ///
@@ -24,87 +25,153 @@ abstract final class WallText {
   static const String wallMaterialNote =
       'bind to an UnlitMaterial with AlphaMode.blend';
 
-  /// How far the glow spreads beyond the letterforms, in pixels.
+  /// How far the light falls from, in pixels of the baked texture.
   ///
-  /// Drawn as a blurred pass under the crisp one, which is what makes a
-  /// stroke read as a light source rather than as a coloured shape. A single
-  /// pass with a soft edge reads as blur; two passes read as neon.
-  static const double glowRadius = 22;
+  /// Above and a little to the left, which is where the room's own lamps
+  /// are. Getting this the wrong way round does not read as a mistake — it
+  /// reads as lettering standing *proud* of the wall instead of cut into it,
+  /// because the eye infers the direction of a surface entirely from which
+  /// of its two edges is lit.
+  static const Offset lightFrom = Offset(-3, -4);
 
-  /// How many times the glow is laid down.
+  /// How wide the cut is.
   ///
-  /// One pass is too faint to survive the dim room; stacking a few builds
-  /// the bloom up without needing a post-processing pass.
-  static const int glowPasses = 3;
+  /// The offset between the two edges is the groove's width as the eye reads
+  /// it. Too small and the letter looks printed; too large and it separates
+  /// into two overlapping words in different colours.
+  static const double cutWidth = 3.4;
+
+  /// How soft each edge of the cut is.
+  ///
+  /// A carved edge is not a knife edge — the stone breaks away slightly, and
+  /// a completely crisp shadow reads as a drop shadow under a sticker.
+  static const double edgeSoftness = 2.2;
+
+  /// How far the shadow inside the groove spreads back over the stone.
+  ///
+  /// Small. This is ambient occlusion in the cut, not a glow: it darkens the
+  /// stone immediately around each letter, which is what gives the lettering
+  /// contrast on a wall brighter than any ink could be.
+  static const double occlusionRadius = 7;
+
+  /// How dark that occlusion goes.
+  static const double occlusionAlpha = 0.5;
 
   static Future<ui.Image> render({
     required List<TextSpan> lines,
     required int width,
     required int height,
     double rulePosition = 0,
-    Color ruleColour = const Color(0x00000000),
     double ruleWidth = 0,
-    bool glow = true,
   }) {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
-    void paintLines({required bool blurred}) {
+    /// Lays the lines down once, in [colour], displaced by [shift].
+    void paintLines({
+      required Color colour,
+      required Offset shift,
+      double blur = 0,
+    }) {
       var y = 0.0;
       for (final line in lines) {
-        final span = blurred
-            ? TextSpan(
-                text: line.text,
-                style: line.style?.copyWith(
-                  foreground: Paint()
-                    ..color = line.style?.color ?? const Color(0xFFFFFFFF)
-                    ..maskFilter = const ui.MaskFilter.blur(
-                      ui.BlurStyle.normal,
-                      glowRadius,
-                    ),
-                ),
-              )
-            : line;
+        final paint = Paint()..color = colour;
+        if (blur > 0) {
+          paint.maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, blur);
+        }
 
         final painter = TextPainter(
-          text: span,
+          text: TextSpan(
+            text: line.text,
+            style: line.style?.copyWith(foreground: paint),
+          ),
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: width.toDouble());
 
-        painter.paint(canvas, ui.Offset((width - painter.width) / 2, y));
+        painter.paint(
+          canvas,
+          ui.Offset((width - painter.width) / 2, y) + shift,
+        );
         y += painter.height;
       }
     }
 
-    if (glow) {
-      for (var i = 0; i < glowPasses; i++) {
-        paintLines(blurred: true);
-      }
-    }
-    paintLines(blurred: false);
+    // The order is the physics, and none of it is interchangeable.
+    //
+    // First the stone around the letter darkens, because a groove traps
+    // light. Then the far wall of the cut — the side the light cannot reach
+    // — and last the near wall, which it strikes. The middle is left
+    // untouched: the bottom of the groove is the same marble as the wall,
+    // and painting anything there is what turns a carving back into a
+    // printed word.
+    final unit = _normalise(lightFrom);
+
+    paintLines(
+      colour: DefaultAppTypography.wallCutShadow.withValues(
+        alpha: occlusionAlpha,
+      ),
+      shift: Offset.zero,
+      blur: occlusionRadius,
+    );
+    paintLines(
+      colour: DefaultAppTypography.wallCutShadow,
+      shift: unit * cutWidth,
+      blur: edgeSoftness,
+    );
+    paintLines(
+      colour: DefaultAppTypography.wallCutLight,
+      shift: -unit * cutWidth,
+      blur: edgeSoftness,
+    );
 
     if (ruleWidth > 0) {
-      final rule = ui.Rect.fromLTWH(
-        (width - ruleWidth) / 2,
-        rulePosition,
-        ruleWidth,
-        2,
-      );
-      if (glow) {
-        canvas.drawRect(
-          rule,
-          ui.Paint()
-            ..color = ruleColour
-            ..maskFilter = const ui.MaskFilter.blur(
-              ui.BlurStyle.normal,
-              glowRadius / 2,
-            ),
-        );
-      }
-      canvas.drawRect(rule, ui.Paint()..color = ruleColour);
+      _cutRule(canvas, width, rulePosition, ruleWidth, unit);
     }
 
     return recorder.endRecording().toImage(width, height);
+  }
+
+  /// The line under a sign, cut the same way the lettering is.
+  static void _cutRule(
+    ui.Canvas canvas,
+    int width,
+    double top,
+    double ruleWidth,
+    Offset unit,
+  ) {
+    final rule = ui.Rect.fromLTWH((width - ruleWidth) / 2, top, ruleWidth, 3);
+
+    void stroke(Color colour, Offset shift, double blur) {
+      canvas.drawRect(
+        rule.shift(shift),
+        ui.Paint()
+          ..color = colour
+          ..maskFilter = blur > 0
+              ? ui.MaskFilter.blur(ui.BlurStyle.normal, blur)
+              : null,
+      );
+    }
+
+    stroke(
+      DefaultAppTypography.wallCutShadow.withValues(alpha: occlusionAlpha),
+      Offset.zero,
+      occlusionRadius,
+    );
+    stroke(DefaultAppTypography.wallCutShadow, unit * cutWidth, edgeSoftness);
+    stroke(DefaultAppTypography.wallCutLight, -unit * cutWidth, edgeSoftness);
+  }
+
+  /// [lightFrom] as a direction of length one.
+  ///
+  /// Separate and pure because it is the part with a rule worth checking: the
+  /// two edges have to be displaced by the same distance in exactly opposite
+  /// directions, or the cut comes out wider on one side than the other and
+  /// the letter reads as double-struck rather than carved.
+  static Offset normalise(Offset direction) => _normalise(direction);
+
+  static Offset _normalise(Offset direction) {
+    final length = direction.distance;
+    return length < 1e-6 ? Offset.zero : direction / length;
   }
 }

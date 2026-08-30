@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/credits.dart';
@@ -63,6 +64,47 @@ void main() {
           .toSet();
       expect(icons.length, 3);
       expect(icons, ContactMenu.icons.toSet());
+    });
+
+    test('the two doorways say nothing, because the stage does', () {
+      // The corridor raises its own arrival cue and the logo screen raises
+      // its exit, so a press on either would be a second sound fighting the
+      // first over one moment.
+      expect(ContactMenu.cueFor(ContactDestination.gallery), isNull);
+      expect(ContactMenu.cueFor(ContactDestination.home), isNull);
+    });
+
+    test('everything that leaves the page announces itself', () {
+      // The four hand-offs to a browser. The click is the only sign the
+      // visitor gets that the page heard them at all.
+      for (final destination in <ContactDestination>[
+        ContactDestination.cv,
+        ContactDestination.email,
+        ContactDestination.github,
+        ContactDestination.linkedin,
+      ]) {
+        expect(ContactMenu.cueFor(destination), AudioCue.click);
+      }
+    });
+
+    test('the heart steps in, and the dialog steps back out', () {
+      // Neither a press nor a stage: it opens something over the screen and
+      // closes it again. `CreditsDialog` answers this with `previous`, and
+      // the pair is the point — either one alone is a control being pressed.
+      expect(ContactMenu.cueFor(ContactDestination.credits), AudioCue.next);
+    });
+
+    test('every destination has been decided about', () {
+      // A destination added without a thought for what it sounds like falls
+      // through to silence, and silence is indistinguishable from a control
+      // that did not work.
+      for (final entry in ContactMenu.entries) {
+        final decided =
+            ContactMenu.cueFor(entry.destination) != null ||
+            entry.destination == ContactDestination.gallery ||
+            entry.destination == ContactDestination.home;
+        expect(decided, isTrue, reason: '${entry.destination} is silent');
+      }
     });
 
     test('the dot is punctuation, not an eighth destination', () {

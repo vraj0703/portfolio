@@ -22,6 +22,7 @@ class ScrollCueComponent extends PositionComponent
     with FlameBlocListenable<SceneBloc, SceneState>, TapCallbacks {
   ScrollCueComponent({
     required this.onAdvance,
+    this.onPressed,
     required this.color,
     required this.shadow,
     super.priority,
@@ -29,6 +30,15 @@ class ScrollCueComponent extends PositionComponent
 
   /// Called when the user asks to move on.
   final VoidCallback onAdvance;
+
+  /// Raised when the arrow is *pressed*, as distinct from scrolled past.
+  ///
+  /// Kept apart from [onAdvance] because the two are not the same event even
+  /// though they mean the same thing: scrolling on is the visitor moving,
+  /// pressing is the visitor answering. Only the second wants a sound, and
+  /// the decision about which sound belongs with all the others rather than
+  /// in a component whose business is drawing a chevron.
+  final VoidCallback? onPressed;
   final Color color;
 
   /// Laid under the arrow, so it survives the lighter passages of the
@@ -137,6 +147,7 @@ class ScrollCueComponent extends PositionComponent
   @override
   void onTapUp(TapUpEvent event) {
     super.onTapUp(event);
+    onPressed?.call();
     requestAdvance();
   }
 

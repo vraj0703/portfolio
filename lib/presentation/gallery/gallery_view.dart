@@ -17,6 +17,8 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
+import 'package:portfolio/domain/utils/crossing.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
@@ -60,6 +62,15 @@ class GalleryView extends StatefulWidget {
   /// feels the same, and only the new stretch is new.
   static const double scrollExtent = 8000;
 
+  /// Where the walk ends and the far wall is square on.
+  ///
+  /// Derived from the camera path rather than dialled in, so retiming the
+  /// walk moves the pause with it. A pause at a position the camera no
+  /// longer stops at is worse than none: it holds the visitor in the middle
+  /// of a turn.
+  static double get backWallStop =>
+      GalleryCameraPath.walkFraction * scrollExtent;
+
   /// How long the corridor takes to go dark on the way out.
   ///
   /// Short. This is the visitor being taken somewhere, not a scene change
@@ -80,9 +91,14 @@ class _GalleryViewState extends State<GalleryView> {
   late final ScrollDriver _scroll = ScrollDriver(
     extent: GalleryView.scrollExtent,
     progressExtent: GalleryView.scrollExtent,
-    // No pauses: the corridor is a continuous walk, not a sequence of stops.
-    // Halting the visitor at fixed frames would fight the scroll.
-    snapPoints: const <double>[],
+    // One pause, at the far wall. The corridor is otherwise a continuous
+    // walk and halting it at fixed frames would fight the scroll — but the
+    // end of the walk is the one place there is something to *read*, and a
+    // statement the visitor coasts past at scrolling speed may as well not
+    // be on the wall. The detent only claims a scroll that has already
+    // slowed (see `BoldTextConfig.snapVelocityThreshold`), so it catches
+    // someone arriving and lets someone travelling through pass.
+    snapPoints: <double>[GalleryView.backWallStop],
   );
 
   /// Keeps the gesture that ended the previous stage from driving this one.
@@ -100,6 +116,19 @@ class _GalleryViewState extends State<GalleryView> {
   /// the exact cost this view already goes out of its way to avoid for the
   /// camera. Only the rectangle listens.
   final ValueNotifier<double> _leaving = ValueNotifier<double>(0);
+
+  /// The moment the board begins to rise at the end of the hall.
+  ///
+  /// Taken from the same curve the board's own reveal is taken from, so the
+  /// sound cannot start before the movement does however that curve is
+  /// retuned.
+  /// Whether the far wall had hold of the scroll on the previous frame.
+  bool _wasSnapping = false;
+
+  final Crossing _boardRising = Crossing(
+    at: GalleryCameraPath.revealBegins,
+    rearmAt: GalleryCameraPath.revealBegins - 0.02,
+  );
 
   /// What to raise once the lights are out, or null while the visitor is
   /// still in the room.
@@ -255,6 +284,36 @@ class _GalleryViewState extends State<GalleryView> {
     setState(() => _leavingFor = event);
   }
 
+  /// Acts on one of the three controls, whichever way it was pressed.
+  ///
+  /// The 3D icons on the wall and the 2D fallback both come through here, so
+  /// they cannot drift — and neither can what they sound like. These three
+  /// keep their own voices where every other press shares one: direction is
+  /// the whole meaning of stepping back, stepping on and closing, and a
+  /// single click throws it away.
+  void _control(ControlAction action) {
+    switch (action) {
+      case ControlAction.previous:
+        _sound(AudioCue.previous);
+        _step(_order.previous);
+      case ControlAction.next:
+        _sound(AudioCue.next);
+        _step(_order.next);
+      case ControlAction.exit:
+        _sound(AudioCue.close);
+        _focus(null);
+    }
+  }
+
+  /// Plays a cue, if this view still has a context to find one through.
+  ///
+  /// Called from the render loop as well as from taps — see the arrow and
+  /// the board below — and a tick can outlive the widget.
+  void _sound(AudioCue cue) {
+    if (!mounted) return;
+    context.audio.play(cue);
+  }
+
   void _pick(Offset at) {
     final camera = _lastCamera;
     final gallery = _gallery;
@@ -292,6 +351,7 @@ class _GalleryViewState extends State<GalleryView> {
       );
 
       if (hit != null) {
+        _sound(AudioCue.keyStroke);
         final skill = gallery.keyboard.skillAt(hit);
         // Pressing the key already up releases it, so the board is never
         // stuck showing a choice the visitor has moved on from.
@@ -306,23 +366,18 @@ class _GalleryViewState extends State<GalleryView> {
     // first — otherwise pressing one would also pick the piece behind it.
     final control = _controlAt(at, camera);
     if (control != null) {
-      switch (control) {
-        case ControlAction.previous:
-          _step(_order.previous);
-        case ControlAction.next:
-          _step(_order.next);
-        case ControlAction.exit:
-          _focus(null);
-      }
+      _control(control);
       return;
     }
 
     if (hit?.kind == SurfaceKind.exitSign) {
+      _sound(AudioCue.pageTurn);
       _leave(const SceneEvent.galleryExited());
       return;
     }
 
     if (hit?.kind == SurfaceKind.connectSign) {
+      _sound(AudioCue.pageTurn);
       _leave(const SceneEvent.contactRequested());
       return;
     }
@@ -330,7 +385,9 @@ class _GalleryViewState extends State<GalleryView> {
     // A tap on the plaster is not a request to leave. Exiting is the ✕, and
     // dismissing on any miss would make the room feel like it was trying to
     // get rid of you.
-    if (hit != null) _focus(hit);
+    if (hit == null) return;
+    _sound(AudioCue.click);
+    _focus(hit);
   }
 
   /// Whether the visitor has arrived at the board, close enough that the
@@ -504,9 +561,12 @@ class _GalleryViewState extends State<GalleryView> {
               focused: _focused,
               canGoBack: _focused != null && _order.hasPrevious(_focused!),
               canGoForward: _focused != null && _order.hasNext(_focused!),
-              onBack: () => _step(_order.previous),
-              onExit: () => _focus(null),
-              onForward: () => _step(_order.next),
+              // Through the same dispatch as the icons on the wall, so the
+              // fallback cannot do anything the real controls do not — or
+              // sound different doing it.
+              onBack: () => _control(ControlAction.previous),
+              onExit: () => _control(ControlAction.exit),
+              onForward: () => _control(ControlAction.next),
               mirrored: !(_focused?.position.x.isNegative ?? true),
               asFallback: _gallery?.controls == null,
             ),
@@ -584,6 +644,21 @@ class _GalleryViewState extends State<GalleryView> {
         }
         _advanceCamera(deltaSeconds);
         _advanceLeaving(deltaSeconds);
+
+        // Hung off the scroll rather than off a tap, so both have to be
+        // watched for a crossing — the position is reported every frame, and
+        // comparing it to a mark in here would play the cue sixty times a
+        // second. See [Crossing].
+        if (_boardRising.crossed(_scroll.progress)) {
+          _sound(AudioCue.keyboardEntry);
+        }
+
+        // The far wall taking hold. Watched as an edge rather than as a
+        // position: the driver stays snapping for as long as it is settling,
+        // and the sound belongs to the moment it claims the scroll.
+        final snapping = _scroll.isSnapping;
+        if (snapping && !_wasSnapping) _sound(AudioCue.snap);
+        _wasSnapping = snapping;
       },
       cameraBuilder: (_) {
         final camera = PerspectiveCamera(

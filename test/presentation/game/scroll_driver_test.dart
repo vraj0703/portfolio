@@ -90,11 +90,83 @@ void main() {
       // Being pulled back toward a pause the user is actively leaving reads
       // as the page arguing with them.
       driver.scrollBy(1450);
+
+      // Two frames without input, so the scroll reads as having come to rest
+      // rather than as passing through. This used to pass on the very first
+      // frame, which was the bug: velocity was measured across the spring
+      // alone, so a scroll travelling at 87,000 units a second reported
+      // zero and every pause concluded the visitor had stopped.
+      driver.update(1 / 60);
       driver.update(1 / 60);
       expect(driver.isSnapping, isTrue);
 
       driver.scrollBy(-600);
       expect(driver.isSnapping, isFalse);
+    });
+
+    test('a pause let go of does not take the scroll straight back', () {
+      driver.scrollBy(1450);
+      driver.update(1 / 60);
+      driver.update(1 / 60);
+      expect(driver.isSnapping, isTrue);
+
+      // A small deliberate nudge, then rest. The pause is still well within
+      // reach, and letting it reacquire here would mean nothing short of a
+      // scroll clear across its catchment could ever escape it.
+      driver.scrollBy(-60);
+      final afterNudge = driver.target;
+      for (var i = 0; i < 10; i++) {
+        driver.update(1 / 60);
+      }
+
+      expect(driver.isSnapping, isFalse);
+      // Exactly where the nudge left it. Nothing is pulling on it, so the
+      // target does not move at all — the offset chases it, not the reverse.
+      expect(driver.target, afterNudge);
+    });
+
+    test('but takes hold again once the visitor comes back to it', () {
+      driver.scrollBy(1450);
+      driver.update(1 / 60);
+      driver.update(1 / 60);
+      driver.scrollBy(-60);
+      driver.update(1 / 60);
+      expect(driver.isSnapping, isFalse);
+
+      // Right out of its catchment and back in. Released is not forgotten,
+      // it is a hold that lasts as long as the visitor stays near.
+      driver.scrollBy(-900);
+      driver.update(1 / 60);
+      driver.scrollBy(900);
+      settle(driver);
+
+      expect(driver.target, closeTo(1500, 1));
+    });
+
+    test('reports the speed the visitor is actually scrolling at', () {
+      // Read by the bold-text swell to decide how loud it is, so a velocity
+      // that ignored the visitor made a fast scroll as quiet as a still one.
+      driver.scrollBy(100);
+      driver.update(1 / 60);
+      expect(driver.velocity, closeTo(6000, 1));
+    });
+
+    test('a scroll passing through at speed is not caught', () {
+      final passing = ScrollDriver();
+
+      var acquisitions = 0;
+      var was = false;
+      for (var i = 0; i < 120; i++) {
+        passing.scrollBy(40);
+        passing.update(1 / 60);
+        if (passing.isSnapping && !was) acquisitions++;
+        was = passing.isSnapping;
+      }
+
+      // Thirteen, before the two fixes above: the pause grabbed on every
+      // frame the visitor scrolled through its catchment, and each grab was
+      // a sound.
+      expect(acquisitions, 0);
     });
   });
 

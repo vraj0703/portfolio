@@ -17,6 +17,18 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 class FlameAppAudio implements AppAudio {
   FlameAppAudio();
 
+  /// The file behind [cue], or null if nothing has been chosen for it.
+  ///
+  /// Exposed because a cue with no file is silent and says nothing about it:
+  /// `play` finds nothing in the map and returns, the scene goes on working,
+  /// and that is exactly why nobody notices for a month.
+  @visibleForTesting
+  static String? fileFor(AudioCue cue) => _files[cue];
+
+  /// How loud [cue] is played, or null if nothing has been chosen.
+  @visibleForTesting
+  static double? volumeFor(AudioCue cue) => _volumes[cue];
+
   static const Map<AudioCue, String> _files = <AudioCue, String>{
     AudioCue.enter: 'enter_sound.mp3',
     AudioCue.titleLoaded: 'title_loaded.mp3',
@@ -24,6 +36,15 @@ class FlameAppAudio implements AppAudio {
     AudioCue.bouncyArrow: 'bouncy_arrow.mp3',
     AudioCue.boldTextSwell: 'bold_text_swell.mp3',
     AudioCue.ting: 'ting.mp3',
+    AudioCue.click: 'click.mp3',
+    AudioCue.previous: 'previous.mp3',
+    AudioCue.next: 'next.mp3',
+    AudioCue.close: 'close.mp3',
+    AudioCue.keyboardEntry: 'keyboard_entry.mp3',
+    AudioCue.keyStroke: 'key_stroke.mp3',
+    AudioCue.galleryEntry: 'gallery_entry.mp3',
+    AudioCue.pageTurn: 'page_turn.mp3',
+    AudioCue.snap: 'snap.mp3',
   };
 
   static const Map<AudioCue, double> _volumes = <AudioCue, double>{
@@ -33,6 +54,21 @@ class FlameAppAudio implements AppAudio {
     AudioCue.bouncyArrow: 0.35,
     AudioCue.boldTextSwell: 0.6,
     AudioCue.ting: 0.45,
+    // Under the scene's own cues rather than level with them. These fire on
+    // every press, and a confirmation as loud as the music it interrupts
+    // stops reading as confirmation and starts reading as noise.
+    AudioCue.click: 0.3,
+    AudioCue.previous: 0.35,
+    AudioCue.next: 0.35,
+    AudioCue.close: 0.35,
+    AudioCue.keyboardEntry: 0.5,
+    AudioCue.keyStroke: 0.3,
+    // Level with the scene's own cues, not with the presses. These mark a
+    // section of the site opening or closing, which is the same order of
+    // event as the title resolving — not the same as pressing a control.
+    AudioCue.galleryEntry: 0.5,
+    AudioCue.pageTurn: 0.45,
+    AudioCue.snap: 0.4,
   };
 
   /// Shortest gap between two plays of the *same* cue.

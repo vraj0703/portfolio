@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
@@ -67,11 +68,6 @@ class _ContactMenu extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        // Over the whole section, for the whole visit. Not part of either
-        // fade: this is what the contact screen looks like, not something it
-        // is on the way through.
-        IgnorePointer(child: ColoredBox(color: colors.contactDim)),
-
         TweenAnimationBuilder<double>(
           // Fades up with the lines rather than appearing over them. Implicit
           // rather than driven: the layer mounts when the state arrives and
@@ -295,6 +291,13 @@ class _MenuItemState extends State<_MenuItem> {
   /// belong to [ContactLinks]. Neither knows about the other.
   void _follow(BuildContext context, ContactDestination destination) {
     final bloc = context.read<SceneBloc>();
+
+    // Null for the two doorways, which the stage they open announces for
+    // itself. The four that hand off to a browser especially need a sound:
+    // the click is the only acknowledgement the visitor gets that the page
+    // heard them at all.
+    final cue = ContactMenu.cueFor(destination);
+    if (cue != null) context.audio.play(cue);
 
     switch (destination) {
       case ContactDestination.gallery:

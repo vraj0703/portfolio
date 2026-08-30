@@ -1,3 +1,5 @@
+import 'package:portfolio/domain/audio/app_audio.dart';
+
 /// Where one entry on the contact menu leads.
 ///
 /// An enum rather than a callback per entry, so the menu itself stays data.
@@ -72,6 +74,28 @@ abstract final class ContactMenu {
 
   /// Every drawing the menu needs, marks and punctuation alike.
   static const List<String> drawings = <String>[...icons, separatorIcon];
+
+  /// What following [destination] sounds like, or null if the menu says
+  /// nothing because something else already has.
+  ///
+  /// The corridor and the title screen are stages in their own right, and
+  /// arriving at either is announced by the stage itself — the corridor has
+  /// an arrival cue and the logo screen has its exit. Sounding a press as
+  /// well is not richer, it is two sounds fighting over one moment.
+  ///
+  /// The heart is the one entry that is neither a press nor a stage: it
+  /// opens something over the screen and closes it again, which is a step in
+  /// and a step back out. It borrows the corridor's pair for that, and the
+  /// dialog's own way out answers it with [AudioCue.previous].
+  static AudioCue? cueFor(ContactDestination destination) =>
+      switch (destination) {
+        ContactDestination.gallery || ContactDestination.home => null,
+        ContactDestination.credits => AudioCue.next,
+        ContactDestination.cv ||
+        ContactDestination.email ||
+        ContactDestination.github ||
+        ContactDestination.linkedin => AudioCue.click,
+      };
 
   static const List<ContactEntry> entries = <ContactEntry>[
     ContactEntry(destination: ContactDestination.gallery, icon: galleryIcon),

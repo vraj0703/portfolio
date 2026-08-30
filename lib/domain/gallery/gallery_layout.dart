@@ -23,8 +23,11 @@ enum SurfaceKind {
   /// A wall of the skills hall, off the end of the testimonial wing.
   hallWall,
 
-  /// The invitation painted beside the hall's door.
+  /// The invitation cut beside the hall's door.
   connectSign,
+
+  /// How to handle the board, cut into the wall behind it.
+  hallInstruction,
 
   /// One key on the skills board.
   keycap,
@@ -265,6 +268,23 @@ abstract final class GalleryLayout {
         Vector3(wallThickness, height, segment),
       );
     }
+
+    // Cut into the far wall, above and behind the board. The visitor meets
+    // the hall facing this way — they walk in along `+x` and the board is
+    // what they came for — so this is the one wall they are certain to be
+    // looking at, and the only one an instruction can be counted on to be
+    // read from.
+    yield Placement(
+      kind: SurfaceKind.hallInstruction,
+      position: Vector3(
+        GalleryDimensions.kbEndX - paintedOnWall,
+        GalleryDimensions.instructionY,
+        z,
+      ),
+      extents: Vector3(5.4, 0.6, 0.02),
+      // Faces back down the hall, toward the door the visitor came through.
+      rotationY: -quarterTurn,
+    );
 
     // Painted on the entry wall, inside the hall, on the segment to the
     // visitor's right as they stand at the board and turn back toward the

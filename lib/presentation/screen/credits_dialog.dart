@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/credits.dart';
 import 'package:portfolio/domain/style/colors.dart';
@@ -82,7 +83,11 @@ class CreditsDialog extends StatelessWidget {
                   // the bottom of a phone the first time the list is long
                   // enough to need scrolling.
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      // Answers the step the heart took to open this.
+                      context.audio.play(AudioCue.previous);
+                      Navigator.of(context).pop();
+                    },
                     child: Text(
                       strings.creditsClose,
                       style: type.creditsAction.copyWith(

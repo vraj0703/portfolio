@@ -37,6 +37,7 @@ ScenePalette _palette() {
     titleBase: colors.titleBase,
     scrollCue: colors.scrollCue,
     scrollCueShadow: colors.scrollCueShadow,
+    contactDim: colors.contactDim,
     boldText: strings.boldText,
     boldTextStyle: type.boldText,
   );
