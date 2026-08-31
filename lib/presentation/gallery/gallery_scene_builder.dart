@@ -2,26 +2,26 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
-import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
+import 'package:portfolio/domain/gallery/gallery_layout.dart';
+import 'package:portfolio/domain/gallery/gallery_lighting.dart';
+import 'package:portfolio/domain/radio/radio_player.dart';
+import 'package:portfolio/domain/style/strings.dart';
+import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/presentation/gallery/control_icons.dart';
+import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
+import 'package:portfolio/presentation/gallery/skill_keyboard.dart';
+import 'package:portfolio/presentation/gallery/surface_textures.dart';
+import 'package:portfolio/presentation/gallery/texture_sets.dart';
+import 'package:portfolio/presentation/gallery/wall_radio.dart';
+import 'package:portfolio/presentation/gallery/wall_text.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
 // in 32-bit vectors throughout, and the two Matrix4 types are unrelated as far
 // as the analyser is concerned.
 import 'package:vector_math/vector_math.dart';
-import 'package:portfolio/domain/gallery/gallery_layout.dart';
-import 'package:portfolio/domain/gallery/gallery_lighting.dart';
-import 'package:portfolio/presentation/gallery/scene_axes.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/domain/radio/radio_player.dart';
-import 'package:portfolio/presentation/gallery/skill_keyboard.dart';
-import 'package:portfolio/presentation/gallery/wall_radio.dart';
-import 'package:portfolio/presentation/gallery/control_icons.dart';
-import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
-import 'package:portfolio/presentation/gallery/surface_textures.dart';
-import 'package:portfolio/domain/style/strings.dart';
-import 'package:portfolio/domain/style/text_styles.dart';
-import 'package:portfolio/presentation/gallery/wall_text.dart';
-import 'package:portfolio/presentation/gallery/texture_sets.dart';
 
 /// Builds the gallery's scene graph, and owns everything it allocates.
 ///

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';

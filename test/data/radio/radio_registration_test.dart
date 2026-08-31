@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/data/radio/streaming_radio.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
 import 'package:portfolio/data/audio/flame_app_audio.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 
 void main() {

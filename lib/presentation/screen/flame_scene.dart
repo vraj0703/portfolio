@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
@@ -83,10 +83,7 @@ class FlameScene extends StatelessWidget {
   static void _releaseGalleryPhase(SceneBloc bloc) {
     if (bloc.isClosed) return;
     bloc.add(
-      const SceneEvent.loadingProgressed(
-        phase: LoadingPhase.gallery,
-        value: 1,
-      ),
+      const SceneEvent.loadingProgressed(phase: LoadingPhase.gallery, value: 1),
     );
   }
 }

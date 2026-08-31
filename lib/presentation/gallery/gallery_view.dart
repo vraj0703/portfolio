@@ -3,31 +3,31 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_scene/scene.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:portfolio/domain/gallery/walk_order.dart';
-import 'package:vector_math/vector_math.dart';
+import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
-import 'package:portfolio/domain/gallery/gallery_layout.dart';
-import 'package:portfolio/domain/gallery/project_focus.dart';
-import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
-import 'package:portfolio/domain/gallery/skill_data.dart';
-import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/frame_picker.dart';
-import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
-import 'package:portfolio/domain/utils/crossing.dart';
-import 'package:portfolio/presentation/gallery/gallery_mark.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/gallery/gallery_layout.dart';
+import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
+import 'package:portfolio/domain/gallery/project_focus.dart';
+import 'package:portfolio/domain/gallery/skill_data.dart';
+import 'package:portfolio/domain/gallery/walk_order.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/gallery/frame_picker.dart';
+import 'package:portfolio/presentation/gallery/gallery_mark.dart';
+import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/scroll_gate.dart';
+import 'package:vector_math/vector_math.dart';
 
 /// The gallery: a corridor of work the visitor walks through.
 ///

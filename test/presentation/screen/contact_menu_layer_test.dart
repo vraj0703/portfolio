@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
@@ -148,9 +148,7 @@ void main() {
     // Three marks, and a dot between every neighbouring pair.
     expect(
       find.byType(SvgPicture),
-      findsNWidgets(
-        ContactMenu.icons.length + ContactMenu.entries.length - 1,
-      ),
+      findsNWidgets(ContactMenu.icons.length + ContactMenu.entries.length - 1),
     );
   });
 

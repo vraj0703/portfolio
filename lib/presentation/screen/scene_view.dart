@@ -1,11 +1,11 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
-import 'package:portfolio/domain/style/colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
-import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';

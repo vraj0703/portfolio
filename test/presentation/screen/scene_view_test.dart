@@ -2,8 +2,8 @@ import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
@@ -56,8 +56,9 @@ void main() {
     expect(const SceneView(), isA<StatelessWidget>());
   });
 
-  testWidgets('covers the scene and shows the loading screen while loading',
-      (tester) async {
+  testWidgets('covers the scene and shows the loading screen while loading', (
+    tester,
+  ) async {
     // First frame only. The game reports its phase done from onLoad, so by
     // the following frame the scene has already left loading — the state
     // machine's own transitions are covered in scene_bloc_test.
@@ -77,8 +78,9 @@ void main() {
     expect(find.byType(GameWidget<MyGame>), findsOneWidget);
   });
 
-  testWidgets('opens the curtain and clears the loading screen once loaded',
-      (tester) async {
+  testWidgets('opens the curtain and clears the loading screen once loaded', (
+    tester,
+  ) async {
     await tester.pumpWidget(host());
 
     // Drive the phases from inside the test's async zone rather than waiting
@@ -108,8 +110,9 @@ void main() {
     );
   });
 
-  testWidgets('does not rebuild the game when progress changes',
-      (tester) async {
+  testWidgets('does not rebuild the game when progress changes', (
+    tester,
+  ) async {
     await tester.pumpWidget(host());
     await tester.pump();
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
-import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/main.dart';
 
@@ -68,8 +68,9 @@ void main() {
       expect(identical(resolved, recorder), isTrue);
     });
 
-    testWidgets('falls back to silence when nothing is installed',
-        (tester) async {
+    testWidgets('falls back to silence when nothing is installed', (
+      tester,
+    ) async {
       // A widget test rendering part of the scene should not have to stand up
       // an audio backend, so the miss has to be survivable rather than throw.
       final resolved = await resolveAudio(tester);
@@ -78,8 +79,9 @@ void main() {
       expect(() => resolved.play(AudioCue.enter), returnsNormally);
     });
 
-    testWidgets('does not allocate a new fallback on every read',
-        (tester) async {
+    testWidgets('does not allocate a new fallback on every read', (
+      tester,
+    ) async {
       final first = await resolveAudio(tester);
       final second = await resolveAudio(tester);
 

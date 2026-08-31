@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/contact_typing.dart';
 import 'package:portfolio/domain/style/colors.dart';
-import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/style/strings.dart';
+import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/screen/credits_dialog.dart';
 
