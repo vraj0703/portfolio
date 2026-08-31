@@ -10,12 +10,6 @@
     "prefer_related_applications": false,
     "icons": [
         {
-            "src": "favicon.svg",
-            "sizes": "any",
-            "type": "image/svg+xml",
-            "purpose": "any"
-        },
-        {
             "src": "favicon.png",
             "sizes": "175x150",
             "type": "image/png"

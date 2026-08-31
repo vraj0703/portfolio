@@ -547,6 +547,10 @@ class _GalleryViewState extends State<GalleryView> {
     // `DefaultAppTypography` is the one surface that stops following it.
     final type = context.typography;
 
+    // Told what the radio is doing now as well as what it does next —
+    // `RadioPlayer.changes` opens with the current state, which is what
+    // makes subscribing late safe. This arrives very late indeed: the scene
+    // has to finish warming up first.
     _radio = locate<RadioPlayer>().changes.listen((state) async {
       if (!mounted) return;
       await gallery.radio.show(state: state, type: type);

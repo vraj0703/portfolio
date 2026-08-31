@@ -8,4 +8,8 @@ Allow: /
 # It no longer does, so this is now the only thing worth indexing.
 Allow: /static/
 
-Sitemap: https://vishalraj.space/sitemap.xml
+# www, not the bare apex. vishalraj.space answers 525 — its certificate is
+# not resolving at the edge — so every apex URL here would point a crawler at
+# an SSL error. The previous site's files all used the apex; that was copied
+# forward without checking that it still served, and it does not.
+Sitemap: https://www.vishalraj.space/sitemap.xml

@@ -143,6 +143,41 @@ void main() {
       image.dispose();
     });
 
+    test('the readout and the dial both show on the face', () async {
+      // Three things on this face move, and each was reported as stuck when
+      // the wall stopped being re-lettered: the control (PLAY/STOP), the
+      // readout (OFF/TUNING/ON AIR) and the station name. This checks the
+      // drawing answers to all three, so a future report of one being stuck
+      // is a delivery problem and never a rendering one.
+      Future<int> inkOf(RadioState state) async {
+        final image = await RadioFace.render(state: state, type: type);
+        final bytes = (await image.toByteData())!;
+        var count = 0;
+        for (var i = 0; i < RadioFace.width * RadioFace.height; i++) {
+          if (bytes.getUint8(i * 4 + 3) > 0) count++;
+        }
+        image.dispose();
+        return count;
+      }
+
+      final off = await inkOf(state);
+      final tuning = await inkOf(state.copyWith(status: RadioStatus.tuning));
+      final onAir = await inkOf(state.copyWith(status: RadioStatus.onAir));
+      // Station 2 is "Ambient" against station 0's "Lofi", and the different
+      // *lengths* are the point: these tests run without the real fonts, and
+      // the fallback draws every glyph as the same filled box — so "LOFI"
+      // and "JAZZ" come out byte-identical and would prove nothing.
+      final nextStation = await inkOf(state.copyWith(station: 2));
+
+      expect(off, isNot(tuning), reason: 'the readout ignores TUNING');
+      expect(off, isNot(onAir), reason: 'the readout ignores ON AIR');
+      expect(
+        off,
+        isNot(nextStation),
+        reason: 'the station name does not follow the dial',
+      );
+    });
+
     test('and the play control says what pressing it will do', () async {
       // Not what the radio is doing. A button labelled with the current
       // state reads as a description until somebody presses it to find out.

@@ -48,10 +48,25 @@ class WallRadios {
   Iterable<Node> get nodes => _radios.map((radio) => radio.node);
 
   /// Re-letters every face.
+  /// What the wall is currently being lettered with, if anything.
+  ///
+  /// Lettering a face is asynchronous — rasterise, upload, swap — and a
+  /// `StreamSubscription` does not wait for an async listener before
+  /// delivering the next event. Two changes close together would therefore
+  /// letter concurrently, and whichever finished last would win regardless
+  /// of which happened last. Chaining makes the order of arrival the order
+  /// of appearance.
+  Future<void> _lettering = Future<void>.value();
+
   Future<void> show({
     required RadioState state,
     required AppTypography type,
-  }) async {
+  }) {
+    _lettering = _lettering.then((_) => _letterAll(state, type));
+    return _lettering;
+  }
+
+  Future<void> _letterAll(RadioState state, AppTypography type) async {
     for (final radio in _radios) {
       await radio.show(state: state, type: type);
     }

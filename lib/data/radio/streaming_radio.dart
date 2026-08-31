@@ -36,7 +36,23 @@ class StreamingRadio implements RadioPlayer {
   RadioState get state => _state;
 
   @override
-  Stream<RadioState> get changes => _changes.stream;
+  Stream<RadioState> get changes {
+    late final StreamController<RadioState> opened;
+    StreamSubscription<RadioState>? source;
+
+    opened = StreamController<RadioState>(
+      onListen: () {
+        // Forwarding is set up *before* the current state goes out, so a
+        // change arriving in between queues behind it rather than being lost
+        // in front of it. The other order looks equivalent and drops events.
+        source = _changes.stream.listen(opened.add, onError: opened.addError);
+        opened.add(_state);
+      },
+      onCancel: () async => source?.cancel(),
+    );
+
+    return opened.stream;
+  }
 
   void _emit(RadioState next) {
     if (next == _state) return;

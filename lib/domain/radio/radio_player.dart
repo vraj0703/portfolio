@@ -93,6 +93,18 @@ abstract class RadioPlayer {
   RadioState get state;
 
   /// Every change to that, so a widget can follow without polling.
+  ///
+  /// **Opens with the current state**, before any change. Subscribing is not
+  /// the same as knowing, and the one thing that follows this subscribes very
+  /// late: the wall's faces cannot be lettered until the whole gallery scene
+  /// has warmed up, while the radio is put on air a fixed wait after the
+  /// corridor opens. On any build slower than that wait, the change to
+  /// ON AIR happens with nobody listening — and on a plain broadcast stream
+  /// it is then simply gone, leaving a wall that reads PLAY over a radio
+  /// that is playing.
+  ///
+  /// Making that the *contract* rather than something each listener
+  /// remembers to do is the point: the caller cannot subscribe too late.
   Stream<RadioState> get changes;
 
   /// Opens the current station. Returns when it is playing or has given up.
@@ -135,7 +147,7 @@ class SilentRadio implements RadioPlayer {
       const RadioState(status: RadioStatus.off, station: RadioDial.first);
 
   @override
-  Stream<RadioState> get changes => const Stream<RadioState>.empty();
+  Stream<RadioState> get changes => Stream<RadioState>.value(state);
 
   @override
   Future<void> play() async {}
