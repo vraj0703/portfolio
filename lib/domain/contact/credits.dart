@@ -31,6 +31,12 @@ abstract final class Credits {
       ],
     ),
     CreditGroup(
+      heading: 'On the air',
+      items: <String>[
+        'SomaFM — every station the wall radio is tuned to',
+      ],
+    ),
+    CreditGroup(
       heading: 'Built with',
       items: <String>[
         'Flutter — the whole of it',

@@ -100,7 +100,7 @@ class DefaultAppStrings implements AppStrings {
   // long walk and is looking at the board, not reading a manual — anything
   // longer than a line goes unread, and a line that has to be studied is
   // worse than no line, because it takes the attention the board wants.
-  String get keyboardInstruction => 'Drag, rotate, click a key';
+  String get keyboardInstruction => 'Scroll to end, Drag, Rotate, Click a key';
 
   @override
   String get contactCv => 'cv';

@@ -11,7 +11,10 @@ import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/core/di/dependency_manager.dart';
+import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/gallery/skill_keyboard.dart';
+import 'package:portfolio/presentation/gallery/wall_radio.dart';
 import 'package:portfolio/presentation/gallery/control_icons.dart';
 import 'package:portfolio/presentation/gallery/scroll_arrow.dart';
 import 'package:portfolio/presentation/gallery/surface_textures.dart';
@@ -32,6 +35,7 @@ class GalleryScene {
     this.arrow,
     this.controls,
     this.keyboard,
+    this.radio,
     this._artwork,
     this._textures,
   );
@@ -48,6 +52,10 @@ class GalleryScene {
 
   /// The skills board in its hall, exposed so the view can turn it.
   final SkillKeyboard keyboard;
+
+  /// The radios — one by the entrance, one in the hall — exposed so the view
+  /// can re-letter them when the station or the status changes.
+  final WallRadios radio;
 
   /// Rasterised project art. Owned here, not by the materials that sample it:
   /// a material holding the only reference to an image has no moment at which
@@ -145,6 +153,19 @@ class GalleryScene {
     scene.add(keyboard.node);
     await step();
 
+    // Lettered from whatever the radio is doing when the room is built,
+    // which is off on a first visit and whatever it was left on for a
+    // second — the player outlives the corridor.
+    final radio = await WallRadios.build(
+      state: locate<RadioPlayer>().state,
+      // The defaults rather than the theme's: this runs off any widget tree,
+      // and the gallery is built once for a scene whose type does not change
+      // under it.
+      type: const DefaultAppTypography(),
+    );
+    radio.nodes.forEach(scene.add);
+    await step();
+
     await _report(onProgress, 1);
 
     return _ready = GalleryScene._(
@@ -152,6 +173,7 @@ class GalleryScene {
       arrow,
       controls,
       keyboard,
+      radio,
       artwork,
       textures,
     );
@@ -217,10 +239,15 @@ class GalleryScene {
   ///
   /// The baked statement, the entrance arrow, three control models, the
   /// board's case — six, being three files decoded and uploaded — the three
-  /// keycap metals at seven apiece, and the board itself. Counted rather than
-  /// guessed, because a denominator that is too small makes the bar finish
-  /// early and then wait, which is the same complaint in a different place.
-  static const int _tailSteps = 33;
+  /// keycap metals at seven apiece, the board itself, and the two radios.
+  ///
+  /// Counted rather than guessed, and it has to be recounted whenever
+  /// something joins the tail. Adding the radios without this said the room
+  /// was finished while they were still baking — and because that baking
+  /// holds the main isolate, the curtain's first frames never drew. The
+  /// flash on the way out is in those frames, which is how a miscounted
+  /// denominator turns into a missing animation.
+  static const int _tailSteps = 34;
 
   /// Where the bar stands once the photographed surfaces are in.
   ///
@@ -315,6 +342,17 @@ class GalleryScene {
       final transform = Matrix4.translation(SceneAxes.position(piece.position));
       if (piece.rotationY != 0) {
         transform.rotateY(SceneAxes.rotationY(piece.rotationY));
+      }
+
+      // The radio draws its own face, and its two controls are tap targets
+      // rather than objects. Left to fall through, all three become cuboids
+      // in the wall's own material sitting exactly where the face is — which
+      // is what made the buttons flicker: two coplanar surfaces with equal
+      // claim to the same pixels, resolved differently frame to frame.
+      if (piece.kind == SurfaceKind.radio ||
+          piece.kind == SurfaceKind.radioPlay ||
+          piece.kind == SurfaceKind.radioNext) {
+        continue;
       }
 
       if (piece.kind == SurfaceKind.exitSign ||
@@ -438,9 +476,11 @@ class GalleryScene {
     final image = await WallText.render(
       width: width,
       height: height,
-      lines: <TextSpan>[
-        TextSpan(text: strings.wallName, style: type.wallName),
-        TextSpan(text: strings.wallStatement, style: type.wallStatement),
+      lines: <EngravedLine>[
+        EngravedLine(TextSpan(text: strings.wallName, style: type.wallName)),
+        EngravedLine(
+          TextSpan(text: strings.wallStatement, style: type.wallStatement),
+        ),
       ],
       // Space between the name and the paragraph, as a measurement rather
       // than as a newline hidden on the end of the copy. Written into the
@@ -523,7 +563,7 @@ class GalleryScene {
     final image = await WallText.render(
       width: width,
       height: height,
-      lines: <TextSpan>[TextSpan(text: text, style: style)],
+      lines: <EngravedLine>[EngravedLine(TextSpan(text: text, style: style))],
     );
     images.add(image);
 

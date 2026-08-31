@@ -5,14 +5,12 @@ import 'package:flutter/material.dart';
 /// Cues are named for the moment they mark, not for the file behind them, so
 /// swapping the sound for a beat never touches a call site.
 ///
-/// Measured lengths of the current files, for anyone aligning an animation to
-/// one — a cue that runs materially longer or shorter than the motion it
-/// accompanies reads as a mistake even when both are individually fine:
-///
-///  * [enter] — 4.06s
-///  * [titleLoaded] — 4.62s
-///  * [slideIn] — 2.06s
-///  * [bouncyArrow] — 1.32s
+/// Every cue's measured length is on [AudioCueLength.length]. It used to be
+/// a list in this comment, and it is data now because two animations are
+/// *timed from* it rather than merely checked against it — see
+/// `LogoConfig.entranceDuration`. A comment cannot be read by the thing it
+/// describes, and a sound that runs materially longer or shorter than the
+/// motion it accompanies reads as a fault even when both are fine alone.
 enum AudioCue {
   /// The user commits: the mark dismissed, the scene opening up.
   enter,
@@ -61,6 +59,15 @@ enum AudioCue {
   /// One keycap pressed.
   keyStroke,
 
+  /// The contact menu's row typing itself on.
+  ///
+  /// The affordance under the mark had one of these too, and it is gone: it
+  /// was the only cue in the app that fired before the visitor had clicked
+  /// anything, which is the one thing a browser will not play. It was silent
+  /// on arrival and audible only on a later visit to the same screen, and a
+  /// sound that comes and goes by route is worse than no sound.
+  keyboardTyping,
+
   /// Arriving in the corridor, by whichever route.
   ///
   /// Bound to the *state* rather than to the controls that reach it, because
@@ -83,6 +90,37 @@ enum AudioCue {
   /// put it away and open something else, and that is a larger thing than a
   /// click can say.
   pageTurn,
+}
+
+/// How long the file behind each cue runs.
+///
+/// Measured from the assets themselves, and kept as data because animation
+/// timings are derived from it: the affordance and the contact menu each type
+/// for exactly as long as the sound of them being typed. Anything that reads
+/// one of these is asserting that a motion and a sound are *one event*, not
+/// two that happen to overlap.
+///
+/// Exhaustive on purpose. A new cue will not compile until its length is
+/// measured, which is the only reliable moment to do it.
+extension AudioCueLength on AudioCue {
+  Duration get length => switch (this) {
+    AudioCue.enter => const Duration(milliseconds: 4056),
+    AudioCue.titleLoaded => const Duration(milliseconds: 4624),
+    AudioCue.slideIn => const Duration(milliseconds: 2064),
+    AudioCue.bouncyArrow => const Duration(milliseconds: 1320),
+    AudioCue.boldTextSwell => const Duration(milliseconds: 3624),
+    AudioCue.ting => const Duration(milliseconds: 836),
+    AudioCue.click => const Duration(milliseconds: 696),
+    AudioCue.previous => const Duration(milliseconds: 784),
+    AudioCue.next => const Duration(milliseconds: 784),
+    AudioCue.close => const Duration(milliseconds: 1296),
+    AudioCue.keyboardEntry => const Duration(milliseconds: 2544),
+    AudioCue.keyStroke => const Duration(milliseconds: 1032),
+    AudioCue.keyboardTyping => const Duration(milliseconds: 3600),
+    AudioCue.galleryEntry => const Duration(milliseconds: 2280),
+    AudioCue.snap => const Duration(milliseconds: 888),
+    AudioCue.pageTurn => const Duration(milliseconds: 1056),
+  };
 }
 
 /// Contract for the app's sound.

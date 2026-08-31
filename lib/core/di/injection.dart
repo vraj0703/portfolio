@@ -3,6 +3,8 @@ import 'package:portfolio/data/audio/flame_app_audio.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/data/config/durations.dart';
 import 'package:portfolio/data/contact/url_contact_links.dart';
+import 'package:portfolio/data/radio/streaming_radio.dart';
+import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
@@ -20,11 +22,22 @@ Future<void> initDependencies() async {
   // already-closed the second time the scene mounts, and the next event would
   // throw "Cannot add new events after calling close". A factory hands each
   // provider its own instance to own and close.
-  di.registerFactory<SceneBloc>(() => SceneBloc());
+  // Handed the radio, because the bloc decides when it plays: the wall it
+  // hangs on is the gallery's, but *which screen the visitor is on* is the
+  // scene's to know, and that is the whole of the question.
+  di.registerFactory<SceneBloc>(
+    () => SceneBloc(radio: di.get<RadioPlayer>()),
+  );
 
   // One shared audio backend: it owns a cache and a pool of players, so a
   // second instance would duplicate both and let cues talk over each other.
   di.registerLazySingleton<AppAudio>(FlameAppAudio.new);
+
+  // One radio for the whole visit, and a lazy one: it holds an open
+  // connection to somebody else's server while it plays, so a second
+  // instance would be a second stream nobody is listening to — and lazy
+  // because nothing should dial out before a visitor asks it to.
+  di.registerLazySingleton<RadioPlayer>(StreamingRadio.new);
 
   // Everything the contact menu reaches for outside the scene. Stateless, and
   // behind an interface so the menu can be exercised without a platform

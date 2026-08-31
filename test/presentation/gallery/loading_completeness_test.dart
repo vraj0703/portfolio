@@ -51,8 +51,17 @@ void main() {
 
   test('the tail is counted, and counts what is actually there', () {
     // Statement, arrow, three control models, the board's case, the three
-    // keycap metals, and the board. Written out rather than asserted against
-    // a constant, so the two have to be reconciled by hand when either moves.
+    // keycap metals, the board, and the radios. Written out rather than
+    // asserted against a constant, so the two have to be reconciled by hand
+    // when either moves.
+    //
+    // Worth knowing what this does and does not catch: it holds the
+    // denominator to an inventory, and an inventory that has not been told
+    // about new work agrees with a denominator that has not either. The
+    // radios went in without touching either, and both stayed quietly
+    // consistent while the bar finished a step early — which showed up as
+    // the flash on the way out never drawing, because the work still to do
+    // held the isolate through the frames it plays in.
     const statement = 1;
     const arrow = 1;
     const controls = 3;
@@ -61,6 +70,7 @@ void main() {
         .map((s) => s.stepCount)
         .reduce((a, b) => a + b);
     const board = 1;
+    const radios = 1;
 
     final source = File(
       'lib/presentation/gallery/gallery_scene_builder.dart',
@@ -70,7 +80,7 @@ void main() {
     expect(declared, isNotNull);
     expect(
       int.parse(declared!.group(1)!),
-      statement + arrow + controls + base + keys + board,
+      statement + arrow + controls + base + keys + board + radios,
     );
   });
 }

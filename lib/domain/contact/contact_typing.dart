@@ -51,6 +51,43 @@ abstract final class ContactTyping {
     return (into / weights[index]).clamp(0.0, 1.0);
   }
 
+  /// How far the *mark* of an entry has arrived, given how far the entry has.
+  ///
+  /// An entry that reads as words followed by a mark spends its last
+  /// [markWeight] characters on the mark, so the glyph belongs to that last
+  /// beat and to nothing before it. Fading it across the entry's whole
+  /// reveal instead — which is what a single `reveal` handed to both halves
+  /// does — puts the heart on screen with the "M" of "Made with", so the
+  /// entry shows what it means before it has said it.
+  ///
+  /// An entry that is only a mark has no words to wait for, and its reveal
+  /// and its mark are the same thing.
+  static double markOf({required double reveal, required int weight}) {
+    final at = reveal.clamp(0.0, 1.0);
+    if (weight <= markWeight) return at;
+
+    final words = weight - markWeight;
+    return ((at * weight - words) / markWeight).clamp(0.0, 1.0);
+  }
+
+  /// How many letters of an entry's word have been written.
+  ///
+  /// Measured against the entry's whole [weight] rather than against the
+  /// word alone, so a word that shares its entry with a mark still types at
+  /// the row's pace instead of squeezing itself into the beats before it.
+  ///
+  /// Rounded up rather than down, so a letter is on screen as soon as its
+  /// share of the row has begun — down, and the first character of every
+  /// word waits for the whole of its own beat and the row stutters.
+  static int lettersOf({
+    required double reveal,
+    required int weight,
+    required int letters,
+  }) {
+    if (letters <= 0) return 0;
+    return (reveal.clamp(0.0, 1.0) * weight).ceil().clamp(0, letters);
+  }
+
   /// The whole row's length, separators included.
   static int totalWeight(List<int> weights) {
     if (weights.isEmpty) return 0;

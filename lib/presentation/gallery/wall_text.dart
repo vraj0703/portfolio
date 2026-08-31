@@ -127,7 +127,7 @@ abstract final class WallText {
   /// top of the texture arrives hard against the top edge of the sign with
   /// all the room underneath it.
   static Future<ui.Image> render({
-    required List<TextSpan> lines,
+    required List<EngravedLine> lines,
     required int width,
     required int height,
     double gap = 0,
@@ -234,7 +234,7 @@ abstract final class WallText {
 
   /// Each line, laid out and positioned.
   static List<_PlacedLine> _place({
-    required List<TextSpan> lines,
+    required List<EngravedLine> lines,
     required int width,
     required int height,
     required double gap,
@@ -245,30 +245,53 @@ abstract final class WallText {
     final measured = <TextPainter>[
       for (final line in lines)
         TextPainter(
-          text: line,
+          text: line.span,
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
         )..layout(maxWidth: width.toDouble()),
     ];
 
-    final block =
-        measured.fold<double>(0, (sum, p) => sum + p.height) +
-        gap * (measured.length - 1);
+    // A line sharing the row above adds nothing to the block's height, and
+    // nothing to the count of gaps between rows.
+    var block = 0.0;
+    var rows = 0;
+    for (var i = 0; i < lines.length; i++) {
+      if (lines[i].sameRow && i > 0) continue;
+      block += measured[i].height;
+      rows++;
+    }
+    block += gap * (rows - 1);
+
     var y = (height - block) / 2;
+    var rowTop = y;
 
     final placed = <_PlacedLine>[];
     for (var i = 0; i < measured.length; i++) {
       final painter = measured[i];
+      final line = lines[i];
+
+      if (line.sameRow && i > 0) {
+        // Back onto the row just laid down, rather than under it.
+        y = rowTop;
+      } else {
+        rowTop = y;
+      }
+
       placed.add(
         _PlacedLine(
-          span: lines[i],
-          at: ui.Offset((width - painter.width) / 2, y),
+          span: line.span,
+          at: ui.Offset(
+            (width - painter.width) / 2 + line.shift * width,
+            y,
+          ),
           maxWidth: width.toDouble(),
-          size: lines[i].style?.fontSize ?? 16,
+          size: line.span.style?.fontSize ?? 16,
         ),
       );
-      y += painter.height;
-      if (i < measured.length - 1) y += gap;
+
+      final last = i == measured.length - 1;
+      final nextSharesRow = !last && lines[i + 1].sameRow;
+      if (!nextSharesRow) y = rowTop + painter.height + (last ? 0 : gap);
     }
     return placed;
   }
@@ -308,6 +331,21 @@ abstract final class WallText {
     final length = direction.distance;
     return length < 1e-6 ? Offset.zero : direction / length;
   }
+}
+
+/// One line to cut, and where it goes.
+///
+/// [shift] moves it sideways as a fraction of the image's width, and
+/// [sameRow] puts it on the line above's row instead of under it. Between
+/// them they are the radio's two controls, which sit either side of the
+/// middle on one row — everything else on these walls is a centred line and
+/// leaves both alone.
+class EngravedLine {
+  const EngravedLine(this.span, {this.shift = 0, this.sameRow = false});
+
+  final TextSpan span;
+  final double shift;
+  final bool sameRow;
 }
 
 /// A line of lettering, measured and placed.

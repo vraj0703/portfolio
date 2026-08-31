@@ -42,6 +42,7 @@ class FlameAppAudio implements AppAudio {
     AudioCue.close: 'close.mp3',
     AudioCue.keyboardEntry: 'keyboard_entry.mp3',
     AudioCue.keyStroke: 'key_stroke.mp3',
+    AudioCue.keyboardTyping: 'keyboard_typing.mp3',
     AudioCue.galleryEntry: 'gallery_entry.mp3',
     AudioCue.pageTurn: 'page_turn.mp3',
     AudioCue.snap: 'snap.mp3',
@@ -49,7 +50,7 @@ class FlameAppAudio implements AppAudio {
 
   static const Map<AudioCue, double> _volumes = <AudioCue, double>{
     AudioCue.enter: 0.6,
-    AudioCue.titleLoaded: 0.5,
+    AudioCue.titleLoaded: 0.35,
     AudioCue.slideIn: 0.4,
     AudioCue.bouncyArrow: 0.35,
     AudioCue.boldTextSwell: 0.6,
@@ -63,6 +64,10 @@ class FlameAppAudio implements AppAudio {
     AudioCue.close: 0.35,
     AudioCue.keyboardEntry: 0.5,
     AudioCue.keyStroke: 0.3,
+    // Quieter than a single keystroke, because there are a great many of
+    // them and they run underneath something being read. This is the sound
+    // of writing happening, not of a key being hit.
+    AudioCue.keyboardTyping: 0.28,
     // Level with the scene's own cues, not with the presses. These mark a
     // section of the site opening or closing, which is the same order of
     // event as the title resolving — not the same as pressing a control.
@@ -182,7 +187,7 @@ class FlameAppAudio implements AppAudio {
       if (player == null) {
         player = AudioPlayer();
         _scrubPlayers[cue] = player;
-        await player.setSource(AssetSource('audio/\$file'));
+        await player.setSource(AssetSource('audio/$file'));
         await player.setReleaseMode(ReleaseMode.stop);
         // Cached: asking the decoder for its length on every seek is a
         // round trip per frame for a number that never changes.
@@ -200,7 +205,7 @@ class FlameAppAudio implements AppAudio {
         Duration(milliseconds: (length.inMilliseconds * progress).round()),
       );
     } catch (error, stack) {
-      _report('scrub \$file failed', error, stack);
+      _report('scrub $file failed', error, stack);
     }
   }
 

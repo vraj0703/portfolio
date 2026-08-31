@@ -87,7 +87,9 @@ void main() {
       final image = await WallText.render(
         width: 400,
         height: 160,
-        lines: <TextSpan>[TextSpan(text: 'BACK', style: type.wallSign)],
+        lines: <EngravedLine>[
+          EngravedLine(TextSpan(text: 'BACK', style: type.wallSign)),
+        ],
       );
 
       expect(image.width, 400);
@@ -101,7 +103,9 @@ void main() {
       final image = await WallText.render(
         width: 600,
         height: 400,
-        lines: <TextSpan>[TextSpan(text: 'I', style: type.wallSign)],
+        lines: <EngravedLine>[
+          EngravedLine(TextSpan(text: 'I', style: type.wallSign)),
+        ],
       );
 
       final bytes = (await image.toByteData())!;
@@ -119,8 +123,10 @@ void main() {
       final image = await WallText.render(
         width: 64,
         height: 200,
-        lines: <TextSpan>[
-          TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 40)),
+        lines: <EngravedLine>[
+          EngravedLine(
+            TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 40)),
+          ),
         ],
       );
 
@@ -156,8 +162,10 @@ void main() {
       final image = await WallText.render(
         width: 200,
         height: 200,
-        lines: <TextSpan>[
-          TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 120)),
+        lines: <EngravedLine>[
+          EngravedLine(
+            TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 120)),
+          ),
         ],
       );
 
@@ -212,8 +220,10 @@ void main() {
       final image = await WallText.render(
         width: 300,
         height: 300,
-        lines: <TextSpan>[
-          TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 200)),
+        lines: <EngravedLine>[
+          EngravedLine(
+            TextSpan(text: 'I', style: type.wallSign.copyWith(fontSize: 200)),
+          ),
         ],
       );
 
@@ -248,8 +258,10 @@ void main() {
       final image = await WallText.render(
         width: 300,
         height: 300,
-        lines: <TextSpan>[
-          TextSpan(text: 'H', style: type.wallSign.copyWith(fontSize: 200)),
+        lines: <EngravedLine>[
+          EngravedLine(
+            TextSpan(text: 'H', style: type.wallSign.copyWith(fontSize: 200)),
+          ),
         ],
       );
 

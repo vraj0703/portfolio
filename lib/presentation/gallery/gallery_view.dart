@@ -19,7 +19,9 @@ import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
+import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
@@ -140,6 +142,9 @@ class _GalleryViewState extends State<GalleryView> {
   /// would be moving something to where it already is.
   final ValueNotifier<double> _markJourney = ValueNotifier<double>(1);
 
+  /// Follows the radio so the face on the wall says what it is doing.
+  StreamSubscription<RadioState>? _radio;
+
   final Crossing _boardRising = Crossing(
     at: GalleryCameraPath.revealBegins,
     rearmAt: GalleryCameraPath.revealBegins - 0.02,
@@ -234,6 +239,7 @@ class _GalleryViewState extends State<GalleryView> {
           return;
         }
         setState(() => _gallery = gallery);
+        _tuneIn(gallery);
       },
       (error, stack) {
         if (mounted) setState(() => _error = error);
@@ -341,6 +347,8 @@ class _GalleryViewState extends State<GalleryView> {
       kinds: <SurfaceKind>{
         SurfaceKind.frame,
         SurfaceKind.exitSign,
+        SurfaceKind.radioPlay,
+        SurfaceKind.radioNext,
         // Only once they are standing in the hall. Every sign in the room
         // projects to somewhere on screen whether or not there is a wall in
         // front of it, and an invitation that can be pressed through the
@@ -380,6 +388,27 @@ class _GalleryViewState extends State<GalleryView> {
     final control = _controlAt(at, camera);
     if (control != null) {
       _control(control);
+      return;
+    }
+
+    if (hit?.kind == SurfaceKind.radioPlay) {
+      _sound(AudioCue.click);
+      final radio = locate<RadioPlayer>();
+
+      // Not awaited, and said so. Opening a stream takes seconds; a tap
+      // handler that waited on it would hold the corridor still while the
+      // radio dialled out.
+      unawaited(
+        radio.state.isPlaying || radio.state.isTuning
+            ? radio.stop()
+            : radio.play(),
+      );
+      return;
+    }
+
+    if (hit?.kind == SurfaceKind.radioNext) {
+      _sound(AudioCue.click);
+      unawaited(locate<RadioPlayer>().next());
       return;
     }
 
@@ -497,8 +526,36 @@ class _GalleryViewState extends State<GalleryView> {
     if (mounted) context.read<SceneBloc>().queue(event: event);
   }
 
+  /// Keeps every radio face in step with the radio.
+  ///
+  /// Listening only. Whether the radio *plays* is the scene bloc's to decide
+  /// — it is the one thing that knows which screen the visitor is on — and
+  /// this used to start it too, which is how a stream came to go on playing
+  /// under the contact screen.
+  ///
+  /// One subscription re-letters both faces: `WallRadios.show` writes every
+  /// panel it holds, so the corridor's radio and the hall's cannot disagree
+  /// about what is on air. They are one radio with two faces, not two.
+  void _tuneIn(GalleryScene gallery) {
+    // Replaced rather than added to. The scene can report ready more than
+    // once, and a second listener here would re-letter every face twice per
+    // change while the first went on running against a stale scene.
+    _radio?.cancel();
+
+    // Read from the theme, not built here. Every other letter in this room
+    // comes from the design system, and a face that reaches for its own
+    // `DefaultAppTypography` is the one surface that stops following it.
+    final type = context.typography;
+
+    _radio = locate<RadioPlayer>().changes.listen((state) async {
+      if (!mounted) return;
+      await gallery.radio.show(state: state, type: type);
+    });
+  }
+
   @override
   void dispose() {
+    _radio?.cancel();
     _leaving.dispose();
     _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is

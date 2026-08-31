@@ -84,6 +84,83 @@ void main() {
     });
   });
 
+  group('a mark waits for the words it belongs to', () {
+    // "Made with ♥" is the one entry that is words *and* a mark: nine
+    // characters and one more for the glyph, ten in all.
+    const madeWith = 9;
+    const weight = madeWith + ContactTyping.markWeight;
+
+    test('the heart is not there while the words are still arriving', () {
+      // The bug this exists for: the mark's opacity was the entry's whole
+      // reveal, so the heart faded up across every letter and was visibly
+      // on screen beside the "M" of "Made". The entry showed what it meant
+      // before it had said it.
+      for (final reveal in <double>[0.05, 0.25, 0.5, 0.75, 0.89]) {
+        expect(
+          ContactTyping.markOf(reveal: reveal, weight: weight),
+          0,
+          reason: 'the heart was $reveal of the way on at $reveal of the entry',
+        );
+      }
+    });
+
+    test('and arrives on the beat after the last letter', () {
+      // The words finish at nine tenths, which is where the mark starts.
+      expect(
+        ContactTyping.lettersOf(
+          reveal: madeWith / weight,
+          weight: weight,
+          letters: madeWith,
+        ),
+        madeWith,
+        reason: 'the words were still unfinished when the mark began',
+      );
+      expect(ContactTyping.markOf(reveal: madeWith / weight, weight: weight), 0);
+      expect(ContactTyping.markOf(reveal: 1, weight: weight), 1);
+    });
+
+    test('an entry that is only a mark has nothing to wait for', () {
+      // The gallery and home marks carry no words, so their beat is the
+      // entry's — and this must not push them to the end of a beat they
+      // already own.
+      const alone = ContactTyping.markWeight;
+      expect(ContactTyping.markOf(reveal: 0, weight: alone), 0);
+      expect(ContactTyping.markOf(reveal: 0.5, weight: alone), 0.5);
+      expect(ContactTyping.markOf(reveal: 1, weight: alone), 1);
+    });
+
+    test('a word without a mark still types across its whole entry', () {
+      // Every other entry: weight and letters are the same number, so this
+      // has to behave exactly as counting characters did before.
+      expect(
+        ContactTyping.lettersOf(reveal: 0.5, weight: 8, letters: 8),
+        4,
+      );
+      expect(ContactTyping.lettersOf(reveal: 0.01, weight: 8, letters: 8), 1,
+          reason: 'the first letter waited for the whole of its own beat');
+      expect(ContactTyping.lettersOf(reveal: 1, weight: 8, letters: 8), 8);
+    });
+
+    test('and no letter is dropped to make room for the mark', () {
+      // The word shares its entry with the glyph, so measuring it against
+      // its own length instead of the entry's would finish it a beat early
+      // and leave the last letter waiting on the heart.
+      for (var i = 0; i <= 10; i++) {
+        final letters = ContactTyping.lettersOf(
+          reveal: i / 10,
+          weight: weight,
+          letters: madeWith,
+        );
+        expect(letters, lessThanOrEqualTo(madeWith));
+        expect(letters, greaterThanOrEqualTo(0));
+      }
+      expect(
+        ContactTyping.lettersOf(reveal: 1, weight: weight, letters: madeWith),
+        madeWith,
+      );
+    });
+  });
+
   group('edges', () {
     test('an index off either end reveals nothing', () {
       expect(reveal(-1, 1), 0);

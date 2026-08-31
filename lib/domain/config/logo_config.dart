@@ -131,6 +131,13 @@ abstract final class LogoConfig {
   /// The layer fades in, then the lines arrive, then the text types on.
   /// Fractions of [entranceDuration].
   static const double linesStart = 0.25;
+  /// Where the label starts writing itself.
+  ///
+  /// Back at 0.45, where it was before it was moved to 0.608 to fit a typing
+  /// sound to the window. That sound is gone — it was the only cue in the
+  /// app that fired before the visitor had clicked anything, which is the
+  /// one thing a browser will not play — and the phase boundary it dragged
+  /// with it has no reason to stay moved.
   static const double textStart = 0.45;
 
   static const Duration entranceDuration = Duration(milliseconds: 1400);
@@ -167,13 +174,41 @@ abstract final class LogoConfig {
 
   static double _cube(double v) => v * v * v;
 
-  /// How long the contact menu's row takes to type itself on.
+  /// How long the contact menu's row takes to arrive, waiting included.
   ///
   /// Longer than the affordance's, because there is more of it: "TAP TO
   /// ENTER" is twelve characters and the menu is nearer forty, so sharing a
   /// duration means the row types more than three times as fast as the
   /// phrase it stands in for and reads as a flicker rather than as writing.
-  static const Duration contactMenuDuration = Duration(milliseconds: 2400);
+  ///
+  /// Set so the typing window — the last `1 - contactMenuTextStart` of it —
+  /// is `AudioCue.keyboardTyping`'s 3600ms exactly. That works out at 90ms a
+  /// character, which is what the recording is: somebody typing at a normal
+  /// speed. The row took 1320ms before, so the sound outlasted it by more
+  /// than twice its own length.
+  static const Duration contactMenuDuration = Duration(milliseconds: 4500);
+
+  /// How much of [contactMenuDuration] passes before the row starts writing.
+  ///
+  /// Its own number rather than [textStart], because the two delays are
+  /// waiting for different things. The affordance waits for the layer to
+  /// fade and its lines to draw. The menu waits for the mark to finish
+  /// travelling in from the hall, which is a shorter wait — and the row has
+  /// three times as much to write once it starts, so spending the same
+  /// *fraction* on waiting would push the whole thing past six seconds.
+  static const double contactMenuTextStart = 0.2;
+
+  /// The same wait as a duration, for whatever has to happen on a clock
+  /// rather than on a tween — the typing sound, which cannot be expressed as
+  /// a fraction of anything.
+  ///
+  /// Kept beside the fraction it restates instead of derived from it, since
+  /// `Duration.inMilliseconds` is not available to a `const`. The two are
+  /// held to each other by `logo_typing_sync_test`, because a lead that
+  /// drifts from its fraction is a sound that starts before or after the
+  /// writing it belongs to — which is the one thing this pair exists to
+  /// prevent.
+  static const Duration contactMenuLead = Duration(milliseconds: 900);
 
   /// How small the mark starts before it settles.
   ///
@@ -186,10 +221,11 @@ abstract final class LogoConfig {
   ///
   /// Pure, and shared: the contact menu types its row on by the same rule,
   /// and the two are meant to be the same animation rather than two
-  /// animations that happen to take the same time.
-  static double typedAt(double entrance) {
-    if (entrance <= textStart) return 0;
-    return ((entrance - textStart) / (1 - textStart)).clamp(0.0, 1.0);
+  /// animations that happen to take the same time. [from] is the only thing
+  /// they differ on — where in their own entrance the writing starts.
+  static double typedAt(double entrance, {double from = textStart}) {
+    if (entrance <= from) return 0;
+    return ((entrance - from) / (1 - from)).clamp(0.0, 1.0);
   }
 
   /* -- Exit ------------------------------------------------------------ */

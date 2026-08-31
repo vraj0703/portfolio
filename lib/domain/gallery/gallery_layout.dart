@@ -26,6 +26,15 @@ enum SurfaceKind {
   /// The invitation cut beside the hall's door.
   connectSign,
 
+  /// The radio's face, hung on the right wall by the entrance.
+  radio,
+
+  /// Its two controls: the one that opens the stream and the one that steps
+  /// the dial. Separate kinds rather than one with an index, so a tap can be
+  /// answered without asking which half of a panel it landed on.
+  radioPlay,
+  radioNext,
+
   /// How to handle the board, cut into the wall behind it.
   hallInstruction,
 
@@ -214,11 +223,99 @@ abstract final class GalleryLayout {
         extents: Vector3(2.6, 0.95, 0.02),
         rotationY: quarterTurn,
       ),
+      ..._radio(),
       ..._skillHall(),
       ..._testimonialFrames(),
       ..._frames(GalleryProjects.left, onLeft: true),
       ..._frames(GalleryProjects.right, onLeft: false),
     ];
+  }
+
+  /// The radio, and the two things on it that can be pressed.
+  ///
+  /// On the right wall by the entrance, opposite the way out — the first
+  /// thing the visitor passes on that side, where the previous site had it.
+  /// Before the first picture, which starts a full spacing in, so it has the
+  /// wall to itself.
+  static Iterable<Placement> _radio() sync* {
+    yield* _radioAt(
+      Vector3(
+        GalleryDimensions.wallX - paintedOnWall,
+        GalleryDimensions.frameY,
+        radioZ,
+      ),
+      facing: -quarterTurn,
+    );
+
+    // A second one in the skills hall, on the entry wall opposite the
+    // invitation. The visitor spends longer in that room than anywhere else
+    // — the board is the one thing here they can play with — and walking
+    // back to the corridor to change the station is the sort of errand a
+    // room should not send anybody on.
+    final segment =
+        (GalleryDimensions.kbWidth - GalleryDimensions.wingWidth) / 2;
+
+    yield* _radioAt(
+      Vector3(
+        GalleryDimensions.kbEntryX + paintedOnWall,
+        // Level with the invitation across the door, not with the corridor's
+        // pictures. The two are a pair flanking the way in, and a pair at
+        // different heights reads as two things that happen to be on the
+        // same wall.
+        //
+        // Level by the *station name*, not by the panel. The invitation is
+        // one line and the radio is four, so matching their centres puts
+        // LET'S CONNECT alongside the radio's second row and its name up in
+        // the air above — which is what the hall looked like, and why this
+        // still read as misaligned after the heights already matched.
+        GalleryDimensions.connectSignY - radioStationDrop,
+        // The far side of the door from the invitation, which hangs at
+        // *minus* this. One on each side of the way in.
+        GalleryDimensions.kbZ + (GalleryDimensions.wingWidth + segment) / 2,
+      ),
+      facing: quarterTurn,
+    );
+  }
+
+  /// One radio, and the two things on it that can be pressed.
+  ///
+  /// [facing] turns the whole assembly, and the controls are offset along the
+  /// wall *after* it — which is why they are expressed as a distance from the
+  /// panel's own middle rather than as world coordinates. Written out per
+  /// wall, the second radio's buttons would be a sign error away from being
+  /// unreachable.
+  static Iterable<Placement> _radioAt(
+    Vector3 panel, {
+    required double facing,
+  }) sync* {
+    yield Placement(
+      kind: SurfaceKind.radio,
+      position: panel,
+      extents: Vector3(radioWidth, radioHeight, 0.02),
+      rotationY: facing,
+    );
+
+    // Which way along the wall "left of the middle" runs depends on which
+    // way the panel faces, and the drawn face is mirrored with it — so the
+    // offsets turn with the panel. Without this the STOP button on one of
+    // the two radios would be where NEXT is drawn.
+    final along = facing > 0 ? -1.0 : 1.0;
+
+    for (final control in <(SurfaceKind, double)>[
+      (SurfaceKind.radioPlay, -radioButtonSpacing / 2),
+      (SurfaceKind.radioNext, radioButtonSpacing / 2),
+    ]) {
+      yield Placement(
+        kind: control.$1,
+        position: Vector3(
+          panel.x,
+          panel.y - radioButtonDrop,
+          panel.z + control.$2 * along,
+        ),
+        extents: Vector3(radioButtonSize, radioButtonSize, 0.02),
+        rotationY: facing,
+      );
+    }
   }
 
   /// The room the keyboard hangs in, and the passage into it.
@@ -314,6 +411,58 @@ abstract final class GalleryLayout {
       rotationY: quarterTurn,
     );
   }
+
+  /// Where the radio hangs, and how big its face is.
+  ///
+  /// Level with the pictures and mirroring the way out on the far wall: one
+  /// object each side of the entrance, at the same height, so the corridor
+  /// opens with a pair rather than with something lopsided.
+  static const double radioZ = -1;
+  static const double radioWidth = 2;
+  static const double radioHeight = 1.3;
+
+  /// Where the two controls sit on the face, as fractions of it.
+  ///
+  /// Fractions, and *shared with the drawing* — `RadioFace` reads these to
+  /// decide where to letter PLAY and NEXT, and the tap targets below are
+  /// derived from the same two numbers. They were briefly a separate pair,
+  /// and the drawn buttons ended up an eighth of a metre from the places
+  /// they could actually be pressed: a picture and a promise about where a
+  /// finger has to land, quietly disagreeing.
+  ///
+  /// [radioControlsAt] is measured down from the top of the face, the way an
+  /// image is; the placements convert it.
+  static const double radioControlsAt = 0.786;
+  static const double radioControlOffset = 0.155;
+
+  /// Where the station's own line sits on the face, the same way.
+  ///
+  /// Needed because the face is *four rows centred as a block*, so its
+  /// loudest line — the station name — does not sit at the panel's middle.
+  /// Hanging the panel at the invitation's height therefore lines up two
+  /// things nobody looks at, and leaves the two names visibly out of step.
+  /// This is what lets a radio be hung by its name instead.
+  static const double radioStationAt = 0.2675;
+
+  /// How far to lower a radio so its station name lands at a given height.
+  ///
+  /// Positive: the name sits above the panel's middle, so the panel goes
+  /// below the line it is being aligned to.
+  static const double radioStationDrop =
+      (0.5 - radioStationAt) * radioHeight;
+
+  /// How big a target each control is.
+  ///
+  /// Square and generous — larger than the lettering on it. A control the
+  /// size of its own label is a control that has to be aimed at, and this
+  /// one is read at an angle from across a corridor.
+  static const double radioButtonSize = 0.42;
+
+  /// The controls' offsets in world units, from the middle of the face.
+  static const double radioButtonSpacing =
+      radioControlOffset * 2 * radioWidth;
+  static const double radioButtonDrop =
+      (radioControlsAt - 0.5) * radioHeight;
 
   /// How far a far-wall frame stands off the plaster.
   ///

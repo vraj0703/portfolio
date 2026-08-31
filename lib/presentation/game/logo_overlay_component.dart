@@ -58,7 +58,7 @@ class LogoOverlayComponent extends PositionComponent
   /// while the loading screen still covers the scene. Two things followed
   /// from that, and both were bugs: the label typed itself out behind the
   /// curtain and was already finished by the time anyone could see it, and
-  /// on any load slower than the 1.4s entrance the completion report — which
+  /// on any load slower than the entrance the completion report — which
   /// fires exactly once — was raised while the scene was still loading.
   bool _isOnShow = false;
 

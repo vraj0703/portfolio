@@ -291,11 +291,22 @@ class MyGame extends FlameGame
     // The swell is bound to position rather than triggered, so scrolling back
     // walks back out of the sound. Volume follows speed, so a slow scroll is
     // quiet and a fast one swells.
-    audio.scrub(
-      AudioCue.boldTextSwell,
-      _scroll.progress,
-      volume: (0.2 + _scroll.velocity.abs() / 900).clamp(0.0, 1.0),
-    );
+    //
+    // Nothing at all until the visitor has moved. Bound to position means
+    // position zero is the sound's first frame, and scrubbing to it the
+    // moment the stage opens plays that frame — a swell that arrives before
+    // the gesture it is meant to accompany. It went unnoticed for as long as
+    // it did because the file path was mis-escaped and the scrub failed
+    // silently; fixing that made an old bug audible.
+    if (_scroll.progress <= 0) {
+      audio.stopScrub(AudioCue.boldTextSwell);
+    } else {
+      audio.scrub(
+        AudioCue.boldTextSwell,
+        _scroll.progress,
+        volume: (0.2 + _scroll.velocity.abs() / 900).clamp(0.0, 1.0),
+      );
+    }
 
     // The stage hands over once the scroll is spent, not when the sequence
     // finishes drawing — the tail past the sequence is what confirms the user

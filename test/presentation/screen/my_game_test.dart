@@ -4,10 +4,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
-import 'package:portfolio/domain/style/colors.dart';
-import 'package:portfolio/domain/style/scene_palette.dart';
-import 'package:portfolio/domain/style/strings.dart';
-import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
@@ -17,32 +13,7 @@ import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/title_layer_component.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 
-ScenePalette _palette() {
-  const colors = DefaultAppColors();
-  const strings = DefaultAppStrings();
-  const type = DefaultAppTypography();
-
-  return ScenePalette(
-    background: colors.sceneBackground,
-    overlayText: colors.logoOverlayText,
-    overlayTextShadow: colors.logoOverlayTextShadow,
-    lineGradient: colors.logoLineGradient,
-    lineStops: colors.logoLineStops,
-    enterStyle: type.enter,
-    tapToEnter: strings.tapToEnter,
-    primaryTitle: strings.primaryTitle,
-    secondaryTitle: strings.secondaryTitle,
-    titlePrimaryStyle: type.titlePrimary,
-    titleSecondaryStyle: type.titleSecondary,
-    titleBase: colors.titleBase,
-    scrollCue: colors.scrollCue,
-    scrollCueShadow: colors.scrollCueShadow,
-    contactDim: colors.contactDim,
-    sceneVeil: colors.sceneVeil,
-    boldText: strings.boldText,
-    boldTextStyle: type.boldText,
-  );
-}
+import '../../support/scene_harness.dart';
 
 late SceneBloc bloc;
 
@@ -50,7 +21,7 @@ MyGame _buildGame() {
   bloc = SceneBloc();
   return MyGame(
     bloc: bloc,
-    palette: _palette(),
+    palette: scenePalette(),
     audio: const SilentAudio(),
   );
 }
@@ -114,7 +85,7 @@ void main() {
     });
 
     testWithGame<MyGame>('paints the scene on the theme ground', _buildGame, (game) async {
-      expect(game.backgroundColor(), _palette().background);
+      expect(game.backgroundColor(), scenePalette().background);
     });
   });
 }

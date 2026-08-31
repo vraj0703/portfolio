@@ -56,4 +56,17 @@ class SceneState with _$SceneState {
   bool get isScrollable => this is Active || this is Gallery;
 
   bool get isInteractable => this is Logo || this is Title;
+
+  /// Whether the wall radio belongs on air.
+  ///
+  /// [Gallery] and nothing else. That one state covers the corridor *and*
+  /// the skills hall — the hall is walked to, not navigated to — so both
+  /// rooms with a radio on the wall are the same answer, and the screens
+  /// with no radio anywhere on them are all the other one.
+  ///
+  /// A rule rather than a check at each call site, because the failure it
+  /// prevents is silent: a stage added later that forgets to switch the
+  /// radio off leaves a stream playing under a title screen, and nothing
+  /// about that looks wrong in the code that added the stage.
+  bool get playsRadio => this is Gallery;
 }

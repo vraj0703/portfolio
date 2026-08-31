@@ -44,6 +44,7 @@ abstract class AppTypography {
   /// The message shown when the gallery cannot be built.
   TextStyle get galleryFailure;
 
+
   /// The contact menu's destinations.
   ///
   /// Larger than [enter], and tracked far tighter. "TAP TO ENTER" is three

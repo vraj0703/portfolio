@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
+import 'package:portfolio/domain/radio/radio_player.dart';
 
 part 'scene_bloc.freezed.dart';
 part 'scene_event.dart';
@@ -17,7 +19,12 @@ part 'scene_state.dart';
 /// through [Queuer] without knowing what else is loading or how the bar is
 /// weighted.
 class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
-  SceneBloc() : super(const SceneState.loading()) {
+  SceneBloc({RadioPlayer radio = const SilentRadio()})
+    // A named parameter cannot be spelled `_radio`, so the field cannot be
+    // an initialising formal here — the lint's suggestion does not compile.
+    // ignore: prefer_initializing_formals
+    : _radio = radio,
+      super(const SceneState.loading()) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
@@ -32,8 +39,75 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<HomeRequested>(_onHomeRequested);
   }
 
+  /// The wall radio, which the scene owns rather than the corridor does.
+  ///
+  /// It used to be started by the gallery view, on the reasoning that the
+  /// radio is on the gallery's walls. But *when it plays* is a fact about
+  /// which screen the visitor is on, and the only thing that knows that is
+  /// this — so the view was answering a question it could only see half of,
+  /// and the radio went on playing under whatever came next.
+  final RadioPlayer _radio;
+
+  /// The wait between arriving in the corridor and the radio coming on.
+  Timer? _tuningIn;
+
   @override
   void queue({required SceneEvent event}) => add(event);
+
+  /// Puts the radio on air, or takes it off, to suit [state].
+  ///
+  /// Hung off [onChange] rather than written into each handler: there are
+  /// four ways out of the gallery and more will be added, and a rule that
+  /// has to be remembered at every one of them is a rule that will be
+  /// forgotten at the next.
+  @override
+  void onChange(Change<SceneState> change) {
+    super.onChange(change);
+
+    final state = change.nextState;
+    if (state.playsRadio) {
+      _tuneIn();
+    } else {
+      _tuneOut();
+    }
+  }
+
+  void _tuneIn() {
+    // Already coming, or already here. Re-entering the corridor from the
+    // contact screen must not stack a second wait on the first.
+    if (_tuningIn != null) return;
+    if (_radio.state.isPlaying || _radio.state.isTuning) return;
+
+    // After the room has finished announcing itself. Arriving in the
+    // corridor plays [AudioCue.galleryEntry], and music starting underneath
+    // it makes the arrival sound like a mistake — so the wait *is* that
+    // cue's length, taken from the cue rather than guessed, so the two stay
+    // in step if the sound is ever replaced.
+    _tuningIn = Timer(AudioCue.galleryEntry.length, () {
+      _tuningIn = null;
+
+      // Checked again on the way out of the wait, not only on the way in.
+      // The visitor may have pressed PLAY on the wall while it ran.
+      if (_radio.state.isPlaying || _radio.state.isTuning) return;
+      unawaited(_radio.play());
+    });
+  }
+
+  void _tuneOut() {
+    // Cancelled first. Leaving the corridor before the music has started
+    // must not leave a timer that turns it on over the screen after it.
+    _tuningIn?.cancel();
+    _tuningIn = null;
+
+    if (_radio.state.status == RadioStatus.off) return;
+    unawaited(_radio.stop());
+  }
+
+  @override
+  Future<void> close() async {
+    _tuneOut();
+    await super.close();
+  }
 
   /// Whether the logo's entrance has finished, remembered across the arrival
   /// of the state it belongs to.

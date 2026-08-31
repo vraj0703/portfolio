@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -47,8 +49,42 @@ class ContactMenuLayer extends StatelessWidget {
   }
 }
 
-class _ContactMenu extends StatelessWidget {
+class _ContactMenu extends StatefulWidget {
   const _ContactMenu();
+
+  @override
+  State<_ContactMenu> createState() => _ContactMenuState();
+}
+
+/// Stateful for one reason, and it is the reason the rule allows: something
+/// has to make a sound at a moment that is not a rebuild.
+///
+/// The row does not start writing when this mounts — it waits for the mark
+/// to finish travelling in from the hall — so the cue belongs a fixed time
+/// after mounting, and `build` is not a place to fire one. Nothing else here
+/// outlives a frame; the entrance is still an implicit tween.
+class _ContactMenuState extends State<_ContactMenu> {
+  Timer? _typing;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Exactly the wait the tween spends before `typedAt` returns anything,
+    // so the first keystroke and the first letter land on the same frame.
+    // The sound then runs 3600ms, which is what the writing takes.
+    _typing = Timer(LogoConfig.contactMenuLead, () {
+      if (mounted) context.audio.play(AudioCue.keyboardTyping);
+    });
+  }
+
+  @override
+  void dispose() {
+    // The visitor can leave before the row has started. A cue fired into a
+    // screen that is no longer there is a sound with nothing under it.
+    _typing?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +118,12 @@ class _ContactMenu extends StatelessWidget {
                 height: ContactMenuLayer.rowHeight,
                 // Never wider than the gap the lines leave for it.
                 width: LogoConfig.contactGap(width) * 2,
-                child: _MenuRow(typed: LogoConfig.typedAt(entrance)),
+                child: _MenuRow(
+                  typed: LogoConfig.typedAt(
+                    entrance,
+                    from: LogoConfig.contactMenuTextStart,
+                  ),
+                ),
               ),
             ),
           ),
@@ -105,8 +146,7 @@ class _MenuRow extends StatelessWidget {
   /// times as long as "cv", which is what typing means.
   List<int> weights(AppStrings strings) => <int>[
     for (final entry in ContactMenu.entries)
-      (entry.isMark ? ContactTyping.markWeight : 0) +
-          _MenuItemState.wordFor(strings, entry.destination).length,
+      _MenuItemState.weightOf(strings, entry),
   ];
 
   @override
@@ -261,7 +301,7 @@ class _MenuItemState extends State<_MenuItem> {
               children: <Widget>[
                 if (!widget.entry.isMark || widget.entry.hasWords)
                   Text(
-                    _typedWord(wordFor(strings, destination)),
+                    _typedWord(strings, wordFor(strings, destination)),
                     style: context.typography.contactMenu.copyWith(
                       color: colour,
                     ),
@@ -269,7 +309,12 @@ class _MenuItemState extends State<_MenuItem> {
                 if (widget.entry.isMark) ...<Widget>[
                   if (widget.entry.hasWords) const SizedBox(width: 6),
                   Opacity(
-                    opacity: widget.reveal.clamp(0.0, 1.0),
+                    // The mark's own beat, not the entry's. "Made with" has
+                    // to be written before the heart it is about arrives.
+                    opacity: ContactTyping.markOf(
+                      reveal: widget.reveal,
+                      weight: weightOf(strings, widget.entry),
+                    ),
                     child: SvgPicture.asset(
                       widget.entry.icon!,
                       height: widget.entry.hasWords
@@ -291,14 +336,24 @@ class _MenuItemState extends State<_MenuItem> {
   }
 
   /// The word cut to however much of it has typed on.
+  String _typedWord(AppStrings strings, String word) => word.substring(
+    0,
+    ContactTyping.lettersOf(
+      reveal: widget.reveal,
+      weight: weightOf(strings, widget.entry),
+      letters: word.length,
+    ),
+  );
+
+  /// What an entry costs the row, in characters.
   ///
-  /// Rounded up rather than down, so a letter is on screen as soon as its
-  /// share of the row has begun — down, and the first character of every
-  /// word waits for the whole of its own beat and the row stutters.
-  String _typedWord(String word) {
-    final shown = (word.length * widget.reveal.clamp(0.0, 1.0)).ceil();
-    return word.substring(0, shown.clamp(0, word.length));
-  }
+  /// One expression, read by the row that lays the weights out and by the
+  /// entry that divides its own between its word and its mark. They were the
+  /// same arithmetic written twice, which is how the heart came to be fading
+  /// in across letters that were still arriving.
+  static int weightOf(AppStrings strings, ContactEntry entry) =>
+      (entry.isMark ? ContactTyping.markWeight : 0) +
+      wordFor(strings, entry.destination).length;
 
   /// The word an entry reads as, or empty for the two that are only marks.
   static String wordFor(AppStrings strings, ContactDestination destination) =>

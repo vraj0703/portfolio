@@ -4,11 +4,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/core/di/dependency_manager.dart';
 import 'package:portfolio/core/di/injection.dart';
+import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/credits_dialog.dart';
+
+import '../../support/scene_harness.dart';
 
 void main() {
   const strings = DefaultAppStrings();
@@ -43,6 +47,78 @@ void main() {
     // Past the fade-in, so the row is at full strength and hit-testable.
     await tester.pumpAndSettle();
   }
+
+  /// The contact screen, with something listening to what it plays.
+  Widget listeningHost(RecordingAudio audio) {
+    created = SceneBloc();
+    return MaterialApp(
+      theme: ThemeData(
+        extensions: <ThemeExtension<dynamic>>[AppAudioExtension(audio: audio)],
+      ),
+      home: BlocProvider<SceneBloc>.value(
+        value: created!,
+        child: const Scaffold(body: ContactMenuLayer()),
+      ),
+    );
+  }
+
+  testWidgets('is heard typing itself on, from the letter it starts at', (
+    tester,
+  ) async {
+    final audio = RecordingAudio();
+    await tester.pumpWidget(listeningHost(audio));
+    created!.emit(const SceneState.contact());
+    await tester.pump();
+
+    // The row does not start writing when the layer mounts — it waits for
+    // the mark to finish travelling in from the hall. A cue fired on mount
+    // would be a second of typing over an empty line.
+    await tester.pump(
+      LogoConfig.contactMenuLead - const Duration(milliseconds: 50),
+    );
+    expect(
+      audio.timesPlayed(AudioCue.keyboardTyping),
+      0,
+      reason: 'the typing was heard before the row began writing',
+    );
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      audio.timesPlayed(AudioCue.keyboardTyping),
+      1,
+      reason: 'the row started writing in silence',
+    );
+
+    await tester.pumpAndSettle();
+    expect(
+      audio.timesPlayed(AudioCue.keyboardTyping),
+      1,
+      reason: 'the cue was fired more than once for one row',
+    );
+  });
+
+  testWidgets('and stays quiet if the visitor leaves before it starts', (
+    tester,
+  ) async {
+    // The cue is on a timer, and a timer outlives the widget that set it.
+    // Left running, this plays a second of typing into whatever screen the
+    // visitor moved on to — and the test framework fails the moment a timer
+    // is still pending, which is the other half of what this checks.
+    final audio = RecordingAudio();
+    await tester.pumpWidget(listeningHost(audio));
+    created!.emit(const SceneState.contact());
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+
+    created!.emit(const SceneState.logo(isInteractive: true));
+    await tester.pumpAndSettle();
+
+    expect(
+      audio.timesPlayed(AudioCue.keyboardTyping),
+      0,
+      reason: 'a screen nobody is on was heard typing',
+    );
+  });
 
   testWidgets('draws nothing until the contact screen is reached', (
     tester,
@@ -89,6 +165,13 @@ void main() {
     await tester.pump();
 
     expect(created!.state, isA<Gallery>());
+
+    // Arriving in the corridor sets the radio's wait going, and this bloc
+    // was built without one — so let it run out rather than leave a pending
+    // timer behind. Left un-run it fails the test on teardown, which is the
+    // framework correctly pointing out that the screen started something it
+    // never finished.
+    await tester.pump(AudioCue.galleryEntry.length);
   });
 
   testWidgets('the home mark starts the logo screen leaving', (tester) async {
