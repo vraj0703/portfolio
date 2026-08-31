@@ -1,0 +1,14 @@
+# Goldens are excluded from CI, and it is not because they are flaky.
+#
+# They are pixel comparisons, and pixels are not portable: the reference
+# images were rendered on Windows, and a Linux runner rasterises type and
+# blurs differently enough to fail every one of them. That is a true
+# difference between two machines, not a regression in the curtain — and a
+# check that fails for a reason nobody can act on gets ignored, then gets
+# everything around it ignored with it.
+#
+# They are committed and they do work: run `flutter test` locally, on the
+# machine the images came from. CI runs `flutter test --exclude-tags golden`.
+tags:
+  golden:
+    description: Pixel comparisons against committed reference images.

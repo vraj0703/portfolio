@@ -1,35 +1,51 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
+    Replaced by `flutter build`'s `--base-href`. The site is served from the
+    root of its own domain, so this stays "/" — it was "/flutter/" on the
+    previous site, where the app was one section of a React page rather than
+    the whole of it.
   -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- iOS meta tags & icons -->
+  <!--
+    Everything below is read *before* Flutter starts, and by things that
+    never start it at all — a tab, a search result, a link pasted into a
+    chat. `MaterialApp.title` sets the tab once the engine is running, which
+    is too late for all three.
+  -->
+  <title>Vishal Raj</title>
+  <meta name="description" content="Vishal Raj — mobile and Flutter engineer. A gallery of work you walk through rather than scroll.">
+  <link rel="canonical" href="https://vishalraj.space/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Vishal Raj">
+  <meta property="og:title" content="Vishal Raj">
+  <meta property="og:description" content="Mobile and Flutter engineer. A gallery of work you walk through rather than scroll.">
+  <meta property="og:url" content="https://vishalraj.space/">
+  <meta property="og:image" content="https://vishalraj.space/favicon.png">
+
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Vishal Raj">
+  <meta name="twitter:description" content="Mobile and Flutter engineer. A gallery of work you walk through rather than scroll.">
+  <meta name="twitter:image" content="https://vishalraj.space/favicon.png">
+
+  <!-- The mark, as a vector first: it is drawn at whatever size a tab, a
+       bookmark bar or an installed shortcut asks for. The PNG is the
+       fallback for anything that will not take an SVG. -->
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="favicon.png">
+
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="projects">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>projects</title>
+  <meta name="apple-mobile-web-app-title" content="Vishal Raj">
+  <meta name="theme-color" content="#0A0A0C">
   <link rel="manifest" href="manifest.json">
 
   <!--
@@ -55,13 +71,21 @@
 </head>
 <body>
   <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
-
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
+    What a crawler and a reader without JavaScript get.
+    
+    The scene is drawn on a canvas, so there is no text in this page for
+    either of them to find — the site would otherwise be a blank document
+    with a title. Removed from the DOM the moment Flutter has a frame up, so
+    it never shows to anybody who can see the real thing.
   -->
+  <noscript>
+    <p style="color:#F0E4CC;font-family:system-ui,sans-serif;padding:2rem">
+      Vishal Raj — mobile and Flutter engineer.
+      This site is an interactive gallery and needs JavaScript.
+      <a href="/static/" style="color:#A9821F">Read the plain version</a>.
+    </p>
+  </noscript>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

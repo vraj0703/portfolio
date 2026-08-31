@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# The plain-text version of the site, and the only page on it a crawler can
+# read: the gallery is drawn on a canvas, so the root document has a title
+# and nothing else. On the previous site this was disallowed as duplicate
+# content, because the React page carried the same words in its own markup.
+# It no longer does, so this is now the only thing worth indexing.
+Allow: /static/
+
+Sitemap: https://vishalraj.space/sitemap.xml

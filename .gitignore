@@ -43,33 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
-/test/presentation/widgets/goldens/exit_15.png
-/test/presentation/widgets/goldens/exit_40.png
-/test/presentation/widgets/goldens/exit_70.png
-/test/presentation/widgets/goldens/loading_1.png
-/test/presentation/widgets/goldens/loading_50.png
-/test/presentation/widgets/failures/loading_50_isolatedDiff.png
-/test/presentation/widgets/failures/loading_50_maskedDiff.png
-/test/presentation/widgets/failures/loading_50_masterImage.png
-/test/presentation/widgets/failures/loading_50_testImage.png
-/test/presentation/widgets/goldens/loading_100.png
-/test/presentation/widgets/failures/loading_100_isolatedDiff.png
-/test/presentation/widgets/failures/loading_100_maskedDiff.png
-/test/presentation/widgets/failures/loading_100_masterImage.png
-/test/presentation/widgets/failures/loading_100_testImage.png
-/test/presentation/widgets/failures/exit_15_isolatedDiff.png
-/test/presentation/widgets/failures/exit_15_maskedDiff.png
-/test/presentation/widgets/failures/exit_15_masterImage.png
-/test/presentation/widgets/failures/exit_15_testImage.png
-/test/presentation/widgets/failures/exit_40_isolatedDiff.png
-/test/presentation/widgets/failures/exit_40_maskedDiff.png
-/test/presentation/widgets/failures/exit_40_masterImage.png
-/test/presentation/widgets/failures/exit_40_testImage.png
-/test/presentation/widgets/failures/exit_70_isolatedDiff.png
-/test/presentation/widgets/failures/exit_70_maskedDiff.png
-/test/presentation/widgets/failures/exit_70_masterImage.png
-/test/presentation/widgets/failures/exit_70_testImage.png
-/test/presentation/widgets/failures/loading_1_isolatedDiff.png
-/test/presentation/widgets/failures/loading_1_maskedDiff.png
-/test/presentation/widgets/failures/loading_1_masterImage.png
-/test/presentation/widgets/failures/loading_1_testImage.png
+
+# Written when a golden comparison fails: the two images and the diff
+# between them. Useful while looking at one, meaningless once it is fixed.
+# The reference images under goldens/ are NOT ignored — they are what the
+# test asserts, so they belong in the repository like any other expectation.
+test/**/failures/

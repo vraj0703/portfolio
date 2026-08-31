@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vishal Raj — Platform Architect &amp; System Thinker</title>
+  <meta name="description" content="Platform Architect. System Thinker. AI-Native Builder. 9+ years building mobile apps, developer tools, and AI systems.">
+  <link rel="canonical" href="https://vishalraj.space/">
+  <link rel="icon" type="image/png" href="/favicon.png">
+
+  <!-- JSON-LD Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": "Vishal Raj",
+    "jobTitle": "Platform Architect",
+    "description": "Platform Architect. System Thinker. AI-Native Builder.",
+    "url": "https://vishalraj.space",
+    "sameAs": [
+      "https://github.com/nicevish",
+      "https://linkedin.com/in/nicevish"
+    ],
+    "knowsAbout": ["Flutter", "React", "Three.js", "Dart", "TypeScript", "Kotlin", "AI Systems", "Mobile Architecture"],
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": "https://vishalraj.space/static/"
+    }
+  }
+  </script>
+
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0A0A0C;
+      --surface: #111114;
+      --border: #2A2A32;
+      --gold: #C8A45C;
+      --gold-dim: #8B6835;
+      --text: #E8E8ED;
+      --text-secondary: #8888A0;
+      --text-muted: #55556A;
+      --parchment: #C4B496;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    ::selection { background: rgba(200, 164, 92, 0.3); color: var(--text); }
+
+    .container { max-width: 800px; margin: 0 auto; padding: 64px 24px; }
+
+    /* Hero */
+    .hero { text-align: center; margin-bottom: 64px; }
+    .hero h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: var(--gold);
+      margin-bottom: 12px;
+    }
+    .hero p {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto 24px;
+    }
+    .hero-links { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+    .hero-links a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      text-decoration: none;
+      font-size: 0.875rem;
+      letter-spacing: 0.05em;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .hero-links a:hover { border-color: var(--gold); color: var(--gold); }
+    .hero-links a.primary {
+      background: var(--gold);
+      color: #2A2420;
+      border-color: var(--gold);
+      font-weight: 600;
+    }
+    .hero-links a.primary:hover { background: #E8C97A; }
+
+    /* Section */
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* Bio */
+    .bio {
+      margin-bottom: 48px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    .bio p { color: var(--text-secondary); font-size: 0.95rem; }
+
+    /* Projects Grid */
+    .projects { margin-bottom: 48px; }
+    .project-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    @media (min-width: 640px) { .project-grid { grid-template-columns: 1fr 1fr; } }
+
+    .project-card {
+      padding: 20px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: var(--surface);
+      transition: border-color 0.2s;
+    }
+    .project-card:hover { border-color: var(--gold-dim); }
+    .project-card h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+    .project-card .desc {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+    }
+    .project-card .stats {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .project-card .stat {
+      font-size: 0.7rem;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(200, 164, 92, 0.08);
+      color: var(--gold);
+      letter-spacing: 0.03em;
+    }
+
+    /* Skills */
+    .skills { margin-bottom: 48px; }
+    .skill-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .skill-tags span {
+      font-size: 0.75rem;
+      padding: 4px 12px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-secondary);
+      letter-spacing: 0.04em;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding-top: 32px;
+      border-top: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 0.8rem;
+    }
+    .footer a { color: var(--gold); text-decoration: none; }
+    .footer a:hover { text-decoration: underline; }
+
+    /* View full experience CTA */
+    .full-experience {
+      text-align: center;
+      margin-bottom: 48px;
+      padding: 20px;
+      border: 1px solid var(--gold-dim);
+      border-radius: 12px;
+      background: rgba(200, 164, 92, 0.04);
+    }
+    .full-experience p { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 12px; }
+    .full-experience a {
+      display: inline-block;
+      padding: 8px 20px;
+      background: var(--gold);
+      color: #2A2420;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .full-experience a:hover { background: #E8C97A; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Hero -->
+    <header class="hero">
+      <h1>Vishal Raj</h1>
+      <p>Platform Architect. System Thinker. AI-Native Builder.</p>
+      <div class="hero-links">
+        <a href="mailto:nicevish@gmail.com" class="primary">Get in Touch</a>
+        <a href="https://github.com/nicevish">GitHub</a>
+        <a href="https://linkedin.com/in/nicevish">LinkedIn</a>
+      </div>
+    </header>
+
+    <!-- Full experience CTA -->
+    <div class="full-experience">
+      <p>This is a lightweight version. The full portfolio features an interactive 3D gallery, Flame game engine landing, and spatial audio.</p>
+      <a href="/">View Full Experience</a>
+    </div>
+
+    <!-- Bio -->
+    <section class="bio">
+      <p>I make software that works quietly and well. For a decade, I've been building mobile apps, developer tools, and lately, AI systems that can think for themselves. I believe good engineering is invisible &mdash; you only notice it when it's missing.</p>
+    </section>
+
+    <!-- Projects -->
+    <section class="projects">
+      <div class="section-label">Projects</div>
+      <div class="project-grid">
+
+        <div class="project-card">
+          <h3>Raj Sadan</h3>
+          <div class="desc">AI Governance System</div>
+          <div class="stats">
+            <span class="stat">21 Gateways</span>
+            <span class="stat">71 Capabilities</span>
+            <span class="stat">3-Node Mesh</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>SubWise</h3>
+          <div class="desc">Subscription Tracker</div>
+          <div class="stats">
+            <span class="stat">Kotlin</span>
+            <span class="stat">Compose</span>
+            <span class="stat">Material 3</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>Twin Health</h3>
+          <div class="desc">Digital Health Platform</div>
+          <div class="stats">
+            <span class="stat">67 Releases</span>
+            <span class="stat">0 Hotfixes</span>
+            <span class="stat">$87K Saved</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>FieldAssist</h3>
+          <div class="desc">Enterprise Field Force</div>
+          <div class="stats">
+            <span class="stat">1600+ Files</span>
+            <span class="stat">100+ Agents</span>
+            <span class="stat">Multi-Flavor</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>vishalraj.space</h3>
+          <div class="desc">This Portfolio</div>
+          <div class="stats">
+            <span class="stat">Flutter</span>
+            <span class="stat">Three.js</span>
+            <span class="stat">GLSL Shaders</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>Content Engine</h3>
+          <div class="desc">Automated YouTube Pipeline</div>
+          <div class="stats">
+            <span class="stat">TTS</span>
+            <span class="stat">FFmpeg</span>
+            <span class="stat">Auto Upload</span>
+          </div>
+        </div>
+
+        <div class="project-card">
+          <h3>PayU Security</h3>
+          <div class="desc">Payment Encryption</div>
+          <div class="stats">
+            <span class="stat">Triple DES</span>
+            <span class="stat">PINPAN</span>
+            <span class="stat">Client Crypto</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Skills -->
+    <section class="skills">
+      <div class="section-label">Skills</div>
+      <div class="skill-tags">
+        <span>Flutter</span>
+        <span>Dart</span>
+        <span>Kotlin</span>
+        <span>React</span>
+        <span>TypeScript</span>
+        <span>Three.js</span>
+        <span>GLSL</span>
+        <span>Node.js</span>
+        <span>Python</span>
+        <span>Firebase</span>
+        <span>PostgreSQL</span>
+        <span>Docker</span>
+        <span>AI/ML</span>
+        <span>Flame Engine</span>
+        <span>GSAP</span>
+        <span>BLoC</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>&copy; 2026 Vishal Raj &middot; <a href="/">Full Portfolio</a> &middot; <a href="/privacy-policy">Privacy</a></p>
+    </footer>
+
+  </div>
+</body>
+</html>

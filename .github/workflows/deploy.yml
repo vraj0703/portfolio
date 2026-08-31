@@ -1,0 +1,76 @@
+name: Test & Deploy
+
+# The Flutter-only portfolio, shipped to Firebase Hosting.
+#
+# - build: analyse, test, and compile the web release, then hand the output
+#   to deploy as an artifact so the compile happens once per run.
+# - deploy: on push to master only, ship build/web to the `live` channel of
+#   the site serving vishalraj.space. Pull requests build and test but do
+#   not deploy.
+#
+# Deploy needs `build` to pass, which means a red test stops a release. The
+# previous site's workflow deployed regardless of what Lighthouse said; this
+# one cannot, because `needs:` is a hard dependency.
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the version this is built and tested against locally. Bump
+      # it deliberately with your own upgrade, not on a floating channel —
+      # flutter_scene and the shaders this scene uses are version-sensitive,
+      # and a runner that silently moves ahead breaks the build with no
+      # commit to blame.
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.1'
+          channel: stable
+          cache: true
+
+      - run: flutter pub get
+
+      - run: flutter analyze
+
+      # Goldens excluded — see dart_test.yaml. Everything else runs.
+      - run: flutter test --exclude-tags golden
+
+      - run: flutter build web --release
+
+      - name: Upload web build
+        uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: build/web
+          retention-days: 1
+          if-no-files-found: error
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      # Needed for firebase.json and .firebaserc — the action uploads only
+      # the built directory but reads its configuration from the repo.
+      - uses: actions/checkout@v4
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: build/web
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: live
+          projectId: vishal-raj-space-firebase-home
