@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/painting.dart';
-import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:vector_math/vector_math_64.dart' show Matrix4;
 
-/// Lettering cut into a wall, rasterised once.
+/// Lettering laid onto a wall in paint, rasterised once.
 ///
 /// Not a `WidgetComponent`. A live widget surface re-rasterises on its update
 /// policy whether or not anyone can see it, which put a capture inside the
@@ -12,9 +12,19 @@ import 'package:portfolio/domain/style/text_styles.dart';
 /// the same pipeline the room's other textures already use: it renders, it is
 /// done after one frame, and it costs nothing thereafter.
 ///
-/// The image is transparent apart from the two edges of the cut, which only
-/// works if the material it is bound to actually blends — see
-/// [wallMaterialNote].
+/// The image is transparent apart from the letterforms, which only works if
+/// the material it is bound to actually blends — see [wallMaterialNote].
+///
+/// ## Why paint, and not the two attempts before it
+///
+/// Lettering here has to read against marble whose own albedo is 0.875 —
+/// brighter, once the room's lamps are on it, than any unlit ink can be. A
+/// pale ink measured 0.908 against that, a contrast ratio of 1.04:1 where
+/// text wants 4.5:1, and no weight or glow rescued it. Cutting the letters
+/// into the stone worked because a groove carries its own two edges wherever
+/// it is. Paint works for the same reason from the other direction: the
+/// pigment is 0.409 and strongly coloured, so it separates from the wall in
+/// value *and* in hue rather than competing with it in brightness.
 abstract final class WallText {
   /// Why the material matters as much as the image.
   ///
@@ -25,153 +35,94 @@ abstract final class WallText {
   static const String wallMaterialNote =
       'bind to an UnlitMaterial with AlphaMode.blend';
 
-  /// How far the light falls from, in pixels of the baked texture.
+  /// How much of the paint's own surface shows through one letter.
   ///
-  /// Above and a little to the left, which is where the room's own lamps
-  /// are. Getting this the wrong way round does not read as a mistake — it
-  /// reads as lettering standing *proud* of the wall instead of cut into it,
-  /// because the eye infers the direction of a surface entirely from which
-  /// of its two edges is lit.
-  static const Offset lightFrom = Offset(-3, -4);
+  /// The photograph is a square metre of painted wall and a sign is a few
+  /// hundred pixels, so at one to one a whole letter would sit inside a
+  /// single patch of it and the paint would read as flat colour. Scaled
+  /// down, the brush and the roll come through at the size they would be on
+  /// lettering this big.
+  static const double grainScale = 0.4;
 
-  /// How wide the cut is.
+  /// The pigment, for when the photograph of it will not decode.
   ///
-  /// The offset between the two edges is the groove's width as the eye reads
-  /// it. Too small and the letter looks printed; too large and it separates
-  /// into two overlapping words in different colours.
-  static const double cutWidth = 3.4;
+  /// Its own measured mean, so a sign lettered without the texture is the
+  /// right colour and only misses the surface. The alternative is a room
+  /// whose way out is unlettered, and a gallery you cannot leave is a worse
+  /// failure than a flat sign.
+  static const Color fallbackPigment = Color(0xFFDE4D1F);
 
-  /// How soft each edge of the cut is.
+  /// Lays [lines] down in [paint], centred in a [width] by [height] image.
   ///
-  /// A carved edge is not a knife edge — the stone breaks away slightly, and
-  /// a completely crisp shadow reads as a drop shadow under a sticker.
-  static const double edgeSoftness = 2.2;
-
-  /// How far the shadow inside the groove spreads back over the stone.
+  /// [gap] separates one line from the next. A measurement rather than a
+  /// newline on the end of the copy: written into the string it is invisible
+  /// to whoever rewrites the sentence, and the first thing they do is lose
+  /// it.
   ///
-  /// Small. This is ambient occlusion in the cut, not a glow: it darkens the
-  /// stone immediately around each letter, which is what gives the lettering
-  /// contrast on a wall brighter than any ink could be.
-  static const double occlusionRadius = 7;
-
-  /// How dark that occlusion goes.
-  static const double occlusionAlpha = 0.5;
-
+  /// Centred vertically, which is not a nicety: the image is stretched onto
+  /// whatever rectangle the sign occupies, so lettering that starts at the
+  /// top of the texture arrives hard against the top edge of the sign with
+  /// all the room underneath it. On a line of instruction two hundred pixels
+  /// tall that reads as a mistake.
   static Future<ui.Image> render({
     required List<TextSpan> lines,
+    required ui.Image? paint,
     required int width,
     required int height,
-    double rulePosition = 0,
-    double ruleWidth = 0,
+    double gap = 0,
   }) {
     final recorder = ui.PictureRecorder();
     final canvas = ui.Canvas(recorder);
 
-    /// Lays the lines down once, in [colour], displaced by [shift].
-    void paintLines({
-      required Color colour,
-      required Offset shift,
-      double blur = 0,
-    }) {
-      var y = 0.0;
-      for (final line in lines) {
-        final paint = Paint()..color = colour;
-        if (blur > 0) {
-          paint.maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, blur);
-        }
+    final brush = Paint();
+    if (paint != null) {
+      brush.shader = pigment(paint);
+    } else {
+      brush.color = fallbackPigment;
+    }
 
-        final painter = TextPainter(
+    // Laid out first, then placed. The block's height is not known until
+    // every line has been measured, and it is the block that gets centred —
+    // centring each line on its own would stack them from the middle
+    // outward.
+    final painters = <TextPainter>[
+      for (final line in lines)
+        TextPainter(
           text: TextSpan(
             text: line.text,
-            style: line.style?.copyWith(foreground: paint),
+            // `foreground` rather than `color`: the letters are a window
+            // onto the paint, not a colour that happens to have come from it.
+            style: line.style?.copyWith(foreground: brush),
           ),
           textAlign: TextAlign.center,
           textDirection: TextDirection.ltr,
-        )..layout(maxWidth: width.toDouble());
+        )..layout(maxWidth: width.toDouble()),
+    ];
 
-        painter.paint(
-          canvas,
-          ui.Offset((width - painter.width) / 2, y) + shift,
-        );
-        y += painter.height;
-      }
-    }
+    final block =
+        painters.fold<double>(0, (sum, p) => sum + p.height) +
+        gap * (painters.length - 1);
+    var y = (height - block) / 2;
 
-    // The order is the physics, and none of it is interchangeable.
-    //
-    // First the stone around the letter darkens, because a groove traps
-    // light. Then the far wall of the cut — the side the light cannot reach
-    // — and last the near wall, which it strikes. The middle is left
-    // untouched: the bottom of the groove is the same marble as the wall,
-    // and painting anything there is what turns a carving back into a
-    // printed word.
-    final unit = _normalise(lightFrom);
-
-    paintLines(
-      colour: DefaultAppTypography.wallCutShadow.withValues(
-        alpha: occlusionAlpha,
-      ),
-      shift: Offset.zero,
-      blur: occlusionRadius,
-    );
-    paintLines(
-      colour: DefaultAppTypography.wallCutShadow,
-      shift: unit * cutWidth,
-      blur: edgeSoftness,
-    );
-    paintLines(
-      colour: DefaultAppTypography.wallCutLight,
-      shift: -unit * cutWidth,
-      blur: edgeSoftness,
-    );
-
-    if (ruleWidth > 0) {
-      _cutRule(canvas, width, rulePosition, ruleWidth, unit);
+    for (var i = 0; i < painters.length; i++) {
+      final painter = painters[i];
+      painter.paint(canvas, ui.Offset((width - painter.width) / 2, y));
+      y += painter.height;
+      if (i < painters.length - 1) y += gap;
     }
 
     return recorder.endRecording().toImage(width, height);
   }
 
-  /// The line under a sign, cut the same way the lettering is.
-  static void _cutRule(
-    ui.Canvas canvas,
-    int width,
-    double top,
-    double ruleWidth,
-    Offset unit,
-  ) {
-    final rule = ui.Rect.fromLTWH((width - ruleWidth) / 2, top, ruleWidth, 3);
-
-    void stroke(Color colour, Offset shift, double blur) {
-      canvas.drawRect(
-        rule.shift(shift),
-        ui.Paint()
-          ..color = colour
-          ..maskFilter = blur > 0
-              ? ui.MaskFilter.blur(ui.BlurStyle.normal, blur)
-              : null,
-      );
-    }
-
-    stroke(
-      DefaultAppTypography.wallCutShadow.withValues(alpha: occlusionAlpha),
-      Offset.zero,
-      occlusionRadius,
-    );
-    stroke(DefaultAppTypography.wallCutShadow, unit * cutWidth, edgeSoftness);
-    stroke(DefaultAppTypography.wallCutLight, -unit * cutWidth, edgeSoftness);
-  }
-
-  /// [lightFrom] as a direction of length one.
+  /// The paint, as something a glyph can be filled with.
   ///
-  /// Separate and pure because it is the part with a rule worth checking: the
-  /// two edges have to be displaced by the same distance in exactly opposite
-  /// directions, or the cut comes out wider on one side than the other and
-  /// the letter reads as double-struck rather than carved.
-  static Offset normalise(Offset direction) => _normalise(direction);
-
-  static Offset _normalise(Offset direction) {
-    final length = direction.distance;
-    return length < 1e-6 ? Offset.zero : direction / length;
-  }
+  /// Tiled, because the sign is wider than the photograph is once it has
+  /// been scaled to a believable grain — and repeated rather than clamped,
+  /// which would smear the edge pixel across everything past the first tile.
+  static ui.ImageShader pigment(ui.Image paint) => ui.ImageShader(
+    paint,
+    ui.TileMode.repeated,
+    ui.TileMode.repeated,
+    (Matrix4.identity()..scaleByDouble(grainScale, grainScale, 1, 1)).storage,
+  );
 }

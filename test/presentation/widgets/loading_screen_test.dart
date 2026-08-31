@@ -81,17 +81,28 @@ void main() {
       expect(find.text('LOADING... 001%'), findsOneWidget);
     });
 
-    testWidgets('takes its type from the theme', (tester) async {
+    testWidgets('takes its type from the theme, in both faces', (
+      tester,
+    ) async {
       // Guards the wiring: if the widget went back to a hardcoded TextStyle
-      // this would keep passing only by coincidence, so assert the family the
-      // theme actually specifies.
+      // this would keep passing only by coincidence, so assert the families
+      // the theme actually specifies.
+      //
+      // Two of them. The word and the figure are set differently on purpose
+      // — the figure is the only thing on this screen that changes — and a
+      // single style on the whole line would quietly undo that.
       await tester.pumpWidget(
         loadingHost(LoadingScreen(progress: progressAt(0.5))),
       );
       await tester.pumpAndSettle();
 
       final text = tester.widget<Text>(find.byType(Text));
-      expect(text.style?.fontFamily, 'MonoLoading');
+      final spans = (text.textSpan! as TextSpan).children!.cast<TextSpan>();
+
+      expect(spans.map((span) => span.style?.fontFamily), <String>[
+        'MonoLoading',
+        'AzeretMono',
+      ]);
     });
 
     testWidgets('lays out without overflow on a narrow viewport', (

@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 abstract class AppTypography {
   TextStyle get loading;
 
+  /// The figure beside it, in a mono of its own.
+  TextStyle get loadingReadout;
+
   /// "TAP TO ENTER". Widely tracked, so it reads as an instruction rather
   /// than a word.
   TextStyle get enter;
@@ -73,9 +76,9 @@ class DefaultAppTypography implements AppTypography {
   TextStyle get enter => TextStyle(
     fontSize: 15,
     fontWeight: FontWeight.normal,
-    letterSpacing: 5,
+    letterSpacing: 6,
     color: loadingTextColor,
-    fontFamily: "Apertura",
+    fontFamily: 'Apertura',
   );
 
   @override
@@ -96,9 +99,12 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get creditsSubtitle => const TextStyle(
-    fontSize: 13,
-    fontStyle: FontStyle.italic,
-    fontFamily: 'Apertura',
+    fontSize: 16,
+    // No italic asked for. Margot ships regular and bold and nothing
+    // sloped, so an italic here would be synthesised — the letterforms
+    // sheared rather than redrawn, which on a face with any character of its
+    // own reads as a rendering fault.
+    fontFamily: 'Margot',
   );
 
   @override
@@ -106,19 +112,16 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 11,
     fontWeight: FontWeight.w600,
     letterSpacing: 1.6,
-    fontFamily: 'Apertura',
+    fontFamily: 'ModrntUrban',
   );
 
   @override
   TextStyle get creditsBody =>
-      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Apertura');
+      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Chillax');
 
   @override
-  TextStyle get creditsAction => const TextStyle(
-    fontSize: 14,
-    letterSpacing: 1.2,
-    fontFamily: 'Apertura',
-  );
+  TextStyle get creditsAction =>
+      const TextStyle(fontSize: 14, letterSpacing: 1.2, fontFamily: 'Apertura');
 
   @override
   TextStyle get titlePrimary => const TextStyle(
@@ -138,7 +141,7 @@ class DefaultAppTypography implements AppTypography {
     // Near-white: the shader replaces the fill with brushed metal and only
     // reads the glyph's alpha, so the colour here is a mask, not a look.
     color: const Color(0xFFDDDDDD),
-    fontFamily: "Apertura",
+    fontFamily: 'Margot',
   );
 
   @override
@@ -150,24 +153,6 @@ class DefaultAppTypography implements AppTypography {
     fontFamily: "Apertura",
   );
 
-  /// The two edges of a cut letter, and the stone between them.
-  ///
-  /// Lettering carved into a wall is not a colour on the wall — it is a
-  /// groove, and what the eye reads is the pair of edges the groove makes.
-  /// Light arrives from above, so the upper inside face of the cut is in
-  /// shadow and the lower one catches it. Those two, plus the marble itself
-  /// showing through the middle, are the whole effect.
-  ///
-  /// This replaced a warm cream that was painted *onto* the wall. It could
-  /// not be made to read at any weight, and the reason is measurable rather
-  /// than a matter of taste: the marble's own albedo is 0.875 and the ink
-  /// was 0.908 — a contrast ratio of 1.04:1 where text wants 4.5:1 — and
-  /// the wall is lit while the lettering, being unlit, is not. The wall
-  /// finished brighter than the sign on it. A cut carries its own contrast
-  /// wherever it is, because both edges move with the letter.
-  static const Color wallCutShadow = Color(0xFF2A211A);
-  static const Color wallCutLight = Color(0xFFFFF6E2);
-
   @override
   TextStyle get wallName => const TextStyle(
     fontSize: 132,
@@ -177,17 +162,18 @@ class DefaultAppTypography implements AppTypography {
     // A serif with real stress and a fine hairline, which is what lettering
     // cut into a building has always been set in. A geometric sans reads as
     // vinyl applied to the wall however it is shaded.
-    fontFamily: 'Marcellus',
+    fontFamily: 'ModrntUrban',
   );
 
   @override
   TextStyle get wallStatement => const TextStyle(
-    fontSize: 40,
+    fontSize: 52,
     height: 1.5,
     letterSpacing: 1.2,
-    // The running text under the heading, in a grotesque. Carving a serif
-    // this small would lose the hairlines to the width of the cut.
-    fontFamily: 'Satoshi',
+    // The running text under the heading, at the family's regular weight —
+    // the same face the one loud line is set in, which ties the wall's two
+    // halves together where a second family would only add a voice.
+    fontFamily: 'Margot',
   );
 
   @override
@@ -196,7 +182,7 @@ class DefaultAppTypography implements AppTypography {
     height: 1.3,
     letterSpacing: 18,
     fontWeight: FontWeight.w400,
-    fontFamily: 'Marcellus',
+    fontFamily: 'Cunia',
   );
 
   /// The line telling the visitor how to handle the board.
@@ -206,10 +192,10 @@ class DefaultAppTypography implements AppTypography {
   /// board it is behind.
   @override
   TextStyle get wallInstruction => const TextStyle(
-    fontSize: 46,
+    fontSize: 56,
     height: 1.5,
     letterSpacing: 6,
-    fontFamily: 'Satoshi',
+    fontFamily: 'Cunia',
   );
 
   @override
@@ -226,11 +212,23 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get loading => TextStyle(
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: FontWeight.bold,
     color: loadingTextColor,
     letterSpacing: 10,
-    fontFamily: "MonoLoading",
+    fontFamily: 'MonoLoading',
+  );
+
+  @override
+  TextStyle get loadingReadout => TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.normal,
+    color: loadingTextColor,
+    // Tracked tighter than the label. The figure is three characters that
+    // change every few frames, and at the label's spacing they read as three
+    // separate things ticking rather than as one number counting.
+    letterSpacing: 10,
+    fontFamily: 'AzeretMono',
   );
 }
 

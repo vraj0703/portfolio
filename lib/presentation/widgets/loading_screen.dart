@@ -128,6 +128,9 @@ class LoadingScreen extends StatelessWidget {
                       clipBehavior: Clip.none,
                       children: <Widget>[
                         _LoadingAura(size: logoWidth, progress: p, exit: e),
+                        // No clock of its own: the mark comes up with the
+                        // work, out of the same smoothed progress the bar
+                        // and the aura read.
                         _LoadingMark(
                           width: logoWidth,
                           height: logoHeight,
@@ -276,6 +279,14 @@ class _LoadingMark extends StatelessWidget {
   final double progress;
   final double exit;
 
+  /// How far the mark has arrived, `0`..`1`.
+  ///
+  /// Taken from the load rather than from a clock, and eased, so it is
+  /// hidden at the start and fully on by [LogoConfig.markRevealBy] — leaving
+  /// the rest of the load to the aura and the flash that follow it.
+  double get arrived =>
+      LogoConfig.markEntranceAt(progress / LogoConfig.markRevealBy);
+
   static const ColorFilter _invert = ColorFilter.matrix(<double>[
     -1, 0, 0, 0, 255, //
     0, -1, 0, 0, 255, //
@@ -285,8 +296,15 @@ class _LoadingMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final markOpacity = 1 - _fade(exit);
-    if (markOpacity <= 0.001) return const SizedBox.shrink();
+    // Torn down by the *exit* only. Folding the entrance into this guard
+    // takes the mark out of the tree on its first frame — invisible either
+    // way, but a widget that is not there cannot be measured, and the thing
+    // this screen was most recently caught doing was shifting the mark by
+    // collapsing something beside it.
+    final departed = 1 - _fade(exit);
+    if (departed <= 0.001) return const SizedBox.shrink();
+
+    final markOpacity = departed * arrived;
 
     final logo = ColorFiltered(
       colorFilter: _invert,
@@ -336,7 +354,13 @@ class _LoadingMark extends StatelessWidget {
     }
 
     return Transform.scale(
-      scale: 1 + exit * 0.45,
+      // Arrives a shade under size and settles, then swells on the way out.
+      // One scale for both, so an exit beginning before the entrance has
+      // finished blends rather than snapping.
+      scale:
+          (LogoConfig.markEntranceScale +
+              (1 - LogoConfig.markEntranceScale) * arrived) +
+          exit * 0.45,
       child: Opacity(opacity: markOpacity.clamp(0.0, 1.0), child: content),
     );
   }
@@ -369,19 +393,49 @@ class _LoadingReadout extends StatelessWidget {
         opacity: (1 - lift).clamp(0.0, 1.0),
         child: SizedBox(
           width: width,
-          child: Text(
-            context.strings.loadingProgress(progress),
-            textAlign: TextAlign.right,
-            // Face, size and spacing come from the theme; only the alpha is
-            // animated, brightening as the load completes.
-            style: context.typography.loading.copyWith(
-              color: context.colors.loadingText.withValues(
-                alpha: 0.35 + progress * 0.35,
-              ),
-            ),
-          ),
+          child: _Readout(progress: progress),
         ),
       ),
+    );
+  }
+}
+
+/// The readout: the word, and the figure that moves.
+///
+/// One line in two faces. A single [Text] cannot carry two, and the split is
+/// the point rather than a technicality — the label is fixed and the figure
+/// is the only thing on the loading screen that changes, so it is set in a
+/// mono of its own.
+class _Readout extends StatelessWidget {
+  const _Readout({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final type = context.typography;
+
+    // Only the alpha is animated, brightening as the load completes. Face,
+    // size and spacing come from the theme.
+    final ink = context.colors.loadingText.withValues(
+      alpha: 0.35 + progress * 0.35,
+    );
+
+    return Text.rich(
+      TextSpan(
+        children: <InlineSpan>[
+          TextSpan(
+            text: '${strings.loadingLabel} ',
+            style: type.loading.copyWith(color: ink),
+          ),
+          TextSpan(
+            text: strings.loadingPercent(progress),
+            style: type.loadingReadout.copyWith(color: ink),
+          ),
+        ],
+      ),
+      textAlign: TextAlign.right,
     );
   }
 }

@@ -427,9 +427,14 @@ class SurfaceMaps {
     }
   }
 
-  /// Public for tests. The upload half needs a GPU context a test harness
-  /// cannot provide, but decoding and packing are where the mistakes are.
-  @visibleForTesting
+  /// Decodes one map, or null if it is undeclared or unreadable.
+  ///
+  /// Public, and no longer only for tests: the room's lettering is painted
+  /// with a photograph that never reaches the GPU — it is a brush, not a
+  /// texture — so it wants the decoding half of this and nothing else.
+  ///
+  /// Null rather than throwing. A missing map is a surface that falls back,
+  /// and none of them is worth failing a whole room over.
   static Future<ui.Image?> decodeMap(String asset) async {
     try {
       final data = await rootBundle.load(asset);

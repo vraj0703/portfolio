@@ -15,11 +15,20 @@ abstract class AppStrings {
   /// The bold-text stage's line.
   String get boldText;
 
-  /// The two signs cut into the gallery's marble.
+  /// The far wall of the corridor: the name, and the paragraph under it.
+  ///
+  /// Here rather than in the routine that bakes it onto a texture. It is the
+  /// longest piece of writing in the app and the one most likely to be
+  /// rewritten, and a paragraph living inside a mesh builder is a paragraph
+  /// nobody edits without first reading about geometry.
+  String get wallName;
+  String get wallStatement;
+
+  /// The two signs painted on the gallery's marble.
   String get galleryBack;
   String get letsConnect;
 
-  /// How to handle the skills board, cut into the wall behind it.
+  /// How to handle the skills board, painted on the wall behind it.
   String get keyboardInstruction;
 
   /// The contact menu, in the order [ContactMenu] reads.
@@ -40,8 +49,13 @@ abstract class AppStrings {
   /// What each mark on the menu is, for anyone who cannot see it.
   String contactMarkLabel(ContactDestination destination);
 
-  /// Formats the loading readout, e.g. "LOADING... 007%".
-  String loadingProgress(double progress);
+  /// The two halves of the loading readout, e.g. "LOADING..." and "007%".
+  ///
+  /// Two, because they are set in different faces: the word is fixed and the
+  /// figure is the part that moves, and giving the figure a face of its own
+  /// is what stops it reading as part of the label.
+  String get loadingLabel;
+  String loadingPercent(double progress);
 }
 
 /// [DefaultAppStrings] provides the concrete string implementation for the portfolio.
@@ -66,6 +80,16 @@ class DefaultAppStrings implements AppStrings {
   String get boldText => 'Crafting Clarity from Chaos.';
 
   @override
+  String get wallName => 'VISHAL RAJ';
+
+  @override
+  String get wallStatement =>
+      'I make software that works quietly and well. For a decade I have been '
+      'building mobile apps, developer tools, and lately AI systems that can '
+      'think for themselves. Good engineering is invisible — you only notice '
+      'it when it is missing.';
+
+  @override
   String get galleryBack => 'BACK';
 
   @override
@@ -76,7 +100,7 @@ class DefaultAppStrings implements AppStrings {
   // long walk and is looking at the board, not reading a manual — anything
   // longer than a line goes unread, and a line that has to be studied is
   // worse than no line, because it takes the attention the board wants.
-  String get keyboardInstruction => 'DRAG TO TURN   ·   CLICK A KEY';
+  String get keyboardInstruction => 'Drag, rotate, click a key';
 
   @override
   String get contactCv => 'cv';
@@ -112,9 +136,15 @@ class DefaultAppStrings implements AppStrings {
       };
 
   @override
-  String loadingProgress(double progress) {
+  String get loadingLabel => 'LOADING...';
+
+  @override
+  String loadingPercent(double progress) {
+    // Padded to three figures so the readout does not jump a character
+    // wider as it passes ten and again as it passes a hundred — in a mono
+    // face that shift is the only thing on the screen that moves sideways.
     final pct = (progress * 100).round().clamp(1, 100);
-    return 'LOADING... ${pct.toString().padLeft(3, '0')}%';
+    return '${pct.toString().padLeft(3, '0')}%';
   }
 }
 

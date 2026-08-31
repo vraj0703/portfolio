@@ -212,11 +212,7 @@ class LogoOverlayComponent extends PositionComponent
   }
 
   /// Fraction of the label that has typed on.
-  double get _typed {
-    if (_entrance <= LogoConfig.textStart) return 0;
-    return ((_entrance - LogoConfig.textStart) / (1 - LogoConfig.textStart))
-        .clamp(0.0, 1.0);
-  }
+  double get _typed => LogoConfig.typedAt(_entrance);
 
   /// Overall opacity of the layer.
   double get _layerOpacity =>

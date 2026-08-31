@@ -4,6 +4,14 @@ import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/config/mark_travel.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 
+/// Where the artwork actually lands on screen.
+///
+/// Not the widget's own box: [GalleryMark] fills the stack and places the
+/// artwork with a transform, so that the raster can be cached and only a
+/// matrix changes as it flies. Measuring the outer box would measure the
+/// screen.
+Rect markRect(WidgetTester tester) => tester.getRect(find.byType(Image));
+
 void main() {
   /// The mark inside a Stack, as the corridor mounts it.
   Widget host(double journey) => MaterialApp(
@@ -21,7 +29,7 @@ void main() {
     // catches it.
     await tester.pumpWidget(host(1));
 
-    final rect = tester.getRect(find.byType(GalleryMark));
+    final rect = markRect(tester);
     final expected = MarkTravel.at(
       1,
       viewport: tester.view.physicalSize / tester.view.devicePixelRatio,
@@ -35,7 +43,7 @@ void main() {
   testWidgets('parks in the corner at the margin', (tester) async {
     await tester.pumpWidget(host(1));
 
-    final rect = tester.getRect(find.byType(GalleryMark));
+    final rect = markRect(tester);
     expect(rect.left, closeTo(LogoConfig.exitMargin, 0.5));
     expect(rect.top, closeTo(LogoConfig.exitMargin, 0.5));
   });
@@ -43,7 +51,7 @@ void main() {
   testWidgets('fills the middle when it has flown home', (tester) async {
     await tester.pumpWidget(host(0));
 
-    final rect = tester.getRect(find.byType(GalleryMark));
+    final rect = markRect(tester);
     final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
 
     expect(rect.center.dx, closeTo(screen.width / 2, 0.5));

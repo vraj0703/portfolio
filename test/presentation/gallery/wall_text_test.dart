@@ -1,79 +1,122 @@
+import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:portfolio/presentation/gallery/wall_text.dart';
 
+double luminance(Color colour) =>
+    (0.2126 * colour.r + 0.7152 * colour.g + 0.0722 * colour.b);
+
 void main() {
-  group('the cut', () {
-    test('both edges are displaced by the same distance', () {
-      final unit = WallText.normalise(WallText.lightFrom);
+  TestWidgetsFlutterBinding.ensureInitialized();
 
-      // The lit edge and the shadowed one are the same letterform moved in
-      // opposite directions. Different distances and the letter reads as
-      // double-struck rather than carved — one copy visibly wider than the
-      // other, which is a printing fault, not a groove.
-      final lit = -unit * WallText.cutWidth;
-      final shadowed = unit * WallText.cutWidth;
-
-      expect(unit.distance, closeTo(1, 1e-9));
-      expect(shadowed.distance, closeTo(WallText.cutWidth, 1e-9));
-      // The equality that actually matters is between the two, not between
-      // either one and the constant.
-      expect(lit.distance, closeTo(shadowed.distance, 1e-12));
-      expect(lit, Offset(-shadowed.dx, -shadowed.dy));
-    });
-
-    test('the light comes from above', () {
-      // Negative y is up on a canvas. The eye reads a surface entirely from
-      // which of its two edges is lit: put the light below and the same
-      // texture reads as lettering standing proud of the wall.
-      expect(WallText.lightFrom.dy, lessThan(0));
-    });
-
-    test('a direction of no length does not divide by zero', () {
-      expect(WallText.normalise(Offset.zero), Offset.zero);
-    });
-
-    test('the cut is wider than its edges are soft', () {
-      // Softer than it is wide and the two edges blur into one another,
-      // which is a smudge rather than a groove.
-      expect(WallText.cutWidth, greaterThan(WallText.edgeSoftness));
-    });
-
-    test('the occlusion reaches further than the cut but does not glow', () {
-      // It darkens the stone around each letter. Bigger than the cut, or it
-      // is just a thicker shadow edge; partial, or it is a plate.
-      expect(WallText.occlusionRadius, greaterThan(WallText.cutWidth));
-      expect(WallText.occlusionAlpha, greaterThan(0));
-      expect(WallText.occlusionAlpha, lessThan(1));
-    });
-  });
-
-  group('the two faces of the cut', () {
-    test('are separated by far more than the wall ever was', () {
-      double luminance(int argb) {
-        final r = (argb >> 16) & 0xFF;
-        final g = (argb >> 8) & 0xFF;
-        final b = argb & 0xFF;
-        return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-      }
-
-      final shadow = luminance(
-        // ignore: deprecated_member_use
-        DefaultAppTypography.wallCutShadow.value,
-      );
-      final light = luminance(
-        // ignore: deprecated_member_use
-        DefaultAppTypography.wallCutLight.value,
-      );
-
-      // The measurement this whole approach came from: the marble's own
-      // albedo is 0.875, and the ink painted on it was 0.908 — a ratio of
-      // 1.04:1 where text wants 4.5:1, before the room's lights were even
-      // applied to the wall and not to the lettering. The cut does not
-      // compete with the wall at all; it carries both of its own values.
+  group('the pigment', () {
+    test('is far darker than the marble it has to read against', () {
+      // The measurement the whole approach rests on. The marble's own albedo
+      // is 0.875 and the room's lamps are on it, so lettering cannot win on
+      // brightness — it has to be darker, and it has to be coloured.
       const marble = 0.875;
-      expect(marble - shadow, greaterThan(0.5));
-      expect(light, greaterThan(marble));
+      expect(luminance(WallText.fallbackPigment), lessThan(marble - 0.35));
+    });
+
+    test('and is a colour, not a grey', () {
+      // Half the separation is hue. A dark grey at the same luminance would
+      // read as a smudge on stone; a pigment reads as something applied.
+      final pigment = WallText.fallbackPigment;
+      final channels = <double>[pigment.r, pigment.g, pigment.b];
+      final spread =
+          channels.reduce((a, b) => a > b ? a : b) -
+          channels.reduce((a, b) => a < b ? a : b);
+
+      expect(spread, greaterThan(0.4));
     });
   });
+
+  group('the paint the letters are cut out of', () {
+    test('is shipped, and is the colour it was measured as', () async {
+      final paint = await SurfaceMaps.decodeMap(WallTextAssets.paintMap);
+
+      expect(
+        paint,
+        isNotNull,
+        reason: 'the pigment is undeclared or will not decode',
+      );
+      paint!.dispose();
+    });
+
+    test('shows its own surface rather than one flat patch', () {
+      // At one to one a whole letter sits inside a single patch of a square
+      // metre of wall, and the paint reads as flat colour.
+      expect(WallText.grainScale, lessThan(1));
+      expect(WallText.grainScale, greaterThan(0));
+    });
+  });
+
+  group('rendering', () {
+    const type = DefaultAppTypography();
+
+    test('lays lettering down without a paint to hand', () async {
+      // The way out of the gallery is lettered on a wall. A decode that
+      // fails must leave a flat sign, not an unlettered one.
+      final image = await WallText.render(
+        paint: null,
+        width: 400,
+        height: 160,
+        lines: <TextSpan>[TextSpan(text: 'BACK', style: type.wallSign)],
+      );
+
+      expect(image.width, 400);
+      expect(image.height, 160);
+      image.dispose();
+    });
+
+    test('leaves the wall showing between the letters', () async {
+      // Transparent apart from the letterforms. Opaque, and every sign is a
+      // slab hung on the plaster — which is what a texture bound to a
+      // material that does not blend already looks like.
+      final image = await WallText.render(
+        paint: null,
+        width: 64,
+        height: 64,
+        lines: <TextSpan>[TextSpan(text: 'I', style: type.wallSign)],
+      );
+
+      final bytes = (await image.toByteData())!;
+      // The bottom-left corner, well clear of a centred capital.
+      final alpha = bytes.getUint8((63 * 64 + 1) * 4 + 3);
+
+      expect(alpha, 0);
+      image.dispose();
+    });
+
+    test('centres the block in the image it is baked into', () async {
+      // The texture is stretched onto whatever rectangle the sign occupies,
+      // so lettering that starts at the top of it arrives hard against the
+      // top edge of the sign with all the room underneath.
+      final image = await WallText.render(
+        paint: null,
+        width: 64,
+        height: 200,
+        lines: <TextSpan>[TextSpan(text: 'I', style: type.wallSign)],
+      );
+
+      final bytes = (await image.toByteData())!;
+      int alphaAt(int x, int y) => bytes.getUint8((y * 64 + x) * 4 + 3);
+
+      // Something down the middle, and nothing at either end.
+      final middle = List<int>.generate(20, (i) => alphaAt(32, 90 + i));
+
+      expect(middle.any((a) => a > 0), isTrue, reason: 'nothing in the middle');
+      expect(alphaAt(32, 2), 0, reason: 'lettering against the top edge');
+      expect(alphaAt(32, 197), 0, reason: 'lettering against the bottom edge');
+      image.dispose();
+    });
+  });
+}
+
+/// Where the scene builder keeps the pigment, restated so the test does not
+/// have to reach into a class whose other half needs a GPU.
+abstract final class WallTextAssets {
+  static const String paintMap =
+      'assets/textures/paint/Paint001_1K-JPG_Color.jpg';
 }

@@ -6,6 +6,7 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
+import 'package:portfolio/domain/contact/contact_typing.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/style/strings.dart';
@@ -57,16 +58,19 @@ class _ContactMenu extends StatelessWidget {
       fit: StackFit.expand,
       children: <Widget>[
         TweenAnimationBuilder<double>(
-          // Fades up with the lines rather than appearing over them. Implicit
-          // rather than driven: the layer mounts when the state arrives and
-          // is gone when it leaves, so there is no reverse to run and nothing
-          // to hold a controller for.
+          // The affordance this stands in for does not fade in, it types —
+          // and so does this. The tween carries the layer's entrance and
+          // `LogoConfig.typedAt` turns it into how much of the row has
+          // arrived, which is the same rule the label reads, so the two are
+          // one animation rather than two of the same length.
+          //
+          // Implicit rather than driven: the layer mounts when the state
+          // arrives and is gone when it leaves, so there is no reverse to
+          // run and nothing to hold a controller for.
           tween: Tween<double>(begin: 0, end: 1),
-          duration: LogoConfig.entranceDuration,
-          curve: Curves.easeOut,
-          builder: (context, entrance, child) =>
-              Opacity(opacity: entrance, child: child),
-          child: Align(
+          duration: LogoConfig.contactMenuDuration,
+          curve: Curves.linear,
+          builder: (context, entrance, _) => Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: const EdgeInsets.only(
@@ -78,7 +82,7 @@ class _ContactMenu extends StatelessWidget {
                 height: ContactMenuLayer.rowHeight,
                 // Never wider than the gap the lines leave for it.
                 width: LogoConfig.contactGap(width) * 2,
-                child: const _MenuRow(),
+                child: _MenuRow(typed: LogoConfig.typedAt(entrance)),
               ),
             ),
           ),
@@ -89,11 +93,26 @@ class _ContactMenu extends StatelessWidget {
 }
 
 class _MenuRow extends StatelessWidget {
-  const _MenuRow();
+  const _MenuRow({required this.typed});
+
+  /// How much of the row has arrived, `0`..`1`.
+  final double typed;
+
+  /// What each entry costs the typing, in characters.
+  ///
+  /// A word costs its letters and a mark costs one beat, so the row types at
+  /// an even pace rather than an even beat per item — "linkedin" takes four
+  /// times as long as "cv", which is what typing means.
+  List<int> weights(AppStrings strings) => <int>[
+    for (final entry in ContactMenu.entries)
+      (entry.isMark ? ContactTyping.markWeight : 0) +
+          _MenuItemState.wordFor(strings, entry.destination).length,
+  ];
 
   @override
   Widget build(BuildContext context) {
     const entries = ContactMenu.entries;
+    final costs = weights(context.strings);
 
     return FittedBox(
       // Shrinks rather than wraps. Seven destinations on one line is the
@@ -108,8 +127,22 @@ class _MenuRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           for (var i = 0; i < entries.length; i++) ...<Widget>[
-            if (i > 0) const _Separator(),
-            _MenuItem(entry: entries[i]),
+            if (i > 0)
+              _Separator(
+                shown: ContactTyping.separatorAfter(
+                  index: i - 1,
+                  typed: typed,
+                  weights: costs,
+                ),
+              ),
+            _MenuItem(
+              entry: entries[i],
+              reveal: ContactTyping.revealOf(
+                index: i,
+                typed: typed,
+                weights: costs,
+              ),
+            ),
           ],
         ],
       ),
@@ -118,7 +151,10 @@ class _MenuRow extends StatelessWidget {
 }
 
 class _Separator extends StatelessWidget {
-  const _Separator();
+  const _Separator({required this.shown});
+
+  /// Whether the entry to its left has finished arriving.
+  final double shown;
 
   /// How wide the drawing is rendered.
   ///
@@ -131,15 +167,18 @@ class _Separator extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 7),
-      child: SvgPicture.asset(
-        ContactMenu.separatorIcon,
-        width: drawnSize,
-        height: drawnSize,
-        // Dimmer than what it separates, so it reads as punctuation and not
-        // as an eighth thing to press.
-        colorFilter: ColorFilter.mode(
-          context.colors.contactSeparator,
-          BlendMode.srcIn,
+      child: Opacity(
+        opacity: shown,
+        child: SvgPicture.asset(
+          ContactMenu.separatorIcon,
+          width: drawnSize,
+          height: drawnSize,
+          // Dimmer than what it separates, so it reads as punctuation and not
+          // as an eighth thing to press.
+          colorFilter: ColorFilter.mode(
+            context.colors.contactSeparator,
+            BlendMode.srcIn,
+          ),
         ),
       ),
     );
@@ -154,9 +193,16 @@ class _Separator extends StatelessWidget {
 /// which word the cursor is over — and without it a row of small grey words
 /// gives no sign it can be pressed at all.
 class _MenuItem extends StatefulWidget {
-  const _MenuItem({required this.entry});
+  const _MenuItem({required this.entry, required this.reveal});
 
   final ContactEntry entry;
+
+  /// How much of this entry has arrived, `0`..`1`.
+  ///
+  /// A word is cut to that fraction of its letters, the way the affordance's
+  /// label is. A mark cannot arrive half-drawn, so it fades across its one
+  /// beat instead.
+  final double reveal;
 
   /// Height of a mark that finishes a sentence.
   ///
@@ -215,22 +261,25 @@ class _MenuItemState extends State<_MenuItem> {
               children: <Widget>[
                 if (!widget.entry.isMark || widget.entry.hasWords)
                   Text(
-                    wordFor(strings, destination),
+                    _typedWord(wordFor(strings, destination)),
                     style: context.typography.contactMenu.copyWith(
                       color: colour,
                     ),
                   ),
                 if (widget.entry.isMark) ...<Widget>[
                   if (widget.entry.hasWords) const SizedBox(width: 6),
-                  SvgPicture.asset(
-                    widget.entry.icon!,
-                    height: widget.entry.hasWords
-                        ? _MenuItem.markSize
-                        : _MenuItem.doorwayMarkSize,
-                    // The marks are drawn in their own dark ink; without
-                    // this they arrive as near-black shapes on a near-black
-                    // ground.
-                    colorFilter: ColorFilter.mode(colour, BlendMode.srcIn),
+                  Opacity(
+                    opacity: widget.reveal.clamp(0.0, 1.0),
+                    child: SvgPicture.asset(
+                      widget.entry.icon!,
+                      height: widget.entry.hasWords
+                          ? _MenuItem.markSize
+                          : _MenuItem.doorwayMarkSize,
+                      // The marks are drawn in their own dark ink; without
+                      // this they arrive as near-black shapes on a near-black
+                      // ground.
+                      colorFilter: ColorFilter.mode(colour, BlendMode.srcIn),
+                    ),
                   ),
                 ],
               ],
@@ -239,6 +288,16 @@ class _MenuItemState extends State<_MenuItem> {
         ),
       ),
     );
+  }
+
+  /// The word cut to however much of it has typed on.
+  ///
+  /// Rounded up rather than down, so a letter is on screen as soon as its
+  /// share of the row has begun — down, and the first character of every
+  /// word waits for the whole of its own beat and the row stutters.
+  String _typedWord(String word) {
+    final shown = (word.length * widget.reveal.clamp(0.0, 1.0)).ceil();
+    return word.substring(0, shown.clamp(0, word.length));
   }
 
   /// The word an entry reads as, or empty for the two that are only marks.

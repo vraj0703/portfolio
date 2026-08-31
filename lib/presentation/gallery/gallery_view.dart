@@ -167,7 +167,6 @@ class _GalleryViewState extends State<GalleryView> {
   /// The key the visitor last pressed on the skills board.
   Skill? _skill;
 
-
   /// How the visitor has turned the board.
   late final KeyboardOrbit _orbit = KeyboardOrbit(
     restElevation: GalleryCameraPath.hallRestElevation,
@@ -183,7 +182,6 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// How far the pointer may travel and still count as a press.
   static const double _tapSlop = 6;
-
 
   /// Where the camera actually is, as opposed to where it is wanted.
   ///
@@ -235,8 +233,8 @@ class _GalleryViewState extends State<GalleryView> {
           gallery.dispose();
           return;
         }
-          setState(() => _gallery = gallery);
-          },
+        setState(() => _gallery = gallery);
+      },
       (error, stack) {
         if (mounted) setState(() => _error = error);
       },
@@ -469,9 +467,7 @@ class _GalleryViewState extends State<GalleryView> {
     );
     if (hit == null) return null;
 
-    return row
-        .firstWhere((p) => p.position == hit.position)
-        .action;
+    return row.firstWhere((p) => p.position == hit.position).action;
   }
 
   /// Runs the lights down and raises the held event when they are out.
@@ -602,29 +598,40 @@ class _GalleryViewState extends State<GalleryView> {
             // Over the room *and* over its controls. A ✕ still lit on a
             // corridor that has gone dark reads as the page having failed
             // rather than as a door closing.
-            ValueListenableBuilder<double>(
-              valueListenable: _leaving,
-              builder: (context, leaving, _) => leaving <= 0
-                  ? const SizedBox.shrink()
-                  : AbsorbPointer(
-                      // Absorbing, not passing through: once the lights are
-                      // going down the room stops answering. `IgnorePointer`
-                      // is the wrong tool however it is configured — off, it
-                      // is a no-op, and a `ColoredBox` does not hit-test
-                      // itself, so every click and scroll went straight
-                      // through to the room behind.
-                      child: ColoredBox(
-                        color: context.colors.sceneVeil.withValues(
-                          alpha: leaving,
+            // Boundaried, like the mark. A full-screen wash whose colour
+            // changes every frame repaints whatever shares its layer, and
+            // what shares this one is a 3D scene being composited — so the
+            // fade was costing a re-composite of the whole corridor sixty
+            // times a second on its way out.
+            RepaintBoundary(
+              child: ValueListenableBuilder<double>(
+                valueListenable: _leaving,
+                builder: (context, leaving, _) => leaving <= 0
+                    ? const SizedBox.shrink()
+                    : AbsorbPointer(
+                        // Absorbing, not passing through: once the lights are
+                        // going down the room stops answering. `IgnorePointer`
+                        // is the wrong tool however it is configured — off, it
+                        // is a no-op, and a `ColoredBox` does not hit-test
+                        // itself, so every click and scroll went straight
+                        // through to the room behind.
+                        child: ColoredBox(
+                          color: context.colors.sceneVeil.withValues(
+                            alpha: leaving,
+                          ),
                         ),
                       ),
-                    ),
+              ),
             ),
 
             // The header mark, above everything the room draws and above
             // the dark it goes out through. It is the one thing that
             // survives the handover between the two renderers, so covering
             // it with the fade would defeat the point of drawing it here.
+            // No boundary out here: the mark returns a `Positioned`, and a
+            // render object between it and the `Stack` leaves it with no
+            // stack to give its parent data to. It carries its own boundary
+            // inside, where it belongs.
             ValueListenableBuilder<double>(
               valueListenable: _markJourney,
               builder: (context, journey, _) => GalleryMark(journey: journey),
@@ -721,9 +728,7 @@ class _GalleryViewState extends State<GalleryView> {
 
     return ProjectFocus.poseFor(
       frame,
-      aspect: _viewSize.isEmpty
-          ? 16 / 9
-          : _viewSize.width / _viewSize.height,
+      aspect: _viewSize.isEmpty ? 16 / 9 : _viewSize.width / _viewSize.height,
     );
   }
 
@@ -759,7 +764,6 @@ class _GalleryViewState extends State<GalleryView> {
     eye.setFrom(eye + (target.position - eye) * t);
     look.setFrom(look + (target.target - look) * t);
   }
-
 }
 
 /// Shown while the corridor is still being built.

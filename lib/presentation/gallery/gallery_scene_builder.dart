@@ -110,7 +110,13 @@ class GalleryScene {
     final artwork = <ui.Image>[];
     final textures = <Texture2D>[];
 
-    await _populate(scene, artwork, textures, artworkSize, onProgress);
+    // The pigment every sign in the room is lettered with. Decoded once and
+    // kept with the rest of the artwork so it is released with it — it never
+    // reaches the GPU itself, it is only ever a brush.
+    final paint = await SurfaceMaps.decodeMap(paintMap);
+    if (paint != null) artwork.add(paint);
+
+    await _populate(scene, artwork, textures, artworkSize, onProgress, paint);
     _light(scene);
 
     var tail = 0;
@@ -119,7 +125,7 @@ class GalleryScene {
       _surfaceShare + (_tailShare - _surfaceShare) * (++tail / _tailSteps),
     );
 
-    await _hangStatement(scene, artwork, textures);
+    await _hangStatement(scene, paint, artwork, textures);
     await step();
 
     final arrow = await ScrollArrow.load();
@@ -185,8 +191,25 @@ class GalleryScene {
   /// Measured against the lettering above it: a rule shorter than its word
   /// reads as an underline that ran out, and one much longer reads as a
   /// separate mark the word happens to sit on.
-  static const double backRuleWidth = 300;
-  static const double connectRuleWidth = 560;
+  /// The paint the lettering is laid on with.
+  ///
+  /// One decode for all four signs. It is only ever a brush — the letters
+  /// are baked into their own textures, so this never reaches the GPU as a
+  /// texture of its own.
+  static const String paintMap =
+      'assets/textures/paint/Paint001_1K-JPG_Color.jpg';
+
+  /// How wide a sign's baked texture is, in pixels.
+  ///
+  /// Its height comes from the sign's own proportions. Generous, because the
+  /// longest of them — "LET'S CONNECT" at a hundred points with wide
+  /// tracking — has to fit on one line: wrapped, the second line lands
+  /// underneath the first inside a rectangle a fifth as tall as it is wide,
+  /// and the two overlap.
+  static const int signTextureWidth = 1600;
+
+  /// How far the far wall's paragraph sits below the name above it.
+  static const double statementGap = 56;
 
   static const double _shaderShare = 0.15;
 
@@ -228,6 +251,7 @@ class GalleryScene {
     List<Texture2D> textures,
     int artworkSize,
     void Function(double)? onProgress,
+    ui.Image? paint,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -310,17 +334,12 @@ class GalleryScene {
         const strings = DefaultAppStrings();
         const type = DefaultAppTypography();
 
-        // The three are one object cut three times: a line of lettering in
-        // the marble, with a rule under it where it is a sign and none where
-        // it is an instruction.
-        final (text, style, rule) = switch (piece.kind) {
-          SurfaceKind.exitSign => (strings.galleryBack, type.wallSign, backRuleWidth),
-          SurfaceKind.connectSign => (
-            strings.letsConnect,
-            type.wallSign,
-            connectRuleWidth,
-          ),
-          _ => (strings.keyboardInstruction, type.wallInstruction, 0.0),
+        // The three are one object lettered three times: a line of paint on
+        // the marble, differing only in what it says and how large.
+        final (text, style) = switch (piece.kind) {
+          SurfaceKind.exitSign => (strings.galleryBack, type.wallSign),
+          SurfaceKind.connectSign => (strings.letsConnect, type.wallSign),
+          _ => (strings.keyboardInstruction, type.wallInstruction),
         };
 
         await _paintWallSign(
@@ -328,7 +347,7 @@ class GalleryScene {
           piece,
           text,
           style,
-          rule,
+          paint,
           artwork,
           textures,
           transform,
@@ -420,30 +439,28 @@ class GalleryScene {
   /// see [WallText].
   static Future<void> _hangStatement(
     Scene scene,
+    ui.Image? paint,
     List<ui.Image> images,
     List<Texture2D> textures,
   ) async {
     const type = DefaultAppTypography();
+    const strings = DefaultAppStrings();
     const width = 1600;
     const height = 640;
 
     final image = await WallText.render(
       width: width,
       height: height,
+      paint: paint,
       lines: <TextSpan>[
-        TextSpan(text: 'VISHAL RAJ\n', style: type.wallName),
-        TextSpan(
-          text:
-              '\n'
-              'I make software that works quietly and well. For a decade I '
-              'have been building mobile apps, developer tools, and lately '
-              'AI systems that can think for themselves. Good engineering is '
-              'invisible — you only notice it when it is missing.',
-          style: type.wallStatement,
-        ),
+        TextSpan(text: strings.wallName, style: type.wallName),
+        TextSpan(text: strings.wallStatement, style: type.wallStatement),
       ],
-      rulePosition: 178,
-      ruleWidth: 480,
+      // Space between the name and the paragraph, as a measurement rather
+      // than as a newline hidden on the end of the copy. Written into the
+      // string it is invisible to whoever rewrites the sentence, and the
+      // first thing they do is lose it.
+      gap: statementGap,
     );
     images.add(image);
 
@@ -505,24 +522,24 @@ class GalleryScene {
     Placement piece,
     String text,
     TextStyle style,
-    double ruleWidth,
+    ui.Image? paint,
     List<ui.Image> images,
     List<Texture2D> textures,
     Matrix4 transform,
   ) async {
-    const width = 680;
-    const height = 248;
+    // Shaped to the sign it is going on rather than to a fixed rectangle.
+    // The texture is stretched onto the piece's face, so one shape of
+    // texture across three shapes of sign squashes the lettering by a
+    // different amount on each — and the instruction, on a face nine times
+    // wider than it is tall, comes out unreadable.
+    const width = signTextureWidth;
+    final height = (width * piece.extents.y / piece.extents.x).round();
 
     final image = await WallText.render(
       width: width,
       height: height,
+      paint: paint,
       lines: <TextSpan>[TextSpan(text: text, style: style)],
-      rulePosition: 172,
-      // Given rather than derived. "LET'S CONNECT" is three times the length
-      // of "BACK", so one width would leave a line floating clear of the
-      // short word or lost under the long one — and deriving it from the
-      // character count only looks right in a monospace, which this is not.
-      ruleWidth: ruleWidth,
     );
     images.add(image);
 

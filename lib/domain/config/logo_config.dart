@@ -135,6 +135,63 @@ abstract final class LogoConfig {
 
   static const Duration entranceDuration = Duration(milliseconds: 1400);
 
+  /// The progress by which the mark is fully on.
+  ///
+  /// The mark arrives with the *work*, not on a clock of its own. It starts
+  /// hidden and comes up through the first half of the load, which leaves
+  /// the second half to the aura and the flash that were already built to
+  /// carry it — so the screen has one continuous movement from nothing to
+  /// the reveal rather than an entrance that finishes and then waits.
+  ///
+  /// A clock was the wrong instrument here for a reason worth keeping: a
+  /// timed entrance says the same thing however long the load takes, so on a
+  /// warm cache it is still fading up after the bar has finished, and on a
+  /// cold one it is done long before anything else moves.
+  static const double markRevealBy = 0.5;
+
+  /// How far the mark has arrived at [elapsed] through its reveal.
+  ///
+  /// Eased at *both* ends, and the first end is the one that matters. An
+  /// ease-out — which is what this was — spends most of itself immediately:
+  /// a tenth of the way through it is already twenty-seven per cent on, so
+  /// however long the duration, the mark still appears rather than arrives.
+  /// This is under one per cent at the same point.
+  ///
+  /// Written out rather than taken from `Curves`, because [LogoConfig] is
+  /// read by Flame components that have no widget layer to reach into — and
+  /// because the shape is the decision, not the name of it.
+  static double markEntranceAt(double elapsed) {
+    final t = elapsed.clamp(0.0, 1.0);
+    return t < 0.5 ? 4 * t * t * t : 1 - _cube(-2 * t + 2) / 2;
+  }
+
+  static double _cube(double v) => v * v * v;
+
+  /// How long the contact menu's row takes to type itself on.
+  ///
+  /// Longer than the affordance's, because there is more of it: "TAP TO
+  /// ENTER" is twelve characters and the menu is nearer forty, so sharing a
+  /// duration means the row types more than three times as fast as the
+  /// phrase it stands in for and reads as a flicker rather than as writing.
+  static const Duration contactMenuDuration = Duration(milliseconds: 2400);
+
+  /// How small the mark starts before it settles.
+  ///
+  /// Barely. A mark that swells into place reads as a splash screen; one
+  /// that arrives almost at size reads as a light coming up on something
+  /// already there.
+  static const double markEntranceScale = 0.94;
+
+  /// How much of the affordance has typed on at [entrance].
+  ///
+  /// Pure, and shared: the contact menu types its row on by the same rule,
+  /// and the two are meant to be the same animation rather than two
+  /// animations that happen to take the same time.
+  static double typedAt(double entrance) {
+    if (entrance <= textStart) return 0;
+    return ((entrance - textStart) / (1 - textStart)).clamp(0.0, 1.0);
+  }
+
   /* -- Exit ------------------------------------------------------------ */
 
   /// Where the mark retreats to once dismissed, and how small it gets. It
