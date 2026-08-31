@@ -30,11 +30,13 @@ abstract class AppTypography {
   /// The statement beneath it.
   TextStyle get wallStatement;
 
-  /// Lettering cut into a gallery wall — the way out, and its like.
+  /// Lettering cut into a gallery wall.
+  ///
+  /// One style for all three of them — the way out, the invitation, and the
+  /// line behind the board. They are the same object in three places, so a
+  /// second style for the longest of them was only a way for the three to
+  /// drift apart.
   TextStyle get wallSign;
-
-  /// The instruction on the skills hall's far wall.
-  TextStyle get wallInstruction;
 
   /// The glyphs on the gallery's navigation controls.
   TextStyle get galleryControl;
@@ -117,7 +119,7 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get creditsBody =>
-      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Chillax');
+      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Margot');
 
   @override
   TextStyle get creditsAction =>
@@ -158,7 +160,11 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 132,
     height: 1.2,
     letterSpacing: 10,
-    fontWeight: FontWeight.w400,
+    // Heavier than the paragraph under it. A cut is read by the width of
+    // its groove, and a hairline leaves nothing for the two walls to be an
+    // edge of — the name was the faintest thing on the wall for exactly
+    // that reason.
+    fontWeight: FontWeight.w700,
     // A serif with real stress and a fine hairline, which is what lettering
     // cut into a building has always been set in. A geometric sans reads as
     // vinyl applied to the wall however it is shaded.
@@ -178,24 +184,11 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get wallSign => const TextStyle(
-    fontSize: 104,
+    fontSize: 170,
     height: 1.3,
     letterSpacing: 18,
     fontWeight: FontWeight.w400,
-    fontFamily: 'Cunia',
-  );
-
-  /// The line telling the visitor how to handle the board.
-  ///
-  /// Smaller than a sign and tracked wide: it is an instruction, read once
-  /// and then ignored, so it must be legible without competing with the
-  /// board it is behind.
-  @override
-  TextStyle get wallInstruction => const TextStyle(
-    fontSize: 56,
-    height: 1.5,
-    letterSpacing: 6,
-    fontFamily: 'Cunia',
+    fontFamily: 'Marcellus',
   );
 
   @override

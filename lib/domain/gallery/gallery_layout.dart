@@ -207,7 +207,11 @@ abstract final class GalleryLayout {
           GalleryDimensions.frameY,
           -1,
         ),
-        extents: Vector3(1.7, 0.62, 0.02),
+        // Half again as large as it was. An engraving has no fill to carry
+        // it — it is read entirely by two thin edges — so where paint could
+        // be small and still legible, a cut has to be big enough for its
+        // edges to survive being seen across a corridor.
+        extents: Vector3(2.6, 0.95, 0.02),
         rotationY: quarterTurn,
       ),
       ..._skillHall(),
@@ -281,7 +285,10 @@ abstract final class GalleryLayout {
         GalleryDimensions.instructionY,
         z,
       ),
-      extents: Vector3(5.4, 0.6, 0.02),
+      // Wide, and taller than it looks it needs: the face is nine times
+      // wider than it is high, so the type inside it is small before it is
+      // anything else.
+      extents: Vector3(6.4, 0.85, 0.02),
       // Faces back down the hall, toward the door the visitor came through.
       rotationY: -quarterTurn,
     );
@@ -303,7 +310,7 @@ abstract final class GalleryLayout {
         GalleryDimensions.connectSignY,
         z - (GalleryDimensions.wingWidth + segment) / 2,
       ),
-      extents: Vector3(2.6, 0.72, 0.02),
+      extents: Vector3(3.8, 1.05, 0.02),
       rotationY: quarterTurn,
     );
   }

@@ -94,11 +94,24 @@ void main() {
     final board = KeyboardLayout.boardWidth * KeyboardLayout.scale;
     final free = (GalleryDimensions.kbWidth - board) / 2;
 
+    // The line moved from 0.28 to 0.25 when the hall went from twelve to
+    // sixteen, and it was moved deliberately rather than to make a test
+    // pass. Twelve read as a corridor the board was wedged into: the far
+    // wall is what the board is seen *against*, and there was too little of
+    // it either side for the room to be a room.
+    //
+    // A quarter still rules out the twenty-four this started at, where the
+    // board is a sixth of the width and adrift in it.
     expect(free, greaterThan(2), reason: 'the board is touching the walls');
     expect(
       board / GalleryDimensions.kbWidth,
-      greaterThan(0.28),
+      greaterThan(0.25),
       reason: 'the board is adrift in the middle of the room',
+    );
+    expect(
+      board / 24,
+      lessThan(0.25),
+      reason: 'the rule no longer rules out the width it was written for',
     );
   });
 

@@ -110,13 +110,7 @@ class GalleryScene {
     final artwork = <ui.Image>[];
     final textures = <Texture2D>[];
 
-    // The pigment every sign in the room is lettered with. Decoded once and
-    // kept with the rest of the artwork so it is released with it — it never
-    // reaches the GPU itself, it is only ever a brush.
-    final paint = await SurfaceMaps.decodeMap(paintMap);
-    if (paint != null) artwork.add(paint);
-
-    await _populate(scene, artwork, textures, artworkSize, onProgress, paint);
+    await _populate(scene, artwork, textures, artworkSize, onProgress);
     _light(scene);
 
     var tail = 0;
@@ -125,7 +119,7 @@ class GalleryScene {
       _surfaceShare + (_tailShare - _surfaceShare) * (++tail / _tailSteps),
     );
 
-    await _hangStatement(scene, paint, artwork, textures);
+    await _hangStatement(scene, artwork, textures);
     await step();
 
     final arrow = await ScrollArrow.load();
@@ -191,22 +185,18 @@ class GalleryScene {
   /// Measured against the lettering above it: a rule shorter than its word
   /// reads as an underline that ran out, and one much longer reads as a
   /// separate mark the word happens to sit on.
-  /// The paint the lettering is laid on with.
+  /// How many pixels of baked texture one world unit of sign is worth.
   ///
-  /// One decode for all four signs. It is only ever a brush — the letters
-  /// are baked into their own textures, so this never reaches the GPU as a
-  /// texture of its own.
-  static const String paintMap =
-      'assets/textures/paint/Paint001_1K-JPG_Color.jpg';
-
-  /// How wide a sign's baked texture is, in pixels.
+  /// Both of a sign's texture dimensions come from this and its own extents,
+  /// which is what lets the three of them share one style and mean it. With
+  /// a fixed texture width the *ratio* of type size to texture width decides
+  /// how large a letter is on the wall, so the same style on faces 2.6 and
+  /// 6.4 units wide came out at two and a half times the size on one — the
+  /// same number of points, and plainly not the same lettering.
   ///
-  /// Its height comes from the sign's own proportions. Generous, because the
-  /// longest of them — "LET'S CONNECT" at a hundred points with wide
-  /// tracking — has to fit on one line: wrapped, the second line lands
-  /// underneath the first inside a rectangle a fifth as tall as it is wide,
-  /// and the two overlap.
-  static const int signTextureWidth = 1600;
+  /// At this scale a point of type is a six-hundredth of a world unit
+  /// wherever it is set, so "the same style" means the same letters.
+  static const double signPixelsPerUnit = 600;
 
   /// How far the far wall's paragraph sits below the name above it.
   static const double statementGap = 56;
@@ -251,7 +241,6 @@ class GalleryScene {
     List<Texture2D> textures,
     int artworkSize,
     void Function(double)? onProgress,
-    ui.Image? paint,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -334,20 +323,19 @@ class GalleryScene {
         const strings = DefaultAppStrings();
         const type = DefaultAppTypography();
 
-        // The three are one object lettered three times: a line of paint on
-        // the marble, differing only in what it says and how large.
-        final (text, style) = switch (piece.kind) {
-          SurfaceKind.exitSign => (strings.galleryBack, type.wallSign),
-          SurfaceKind.connectSign => (strings.letsConnect, type.wallSign),
-          _ => (strings.keyboardInstruction, type.wallInstruction),
+        // The three are one object cut three times, differing only in what
+        // they say.
+        final text = switch (piece.kind) {
+          SurfaceKind.exitSign => strings.galleryBack,
+          SurfaceKind.connectSign => strings.letsConnect,
+          _ => strings.keyboardInstruction,
         };
 
         await _paintWallSign(
           scene,
           piece,
           text,
-          style,
-          paint,
+          type.wallSign,
           artwork,
           textures,
           transform,
@@ -439,7 +427,6 @@ class GalleryScene {
   /// see [WallText].
   static Future<void> _hangStatement(
     Scene scene,
-    ui.Image? paint,
     List<ui.Image> images,
     List<Texture2D> textures,
   ) async {
@@ -451,7 +438,6 @@ class GalleryScene {
     final image = await WallText.render(
       width: width,
       height: height,
-      paint: paint,
       lines: <TextSpan>[
         TextSpan(text: strings.wallName, style: type.wallName),
         TextSpan(text: strings.wallStatement, style: type.wallStatement),
@@ -522,7 +508,6 @@ class GalleryScene {
     Placement piece,
     String text,
     TextStyle style,
-    ui.Image? paint,
     List<ui.Image> images,
     List<Texture2D> textures,
     Matrix4 transform,
@@ -532,13 +517,12 @@ class GalleryScene {
     // texture across three shapes of sign squashes the lettering by a
     // different amount on each — and the instruction, on a face nine times
     // wider than it is tall, comes out unreadable.
-    const width = signTextureWidth;
-    final height = (width * piece.extents.y / piece.extents.x).round();
+    final width = (piece.extents.x * signPixelsPerUnit).round();
+    final height = (piece.extents.y * signPixelsPerUnit).round();
 
     final image = await WallText.render(
       width: width,
       height: height,
-      paint: paint,
       lines: <TextSpan>[TextSpan(text: text, style: style)],
     );
     images.add(image);

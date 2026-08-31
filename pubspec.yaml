@@ -81,16 +81,26 @@ flutter:
     - family: ModrntUrban
       fonts:
         - asset: fonts/modrnt_urban.otf
-    # The gallery's lettering. A serif for the headings and signs, cut the
-    # way lettering on a building is, and a grotesque for the running text
-    # beneath it.
+    # Declared and drawn with by nothing. Kept because the file is still
+    # here and the others that fell out of use were deleted, so this one
+    # looks like a choice rather than an oversight.
     - family: Marcellus
       fonts:
         - asset: fonts/marcellus.ttf
-    - family: Satoshi
+    # The readout's two halves. The word is set in one mono and the figure
+    # in another on purpose: the figure is the part that changes, and giving
+    # it a face of its own is what stops it reading as part of the label.
+    - family: AzeretMono
       fonts:
-        - asset: fonts/satoshi.ttf
-
+        - asset: fonts/azeretmono.ttf
+    # Both weights under one family, so a style asks for the weight it wants
+    # and Flutter picks the file. Two families would mean every style naming
+    # the exact cut, and a `fontWeight` that quietly did nothing.
+    - family: Margot
+      fonts:
+        - asset: fonts/Margot-Regular.ttf
+        - asset: fonts/Margot-Bold.ttf
+          weight: 700
   assets:
     # The three marks on the contact menu, the dot between them, and the
     # heart again in its dialog.

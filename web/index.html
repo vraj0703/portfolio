@@ -31,6 +31,27 @@
 
   <title>projects</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    The ground the scene stands on, painted before Flutter exists.
+
+    Without it the browser shows a white page until the engine's first frame,
+    and that frame brings the dark backdrop and the mark on together. However
+    gently the mark then eases in, the *screen* has already arrived in one
+    step, and the eye reads the whole thing as having appeared at once —
+    which is what an in-app animation cannot fix, because the app is not
+    running yet.
+
+    Matched to `AppColors.loadingBackdrop`. If that changes, this has to: a
+    mismatch shows as a flash of the wrong dark on the first frame.
+  -->
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #0A0A0C;
+    }
+  </style>
 </head>
 <body>
   <!--

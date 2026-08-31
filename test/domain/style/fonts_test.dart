@@ -15,16 +15,7 @@ const declared = <String, String>{
   'Apertura': 'fonts/aperturaregular.ttf',
   'ModrntUrban': 'fonts/modrnt_urban.otf',
   'Marcellus': 'fonts/marcellus.ttf',
-  'Satoshi': 'fonts/satoshi.ttf',
   'Margot': 'fonts/Margot-Regular.ttf',
-  'Boorsok': 'fonts/boorsok.otf',
-  'Cunia': 'fonts/cunia.ttf',
-  'Rhythmic': 'fonts/rhythmic.otf',
-  'Range': 'fonts/range.otf',
-  'Rude': 'fonts/rude.ttf',
-  'Chlakh': 'fonts/chlakh.ttf',
-  'Chillax': 'fonts/chillax.otf',
-  'Lifestyle': 'fonts/lifestyle.ttf',
 };
 
 void main() {
@@ -41,7 +32,6 @@ void main() {
     'wallName': type.wallName.fontFamily,
     'wallStatement': type.wallStatement.fontFamily,
     'wallSign': type.wallSign.fontFamily,
-    'wallInstruction': type.wallInstruction.fontFamily,
     'galleryControl': type.galleryControl.fontFamily,
     'galleryFailure': type.galleryFailure.fontFamily,
     'contactMenu': type.contactMenu.fontFamily,
@@ -86,33 +76,22 @@ void main() {
     Set<String> unused() =>
         declared.keys.toSet()..removeAll(styles.values.whereType<String>());
 
-    test('are the ones the scene has moved on from', () {
-      // Marcellus and Satoshi lettered the gallery when it was cut into the
-      // marble; Rude and then Range spoke the one loud line before Boorsok
-      // took it; Chlakh lettered the walls and the affordance, and lost both
-      // to Cunia and Apertura. All five are declared and shipped and drawn
-      // with by nothing, which is five downloads every visitor pays for.
-      //
-      // Left in deliberately rather than quietly dropped — that is a
-      // decision for whoever owns the type, not for a test. But it is
-      // written down here, so it is a decision rather than an oversight.
-      expect(unused(), <String>{
-        'Marcellus',
-        'Satoshi',
-        'Rude',
-        'Range',
-        'Chlakh',
-        'Boorsok',
-        'Rhythmic',
-        'Lifestyle',
-      });
+    test('is none of them, for the first time', () {
+      // Every declared face is drawn with. This has not been true for most
+      // of the type's life here — at one point five were shipped and unused
+      // — and it stays true only if a family dropped from the styles is
+      // dropped from the pubspec in the same breath.
+      expect(unused(), isEmpty);
     });
 
-    test('and a face nothing declares is not shipped at all', () {
-      // Oneday was the voice of everything pressable for one round. Dropping
-      // a family means dropping its declaration, or the file is downloaded
-      // by every visitor and drawn with by nobody.
-      expect(declared.values, isNot(contains('fonts/oneday.otf')));
+    test('and a face whose file is gone is not declared either', () {
+      // Seven were deleted from disk in one go. A declaration left pointing
+      // at a file that is not there fails the build outright — which is the
+      // kind one notices — but the same tidy-up is what leaves a family
+      // declared and unused, which is the kind nobody does.
+      for (final path in declared.values) {
+        expect(File(path).existsSync(), isTrue, reason: '$path is gone');
+      }
     });
 
     test('and every other declared face is drawn with', () {
