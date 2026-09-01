@@ -208,19 +208,44 @@ class SkillKeyboard {
   double _reveal = 1;
   double _bob = 0;
 
-  /// How far the board has risen, `0`..`1`, and where it is in its breath.
+  /// How far the board has risen, `0`..`1`, where it is in its breath, and
+  /// how long the frame took.
   ///
-  /// The only two things that move it. The visitor turns the *camera* around
-  /// it rather than turning it — see [KeyboardOrbit] — so its orientation is
-  /// otherwise fixed.
-  void reveal(double amount, {double elapsed = 0}) {
+  /// The rise is read off the scroll, because it has to run backwards when
+  /// the visitor does. Its *heading* is not: that wanders while it comes up
+  /// and is pulled home on a clock of its own, which is the difference
+  /// between an object floating in a room and a panel on a rail. The visitor
+  /// turns the camera around it rather than turning it — see [KeyboardOrbit].
+  /// How far the board is turned from its resting heading.
+  double _heading = 0;
+
+  /// Turns it while it is still coming up, and pulls it home once it is not.
+  ///
+  /// The rule lives in [KeyboardLayout.headingAfter]; this only remembers
+  /// where the board got to.
+  void _drift(double elapsed, double dt) {
+    _heading = KeyboardLayout.headingAfter(
+      heading: _heading,
+      reveal: _reveal,
+      elapsed: elapsed,
+      dt: dt,
+    );
+  }
+
+  void reveal(double amount, {double elapsed = 0, double dt = 0}) {
     _reveal = amount.clamp(0.0, 1.0);
 
-    // Held at zero until it has finished arriving, so the rise reads as one
-    // movement rather than as a rise with a wobble in it.
-    _bob = _reveal < 1
-        ? 0
-        : math.sin(elapsed * KeyboardLayout.bobRate) * KeyboardLayout.bobHeight;
+    // Breathing the whole way up, scaled by how far it has come rather than
+    // switched on at the top. It was held at zero until the rise finished,
+    // on the reasoning that a wobble during the rise would read as two
+    // movements — but the thing that actually read as wrong was a board with
+    // no life in it at all until it stopped moving.
+    _bob =
+        math.sin(elapsed * KeyboardLayout.bobRate) *
+        KeyboardLayout.bobHeight *
+        _reveal;
+
+    _drift(elapsed, dt);
 
     // Overshoots a little and settles back, so it arrives with weight rather
     // than sliding to a halt. The original eased its boot the same way.
@@ -243,7 +268,7 @@ class SkillKeyboard {
               ),
             ),
           )
-            ..rotateY(SceneAxes.rotationY(restRotation))
+            ..rotateY(SceneAxes.rotationY(restRotation + _heading))
             // Tips toward the visitor, so they see the tops of the caps
             // rather than looking along them edge-on. Unaffected by the axis
             // mirror: reflecting x leaves a turn about x alone.

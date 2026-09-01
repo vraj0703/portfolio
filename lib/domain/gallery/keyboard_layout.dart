@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
@@ -96,6 +98,61 @@ abstract final class KeyboardLayout {
   /// an object; this is small enough to be noticed only on second look.
   static const double bobHeight = 0.08;
   static const double bobRate = 0.4;
+
+  /// How fast it turns while it is still coming up, in radians a second.
+  ///
+  /// The board used to rise at a fixed heading, its pose read straight off
+  /// the scroll — so it was a panel being lifted by the visitor's wheel
+  /// rather than an object they were approaching. The original turned all
+  /// the while and settled once you were nearly there, and that slow drift
+  /// against a moving camera is most of what made it feel like a thing in a
+  /// room: two motions, not one.
+  static const double spinRate = 0.1;
+
+  /// How far up the rise it stops wandering and finds its heading.
+  static const double settleAt = 0.9;
+
+  /// How hard it is pulled to that heading once it does, per second.
+  ///
+  /// A damped approach rather than a curve laid over the scroll. The rise
+  /// has to reverse when the visitor scrolls back, so *that* stays mapped;
+  /// the heading does not, and pulling it home on its own clock is what
+  /// stops the arrival looking mechanically tied to the wheel.
+  static const double settleRate = 3;
+
+  /// Where the board's heading goes next, given where it is now.
+  ///
+  /// Pure, and here rather than in the node that spins, because it is the
+  /// rule and not the rendering: below [settleAt] the target keeps advancing
+  /// so the damping never catches it and the board simply turns; at or above
+  /// it the target stops and the board closes on rest.
+  ///
+  /// Damped rather than interpolated across the rise. The rise itself is read
+  /// off the scroll because it must run backwards when the visitor does — the
+  /// heading must not, or turning the wheel back would unwind the board like
+  /// a crank.
+  static double headingAfter({
+    required double heading,
+    required double reveal,
+    required double elapsed,
+    required double dt,
+  }) {
+    final target = reveal >= settleAt
+        ? 0.0
+        : (elapsed * spinRate) % (math.pi * 2);
+
+    // The short way round. Without this it unwinds the long way each time
+    // the wandering target crosses back over the board's own heading.
+    var diff = target - heading;
+    while (diff < -math.pi) {
+      diff += math.pi * 2;
+    }
+    while (diff > math.pi) {
+      diff -= math.pi * 2;
+    }
+
+    return heading + diff * (1 - math.exp(-settleRate * dt));
+  }
 
   /// Where the board hangs, in design space.
   static Vector3 get anchor => Vector3(

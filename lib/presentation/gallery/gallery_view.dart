@@ -794,6 +794,9 @@ class _GalleryViewState extends State<GalleryView> {
         gallery.keyboard.reveal(
           GalleryCameraPath.revealAt(_scroll.progress),
           elapsed: seconds,
+          // The board's heading is damped rather than mapped, so it needs to
+          // know how long the frame was.
+          dt: deltaSeconds,
         );
 
         if (!_atBoard) {
