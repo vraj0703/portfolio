@@ -182,11 +182,12 @@ abstract final class LogoConfig {
   /// phrase it stands in for and reads as a flicker rather than as writing.
   ///
   /// Set so the typing window — the last `1 - contactMenuTextStart` of it —
-  /// is `AudioCue.keyboardTyping`'s 3600ms exactly. That works out at 90ms a
-  /// character, which is what the recording is: somebody typing at a normal
-  /// speed. The row took 1320ms before, so the sound outlasted it by more
-  /// than twice its own length.
-  static const Duration contactMenuDuration = Duration(milliseconds: 4500);
+  /// is 3000ms: `AudioCue.keyboardTyping` up to its *last keystroke*, not to
+  /// the end of the file. The recording holds 600ms of silence after that
+  /// stroke, and a row timed to the whole 3600 spends it still writing — so
+  /// the last mark in the row arrived well after the last thing anybody
+  /// could hear, which reads as the mark lagging the sound.
+  static const Duration contactMenuDuration = Duration(milliseconds: 3900);
 
   /// How much of [contactMenuDuration] passes before the row starts writing.
   ///
@@ -196,7 +197,10 @@ abstract final class LogoConfig {
   /// travelling in from the hall, which is a shorter wait — and the row has
   /// three times as much to write once it starts, so spending the same
   /// *fraction* on waiting would push the whole thing past six seconds.
-  static const double contactMenuTextStart = 0.2;
+  ///
+  /// 900 of 3900. The lead is unchanged; only the writing after it is
+  /// shorter, so the mark still lands as the row begins.
+  static const double contactMenuTextStart = 900 / 3900;
 
   /// The same wait as a duration, for whatever has to happen on a clock
   /// rather than on a tween — the typing sound, which cannot be expressed as

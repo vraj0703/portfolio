@@ -275,13 +275,14 @@ class _SoundSwitchState extends State<_SoundSwitch> {
     final strings = context.strings;
     final muted = context.audio.isMuted;
 
+    // Both the mark and the word say what pressing will do, never what the
+    // switch currently is: silent, this offers to turn the sound on and
+    // shows a speaker; sounding, it offers to turn it off and shows the
+    // mute. A row in a list is something to choose, and one labelled with
+    // its own state reads as a description until somebody presses it.
     return _MenuRow(
-      icon: muted ? mute : speaker,
-      // Reads as the state, to match the mark beside it. The radio's control
-      // says what pressing it will do instead, and the difference is that
-      // picture: a label contradicting the icon next to it is worse than
-      // either convention on its own.
-      label: muted ? strings.menuSoundOff : strings.menuSoundOn,
+      icon: muted ? speaker : mute,
+      label: muted ? strings.menuSoundOn : strings.menuSoundOff,
       tint: muted ? colors.menuTextSoft : colors.menuMark,
       onTap: _toggle,
     );

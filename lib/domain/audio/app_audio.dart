@@ -123,6 +123,28 @@ extension AudioCueLength on AudioCue {
   };
 }
 
+/// How much of a cue sounds *after* the last thing in it happens.
+///
+/// Silence and decay at the end of a file. Irrelevant to playing one, and
+/// decisive for anything timed against it: an animation matched to the whole
+/// length finishes into the tail, so its last step lands after the last thing
+/// anybody hears and reads as lag.
+///
+/// Measured by decoding the file and walking back from the end to the last
+/// point it rises above a fraction of its own peak — the answer was the same
+/// at every threshold from 2% to 20% of peak, which is what a hard stop
+/// followed by silence looks like.
+extension AudioCueTail on AudioCue {
+  Duration get tail => switch (this) {
+    // 22 keystrokes, the last at 3000ms of 3600.
+    AudioCue.keyboardTyping => const Duration(milliseconds: 600),
+    _ => Duration.zero,
+  };
+
+  /// How long the cue runs up to its last event.
+  Duration get sounding => length - tail;
+}
+
 /// Contract for the app's sound.
 ///
 /// Mirrors how colour and copy are handled: the scene depends on this

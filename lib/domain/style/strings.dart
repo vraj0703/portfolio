@@ -126,12 +126,13 @@ class DefaultAppStrings implements AppStrings {
   @override
   String get menuClose => 'close';
 
-  /// What the switch *is*, not what pressing it does.
+  /// What pressing it does, not what the switch currently is.
   ///
-  /// The opposite of the radio's PLAY/STOP, and deliberately: that control
-  /// is a button and reads as an instruction, while this one sits beside an
-  /// icon showing the current state. Labelling it with the action would then
-  /// contradict the picture next to it.
+  /// The same convention as the radio's PLAY/STOP: a row in a list reads as
+  /// something to choose, and a row labelled with the state reads as a
+  /// description until somebody presses it to find out. The mark beside it
+  /// shows the same thing — both the picture and the word are the outcome,
+  /// so neither contradicts the other.
   @override
   String get menuSoundOn => 'sound on';
 

@@ -13,12 +13,22 @@ void main() {
       // The bigger of the two mismatches: the row wrote for 1320ms while its
       // cue ran 3600ms, so the typing carried on for nearly two seconds
       // after the menu had finished arriving.
+      // Against the cue's *sounding* part, not its whole length. The file
+      // holds 600ms of silence after its last keystroke, and a row timed to
+      // the full 3600 goes on writing through it — so the last mark in the
+      // row lands well after the last thing anybody can hear.
       expect(
         writingWindow(
           LogoConfig.contactMenuDuration,
           LogoConfig.contactMenuTextStart,
         ).inMilliseconds,
-        closeTo(AudioCue.keyboardTyping.length.inMilliseconds, 5),
+        closeTo(AudioCue.keyboardTyping.sounding.inMilliseconds, 5),
+      );
+
+      expect(
+        AudioCue.keyboardTyping.sounding,
+        lessThan(AudioCue.keyboardTyping.length),
+        reason: 'the tail this exists for has gone missing',
       );
     });
 

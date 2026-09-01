@@ -169,24 +169,26 @@ void main() {
       await tester.tap(find.byType(MenuButton));
       await tester.pumpAndSettle();
 
-      expect(find.text(strings.menuSoundOn), findsOneWidget);
+      // The label is the *offer*, not the state: sounding, the row offers to
+      // turn the sound off.
       expect(audio.isMuted, isFalse);
-
-      await tester.tap(find.text(strings.menuSoundOn));
-      await tester.pumpAndSettle();
-
-      expect(audio.isMuted, isTrue);
-      expect(
-        find.text(strings.menuSoundOff),
-        findsOneWidget,
-        reason: 'the switch still reads as on while the site is silent',
-      );
+      expect(find.text(strings.menuSoundOff), findsOneWidget);
 
       await tester.tap(find.text(strings.menuSoundOff));
       await tester.pumpAndSettle();
 
+      expect(audio.isMuted, isTrue);
+      expect(
+        find.text(strings.menuSoundOn),
+        findsOneWidget,
+        reason: 'a silent site still offered to silence itself',
+      );
+
+      await tester.tap(find.text(strings.menuSoundOn));
+      await tester.pumpAndSettle();
+
       expect(audio.isMuted, isFalse);
-      expect(find.text(strings.menuSoundOn), findsOneWidget);
+      expect(find.text(strings.menuSoundOff), findsOneWidget);
     });
 
     testWidgets('and the connect row reaches the contact screen', (
