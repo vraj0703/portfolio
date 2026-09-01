@@ -37,6 +37,12 @@ abstract class AppStrings {
   String get contactGithub;
   String get contactLinkedIn;
 
+  /// The drawer opened from the title screen.
+  String get menuClose;
+  String get menuSoundOn;
+  String get menuSoundOff;
+  String get menuConnect;
+
   /// Reads with the heart drawn after it, in the menu and again as the
   /// credits' own title — one string, because they are the same words
   /// saying the same thing in two places.
@@ -113,6 +119,27 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get contactLinkedIn => 'linkedin';
+
+  /// Its own string rather than the credits dialog's, though both are the
+  /// same word: they are two panels that happen to agree, not one phrase
+  /// used twice, and either could be reworded without the other following.
+  @override
+  String get menuClose => 'close';
+
+  /// What the switch *is*, not what pressing it does.
+  ///
+  /// The opposite of the radio's PLAY/STOP, and deliberately: that control
+  /// is a button and reads as an instruction, while this one sits beside an
+  /// icon showing the current state. Labelling it with the action would then
+  /// contradict the picture next to it.
+  @override
+  String get menuSoundOn => 'sound on';
+
+  @override
+  String get menuSoundOff => 'sound off';
+
+  @override
+  String get menuConnect => "let's connect";
 
   @override
   String get madeWith => 'Made with';

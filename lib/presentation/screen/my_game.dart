@@ -14,15 +14,15 @@ import 'package:portfolio/domain/config/scene_layers.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
+import 'package:portfolio/domain/utils/cursor_tracker.dart';
+import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
-import 'package:portfolio/presentation/game/contact_dim_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
-import 'package:portfolio/presentation/game/cursor_tracker.dart';
-import 'package:portfolio/domain/utils/scroll_driver.dart';
+import 'package:portfolio/presentation/game/contact_dim_component.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
-import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
+import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/title_layer_component.dart';
 
 /// The Flame scene.
@@ -45,11 +45,7 @@ class MyGame extends FlameGame
         PointerMoveCallbacks,
         MouseMovementDetector,
         HoverCallbacks {
-  MyGame({
-    required this.bloc,
-    required this.palette,
-    required this.audio,
-  });
+  MyGame({required this.bloc, required this.palette, required this.audio});
 
   final SceneBloc bloc;
   final ScenePalette palette;

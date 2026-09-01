@@ -54,6 +54,10 @@ abstract class AppTypography {
   /// loose characters rather than as things to press.
   TextStyle get contactMenu;
 
+  /// The drawer's rows, and the word that closes it.
+  TextStyle get menuEntry;
+  TextStyle get menuAction;
+
   /// The credits: its title, the line under it, each heading, the things
   /// credited, and the way out.
   TextStyle get creditsTitle;
@@ -90,6 +94,28 @@ class DefaultAppTypography implements AppTypography {
     fontWeight: FontWeight.w500,
     letterSpacing: 1.4,
     fontFamily: 'Apertura',
+  );
+
+  /// A row in the drawer.
+  ///
+  /// The site's running face rather than the contact menu's — this is a list
+  /// read at arm's length, not one line thrown across a screen — and set
+  /// large enough to be a target as well as a label.
+  @override
+  TextStyle get menuEntry => const TextStyle(
+    fontSize: 20,
+    height: 1.2,
+    letterSpacing: 0.8,
+    fontFamily: 'Margot',
+  );
+
+  /// The word that closes the panel. Quieter than a row, because it is the
+  /// way out rather than somewhere to go.
+  @override
+  TextStyle get menuAction => const TextStyle(
+    fontSize: 16,
+    letterSpacing: 1.2,
+    fontFamily: 'Margot',
   );
 
   @override

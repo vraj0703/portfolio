@@ -7,6 +7,7 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
+import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 Future<void> initDependencies() async {
@@ -25,6 +26,11 @@ Future<void> initDependencies() async {
   // Handed the radio, because the bloc decides when it plays: the wall it
   // hangs on is the gallery's, but *which screen the visitor is on* is the
   // scene's to know, and that is the whole of the question.
+  // A drawer per screen that shows one, not one for the app: it is opened
+  // and closed by a single widget subtree and has nothing to say to anything
+  // outside it.
+  di.registerFactory<MenuDrawerCubit>(MenuDrawerCubit.new);
+
   di.registerFactory<SceneBloc>(() => SceneBloc(radio: di.get<RadioPlayer>()));
 
   // One shared audio backend: it owns a cache and a pool of players, so a

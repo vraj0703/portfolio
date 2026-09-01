@@ -59,10 +59,12 @@ class RecordingAudio implements AppAudio {
   void scrub(AudioCue cue, double progress, {double? volume}) {}
   @override
   void stopScrub(AudioCue cue) {}
+  bool _muted = false;
+
   @override
-  void setMuted(bool muted) {}
+  void setMuted(bool muted) => _muted = muted;
   @override
-  bool get isMuted => false;
+  bool get isMuted => _muted;
   @override
   Future<void> dispose() async {}
 }

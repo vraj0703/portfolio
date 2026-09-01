@@ -52,6 +52,12 @@ class LogoMarkComponent extends PositionComponent
   /// Seconds into the retreat to the corner. Null while the mark is at home.
   double? _exitElapsed;
 
+  /// Whether the exit is currently being played backwards.
+  bool _returning = false;
+
+  /// The stage the mark is on, so the next one can be read as a move.
+  SceneState? _stage;
+
   /// True once the mark has finished retreating and parked.
   bool get hasSettled =>
       _exitElapsed != null &&
@@ -80,13 +86,36 @@ class LogoMarkComponent extends PositionComponent
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);
+
+    // Which stage the mark is leaving, not only which it is joining. Whether
+    // it should travel depends on where it is now, and a listener is only
+    // told the destination.
+    final from = _stage;
+    _stage = state;
+
     state.maybeWhen(
-      logoOverlayRemoving: () => _exitElapsed ??= 0,
+      logoOverlayRemoving: () {
+        _returning = false;
+        _exitElapsed ??= 0;
+      },
       // Coming back to the logo returns the mark to the middle, and so does
       // arriving at the contact screen — it is the same composition.
       logo: (_) => _returnHome(),
-      contact: _returnHome,
+
+      // Travelled, not snapped — unless the corridor just did the travelling.
+      //
+      // The contact screen is the logo composition with the mark in the
+      // middle of it, and getting there from the title means the mark has to
+      // cross the screen to be there. It used to arrive by assignment, which
+      // is the same picture one frame later and reads as a cut.
+      //
+      // The exception is the gallery, where the game is offstage and the
+      // corridor flies its own mark to the centre before handing over. This
+      // layer taking the trip again would play it twice — the second time
+      // starting from a corner the visitor had just watched it leave.
+      contact: () => _returnHome(travelling: from is! Gallery),
       orElse: () {
+        _returning = false;
         // Arrived somewhere past the logo screen without having played the
         // retreat. Leaving the contact screen for the gallery does exactly
         // that, and so does walking back out of the gallery afterwards —
@@ -101,8 +130,19 @@ class LogoMarkComponent extends PositionComponent
   static double get _retreatSeconds =>
       LogoConfig.exitDuration.inMilliseconds / 1000;
 
-  void _returnHome() {
+  void _returnHome({bool travelling = false}) {
     if (_exitElapsed == null) return;
+
+    if (travelling) {
+      // The same journey, run the other way: `update` walks the clock down
+      // instead of up, so the path, the easing and the duration are the
+      // outbound trip's and cannot drift from it.
+      _returning = true;
+      _exitElapsed = _exitElapsed!.clamp(0.0, _retreatSeconds);
+      return;
+    }
+
+    _returning = false;
     _exitElapsed = null;
     position = homePosition.clone();
     size = homeSize.clone();
@@ -116,7 +156,25 @@ class LogoMarkComponent extends PositionComponent
     if (elapsed == null) return;
 
     final duration = LogoConfig.exitDuration.inMilliseconds / 1000;
-    _exitElapsed = elapsed + dt;
+
+    // The way back covers the same span on a different clock. The path and
+    // the easing are the outbound trip's — walking the same number down
+    // rather than up — but the crossing to the contact screen is its own
+    // length, and it has to be the corridor's, or the same move would take
+    // one time from the title and another from the hall.
+    final back =
+        duration / (LogoConfig.contactTravel.inMilliseconds / 1000);
+    _exitElapsed = elapsed + (_returning ? -dt * back : dt);
+
+    if (_returning && _exitElapsed! <= 0) {
+      // Home, and done travelling. Cleared rather than left at zero so the
+      // layer is back in the state it was in before it ever left.
+      _returning = false;
+      _exitElapsed = null;
+      position = homePosition.clone();
+      size = homeSize.clone();
+      return;
+    }
 
     final t = Curves.easeInOutCubic.transform(
       (elapsed / duration).clamp(0.0, 1.0),

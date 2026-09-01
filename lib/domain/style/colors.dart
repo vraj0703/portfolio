@@ -39,6 +39,14 @@ abstract class AppColors {
   /// The dots between one destination and the next.
   Color get contactSeparator;
 
+  /// The menu control on the title screen, and the drawer it opens.
+  Color get menuMark;
+  Color get menuPanel;
+  Color get menuScrim;
+  Color get menuEdge;
+  Color get menuText;
+  Color get menuTextSoft;
+
   /// Laid over the whole contact section.
   ///
   /// The contact screen is the logo screen a second time, and the second
@@ -161,6 +169,34 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get contactSeparator => _menuInk.withValues(alpha: 0.4);
+
+  /// The control top-right, in the mark's own gold.
+  ///
+  /// The same colour the favicon is repainted in and the wall's lettering is
+  /// inlaid with, because it sits beside the mark on the title screen — the
+  /// previous site drew it in plain white at 30%, which read as chrome
+  /// borrowed from somewhere else.
+  @override
+  Color get menuMark => loadingAccent;
+
+  /// The drawer's ground: the room's own dark, not a slate of its own.
+  @override
+  Color get menuPanel => sceneBackground;
+
+  /// What the scene is dimmed by behind it. The same veil the contact screen
+  /// uses, so a panel over the scene reads the same way twice.
+  @override
+  Color get menuScrim => sceneVeil.withValues(alpha: 0.55);
+
+  /// The hairline down the drawer's leading edge.
+  @override
+  Color get menuEdge => loadingAccent.withValues(alpha: 0.35);
+
+  @override
+  Color get menuText => _menuInk;
+
+  @override
+  Color get menuTextSoft => _menuInk.withValues(alpha: 0.62);
 
   @override
   Color get contactDim => sceneVeil.withValues(alpha: 0.32);

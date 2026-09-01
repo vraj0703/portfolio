@@ -112,6 +112,10 @@ flutter:
     - assets/vectors/gallery.svg
     - assets/vectors/heart.svg
     - assets/vectors/home.svg
+    # The title screen's menu control, and the two faces of its sound switch.
+    - assets/vectors/menu.svg
+    - assets/vectors/mute.svg
+    - assets/vectors/speaker.svg
     # Listed file by file rather than by directory, and the omissions are
     # deliberate. Between them these three downloads also carry 65MB of
     # displacement and OpenEXR normal maps, Blender/USD/MaterialX sources and

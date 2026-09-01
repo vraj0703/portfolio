@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
+import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/screen/scene_view.dart';
@@ -36,8 +37,15 @@ void main() {
   Widget host() {
     created = SceneBloc();
     return MaterialApp(
-      home: BlocProvider<SceneBloc>.value(
-        value: created!,
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<SceneBloc>.value(value: created!),
+          // The scene now carries the title screen's drawer, and the drawer
+          // reads its own cubit. Provided here rather than made optional in
+          // the widget: a panel that silently does nothing when its state is
+          // missing hides exactly the wiring mistake this would catch.
+          BlocProvider<MenuDrawerCubit>(create: (_) => MenuDrawerCubit()),
+        ],
         child: const Scaffold(body: SceneView()),
       ),
     );

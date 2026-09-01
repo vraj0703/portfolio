@@ -235,6 +235,17 @@ abstract final class LogoConfig {
   static const double exitMargin = 60;
   static const double exitScale = 0.2;
 
+  /// How long the mark takes to cross to the middle of the contact screen.
+  ///
+  /// The same trip from either side — the corridor flies its own mark in
+  /// from the corner, and the title screen's layer walks its retreat
+  /// backwards — so it is one number rather than each renderer choosing.
+  ///
+  /// Equal to [contactMenuLead] on purpose: the row starts writing as the
+  /// mark lands. Change one and the writing either begins under a mark still
+  /// in flight or after it has been sitting there.
+  static const Duration contactTravel = Duration(milliseconds: 900);
+
   /// How long the mark takes to travel and shrink.
   static const Duration exitDuration = Duration(milliseconds: 1100);
 

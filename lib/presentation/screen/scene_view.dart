@@ -9,6 +9,8 @@ import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/gallery/gallery_primer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/menu/menu_button.dart';
+import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/gallery/gallery_warm_render.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
@@ -112,6 +114,12 @@ class SceneView extends StatelessWidget {
           // the logo screen's, drawn by the same components that drew it the
           // first time; this is only what stands where "TAP TO ENTER" stood.
           const ContactMenuLayer(),
+
+          // The title screen's way out, and the panel it opens. Above the
+          // scene and below the curtain, so loading covers them like
+          // everything else.
+          const MenuButton(),
+          const MenuDrawer(),
 
           BlocBuilder<SceneBloc, SceneState>(
             builder: (context, state) {

@@ -57,6 +57,18 @@ class SceneState with _$SceneState {
 
   bool get isInteractable => this is Logo || this is Title;
 
+  /// Whether the title screen's menu control belongs on screen.
+  ///
+  /// The two stages with no other way out. The logo screen offers "TAP TO
+  /// ENTER" and nothing else on purpose, the corridor has its signs cut into
+  /// the walls, and the contact screen *is* a menu — so those are the only
+  /// two that need one.
+  ///
+  /// A rule on the state rather than a check at the widget, like the two
+  /// below it: `Title` is also a Flutter widget, and a view that tests for
+  /// it directly has to fight its own imports to say so.
+  bool get showsMenu => this is Title || this is Active;
+
   /// Whether the wall radio belongs on air.
   ///
   /// [Gallery] and nothing else. That one state covers the corridor *and*

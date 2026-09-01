@@ -1,7 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
-import 'package:portfolio/presentation/game/cursor_tracker.dart';
+import 'package:portfolio/domain/utils/cursor_tracker.dart';
 
 final Vector2 viewport = Vector2(1280, 720);
 
@@ -55,7 +55,10 @@ void main() {
       tracker.moveTo(Vector2(640, pointerY), viewport);
       settle(tracker);
 
-      expect(tracker.position.y, closeTo(pointerY + CursorConfig.glowOffset, 1));
+      expect(
+        tracker.position.y,
+        closeTo(pointerY + CursorConfig.glowOffset, 1),
+      );
     });
 
     test('points away from the centre', () {
@@ -106,10 +109,7 @@ void main() {
         tracker.moveTo(Vector2(1280, 360), viewport);
         settle(tracker);
 
-        final primary = tracker.parallax(
-          viewport,
-          CursorConfig.titleParallax,
-        );
+        final primary = tracker.parallax(viewport, CursorConfig.titleParallax);
         final secondary = tracker.parallax(
           viewport,
           CursorConfig.secondaryTitleParallax,

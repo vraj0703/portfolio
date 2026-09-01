@@ -37,6 +37,13 @@ void main() {
       );
     });
 
+    test('the mark lands exactly as the row starts writing', () {
+      // The lead is not an arbitrary pause: it is how long the mark takes to
+      // cross to the middle. Drift between them and the row either writes
+      // under a mark still in flight, or after it has been sitting there.
+      expect(LogoConfig.contactMenuLead, LogoConfig.contactTravel);
+    });
+
     test('the row still waits long enough for the mark to arrive', () {
       // The lead is not free to shrink to fit the sound: the menu types
       // under a mark that is still travelling in from the hall, and writing

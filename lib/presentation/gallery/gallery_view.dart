@@ -9,6 +9,7 @@ import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
+import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
@@ -94,7 +95,7 @@ class GalleryView extends StatefulWidget {
   /// Longer, because there is something to watch. The mark crosses most of
   /// the screen and grows fivefold on the way, and at the pace the room goes
   /// dark that reads as a jump rather than as a journey.
-  static const Duration leavingWithMark = Duration(milliseconds: 900);
+  static const Duration leavingWithMark = LogoConfig.contactTravel;
 
   @override
   State<GalleryView> createState() => _GalleryViewState();

@@ -181,9 +181,12 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     ContactRequested event,
     Emitter<SceneState> emit,
   ) {
-    // The sign hangs in the skills hall, so the gallery is the only place it
-    // can be pressed from.
-    if (state is! Gallery) return null;
+    // Two ways in now: the sign cut into the skills hall wall, and the
+    // drawer on the title screen. Both are screens a visitor can be standing
+    // on with somewhere to go; the ones left out are the ones that cannot
+    // ask — loading, the logo screen, the exits already in flight, and the
+    // contact screen itself.
+    if (!(state is Gallery || state.showsMenu)) return null;
     emit(const SceneState.contact());
   }
 
