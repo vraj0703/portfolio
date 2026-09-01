@@ -229,6 +229,28 @@ class _GalleryViewState extends State<GalleryView> {
     if (_gallery == null) _load();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Where the radio is picked up, and deliberately not in `_load`.
+    //
+    // `_load` runs only when the scene was *not* warmed during the intro —
+    // the uncommon case, because warming it is the whole point of the
+    // loading screen. Subscribing there meant that on every ordinary visit
+    // nothing ever listened to the radio, and the faces kept whatever they
+    // were baked with: PLAY over a radio that was playing, OFF over one on
+    // air, and a station name that did not follow the dial.
+    //
+    // Here because this runs on both paths and cannot be skipped by either,
+    // and because it is the earliest point a theme may be read — `initState`
+    // is too early for that, which is what pushed the call into `_load` to
+    // begin with.
+    final gallery = _gallery;
+    if (gallery == null || _radio != null) return;
+    _tuneIn(gallery);
+  }
+
   /// Builds the corridor, for the case it was not warmed during the intro.
   ///
   /// Guarded by a zone rather than a `try`. Bringing up the scene starts GPU
@@ -248,6 +270,10 @@ class _GalleryViewState extends State<GalleryView> {
           return;
         }
         setState(() => _gallery = gallery);
+
+        // `didChangeDependencies` has already run for this element with no
+        // scene to hand it, so the subscription is made here instead.
+        // `_tuneIn` replaces rather than adds, so the two cannot stack.
         _tuneIn(gallery);
       },
       (error, stack) {
@@ -551,18 +577,18 @@ class _GalleryViewState extends State<GalleryView> {
     // change while the first went on running against a stale scene.
     _radio?.cancel();
 
-    // Read from the theme, not built here. Every other letter in this room
-    // comes from the design system, and a face that reaches for its own
-    // `DefaultAppTypography` is the one surface that stops following it.
-    final type = context.typography;
-
     // Told what the radio is doing now as well as what it does next —
     // `RadioPlayer.changes` opens with the current state, which is what
     // makes subscribing late safe. This arrives very late indeed: the scene
     // has to finish warming up first.
     _radio = locate<RadioPlayer>().changes.listen((state) async {
       if (!mounted) return;
-      await gallery.radio.show(state: state, type: type);
+
+      // Read from the theme on each change rather than captured once. Every
+      // other letter in this room comes from the design system, and a face
+      // reaching for its own `DefaultAppTypography` is the one surface that
+      // stops following it.
+      await gallery.radio.show(state: state, type: context.typography);
     });
   }
 
