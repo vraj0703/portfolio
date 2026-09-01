@@ -7,6 +7,7 @@ import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
+import 'package:portfolio/presentation/gallery/gallery_primer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/gallery/gallery_warm_render.dart';
@@ -127,6 +128,16 @@ class SceneView extends StatelessWidget {
                   return Stack(
                     fit: StackFit.expand,
                     children: <Widget>[
+                      // Under the curtain, and only while it is down. This
+                      // draws the finished corridor where nobody can see it,
+                      // so the pipelines its materials need are compiled
+                      // during a wait the visitor has already been asked for
+                      // rather than on the first frame after it.
+                      //
+                      // Below the `ClipPath`, never above: it has to be
+                      // painted to be warmed, and it must not be seen.
+                      if (isLoading) GalleryPrimer(queuer: context.read<SceneBloc>()),
+
                       ClipPath(
                         clipper: CurtainClipper(revealProgress: reveal),
                         child: ColoredBox(color: context.colors.curtain),

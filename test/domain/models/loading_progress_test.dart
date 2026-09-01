@@ -124,14 +124,23 @@ void main() {
       );
     });
 
-    test('the scene is not ready until both have reported', () {
+    test('the scene is not ready until every phase has reported', () {
+      // Walked over `LoadingPhase.values` rather than naming the phases, so
+      // adding one does not quietly break this — it used to say "both", and
+      // a third phase made that sentence false rather than the code wrong.
+      // What is actually being asserted is that *no* phase can be skipped:
+      // one still building must hold the curtain down.
       var progress = LoadingProgress.empty;
-      progress = progress.advance(LoadingPhase.game, 1);
 
-      expect(progress.isComplete, isFalse,
-          reason: 'the gallery is still building');
+      for (final phase in LoadingPhase.values) {
+        expect(
+          progress.isComplete,
+          isFalse,
+          reason: '$phase had not reported yet, and the bar was already done',
+        );
+        progress = progress.advance(phase, 1);
+      }
 
-      progress = progress.advance(LoadingPhase.gallery, 1);
       expect(progress.isComplete, isTrue);
     });
 

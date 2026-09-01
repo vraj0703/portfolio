@@ -85,5 +85,12 @@ class FlameScene extends StatelessWidget {
     bloc.add(
       const SceneEvent.loadingProgressed(phase: LoadingPhase.gallery, value: 1),
     );
+
+    // And the warm-up with it. It draws the built scene, so a scene that was
+    // never built leaves it with nothing to draw and nothing to report — and
+    // a phase nobody reports against holds the curtain down forever.
+    bloc.add(
+      const SceneEvent.loadingProgressed(phase: LoadingPhase.priming, value: 1),
+    );
   }
 }

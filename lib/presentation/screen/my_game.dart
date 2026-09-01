@@ -34,6 +34,13 @@ import 'package:portfolio/presentation/game/title_layer_component.dart';
 class MyGame extends FlameGame
     with
         ScrollDetector,
+        // Touch. `ScrollDetector` is a wheel, and a phone has none — without
+        // this the bold-text stage cannot be advanced at all on one, because
+        // scrolling *is* the stage. `PointerMoveCallbacks` looks like it
+        // would cover this and does not: Flame builds its `PointerMoveEvent`
+        // from a `PointerHoverEvent`, so it is mouse movement, and a finger
+        // never hovers.
+        DragCallbacks,
         TapCallbacks,
         PointerMoveCallbacks,
         MouseMovementDetector,
@@ -432,13 +439,39 @@ class MyGame extends FlameGame
     queuer.queue(event: const SceneEvent.logoExitCompleted());
   }
 
+  /// How far a finger moves the intro, against how far it travels.
+  ///
+  /// A wheel notch reports about a hundred units; a finger reports the pixels
+  /// it crossed. Left at one-to-one the stage still works, but reading a
+  /// paragraph takes a handful of full-screen swipes, which is not what the
+  /// same gesture costs anywhere else on a phone.
+  static const double dragScrollGain = 2;
+
   @override
   void onScroll(PointerScrollInfo info) {
     super.onScroll(info);
     // Scrolling and clicking the arrow are the same request; the bloc decides
     // whether it means anything yet.
-    final delta = info.scrollDelta.global.y;
+    _advanceBy(info.scrollDelta.global.y);
+  }
 
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    super.onDragUpdate(event);
+
+    // A finger moving *up* is a wheel turning down: both mean "onward". The
+    // content follows the finger, which is the only mapping a phone reads as
+    // direct rather than inverted.
+    _advanceBy(-event.localDelta.y * dragScrollGain);
+  }
+
+  /// Moves the intro on by [delta], however that was asked for.
+  ///
+  /// Shared, because a wheel and a finger are the same request arriving by
+  /// different hardware — and because the three guards below are the whole
+  /// of the stage's input rules. Duplicated for touch, they would be three
+  /// more chances for the two to drift apart.
+  void _advanceBy(double delta) {
     // Once the stage has handed over, its scroll is spent. Continuing to
     // accept input here keeps driving a sequence the visitor has already left
     // and competes with the gallery for the same gesture.

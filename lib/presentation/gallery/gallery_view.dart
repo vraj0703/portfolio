@@ -48,6 +48,14 @@ class GalleryView extends StatefulWidget {
   /// Keeping the page convention here would mean pushing forward to back out
   /// of the corridor, which fights the first-person framing the whole scene
   /// is built on.
+  /// How far a finger walks the corridor, against how far it travels.
+  ///
+  /// A wheel notch reports about a hundred units and a finger reports the
+  /// pixels it crossed, so one-to-one makes the corridor several times
+  /// longer to a thumb than to a mouse. Matched to the intro's own gain, so
+  /// the two stages answer a swipe at the same rate.
+  static const double dragScrollGain = 2;
+
   static const double scrollDirection = -1;
 
   /// Identifies the stand-in shown while the corridor is still building.
@@ -619,12 +627,34 @@ class _GalleryViewState extends State<GalleryView> {
                 if (from == null) return;
                 _dragDistance += event.delta.distance;
 
-                // Only the board turns by dragging. Everywhere else in the
-                // gallery a drag means nothing, and treating it as one would
-                // fight the scroll.
+                // Only the board turns by dragging. Everywhere else a drag
+                // *is* the scroll — on a phone, where there is no wheel, it
+                // is the only way down the corridor at all.
                 if (_inHall) {
                   _orbit.drag(event.delta.dx, event.delta.dy);
+                  return;
                 }
+
+                // Touch and stylus only. A mouse has a wheel, and making a
+                // held button drag the corridor as well would fight picking
+                // a frame: every slightly unsteady click would walk the
+                // camera before landing.
+                if (event.kind != PointerDeviceKind.touch &&
+                    event.kind != PointerDeviceKind.stylus) {
+                  return;
+                }
+
+                // Through the same gate as the wheel, so being caught at the
+                // back wall feels the same whichever way the visitor moves.
+                if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+
+                // A finger moving up walks forward: the room follows the
+                // hand rather than opposing it.
+                _scroll.scrollBy(
+                  -event.delta.dy *
+                      GalleryView.dragScrollGain *
+                      GalleryView.scrollDirection,
+                );
               },
               onPointerUp: (event) {
                 final dragged = _dragDistance > _tapSlop;

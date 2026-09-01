@@ -166,9 +166,14 @@ class GalleryScene {
     radio.nodes.forEach(scene.add);
     await step();
 
-    await _report(onProgress, 1);
-
-    return _ready = GalleryScene._(
+    // Published *before* the phase is reported complete, not after.
+    //
+    // That report is the last thing to move the loading state, and moving it
+    // is what rebuilds the tree. Assigning [_ready] afterwards means the
+    // final rebuild still sees no scene — and for anything waiting on one,
+    // there is no later change to wait for. The warm-up under the curtain
+    // did exactly that and held the bar at 89% permanently.
+    final ready = _ready = GalleryScene._(
       scene,
       arrow,
       controls,
@@ -177,6 +182,9 @@ class GalleryScene {
       artwork,
       textures,
     );
+
+    await _report(onProgress, 1);
+    return ready;
   }
 
   /// Reports [value] and hands a frame back to the engine.

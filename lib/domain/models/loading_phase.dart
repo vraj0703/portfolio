@@ -26,7 +26,20 @@ enum LoadingPhase {
   /// Weighted well above the game because it genuinely takes longer, and the
   /// bar should reflect that rather than sitting at 50% while the slow half
   /// finishes.
-  gallery(weight: 3);
+  gallery(weight: 3),
+
+  /// Drawing the finished gallery once, behind the curtain, so the pipelines
+  /// its materials need are compiled before the visitor arrives in it.
+  ///
+  /// A phase of its own so the bar genuinely *waits* for it. Without that it
+  /// has nothing to wait through: [gallery] is the heavy phase and finishes
+  /// last, so the scene becomes drawable at the same moment the curtain
+  /// starts to lift, and the warm-up gets a frame at most — which is the
+  /// same as not having one.
+  ///
+  /// Weighted well below the others because it is a handful of frames
+  /// against seconds of building, and the bar should say so.
+  priming(weight: 0.5);
 
   const LoadingPhase({required this.weight});
 
