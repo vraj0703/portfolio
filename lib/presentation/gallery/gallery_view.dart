@@ -20,6 +20,7 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
+import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
@@ -214,6 +215,13 @@ class _GalleryViewState extends State<GalleryView> {
   /// Clock the gate reasons in. Started with the view, so a gesture already
   /// in flight is measured from the moment the corridor appeared.
   final Stopwatch _clock = Stopwatch()..start();
+
+  /// Reports frames the corridor spent too long on.
+  ///
+  /// Temporary. The hitch around the second or third picture has outlasted
+  /// two explanations that both sounded right and were both wrong, so this
+  /// is here to say *when* it happens rather than to guess again.
+  final FrameWatch _frames = FrameWatch(label: 'gallery');
 
   @override
   void initState() {
@@ -774,6 +782,15 @@ class _GalleryViewState extends State<GalleryView> {
       // tree sixty times a second for a value the renderer could read
       // directly — which is what made arriving here stutter.
       onTick: (elapsed, deltaSeconds) {
+        // First thing in the frame, so what it measures is the gap between
+        // frames rather than the part of one that happens to come after it.
+        _frames.tick(
+          'progress ${_scroll.progress.toStringAsFixed(3)} '
+          'speed ${_scroll.velocity.abs().toStringAsFixed(0)} '
+          '${_inHall ? 'hall' : 'corridor'}'
+          '${_focused == null ? '' : ' focused'}',
+        );
+
         // The scroll keeps running while a piece is focused, but it drives
         // nothing — so leaving focus hands the visitor back to exactly the
         // spot they left rather than to wherever the wheel wandered.
