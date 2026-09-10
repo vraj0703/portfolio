@@ -4,6 +4,7 @@ import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/data/platform/page_visibility.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
@@ -199,14 +200,54 @@ class GalleryScene {
   ///
   /// Waiting for the end of a frame costs about sixteen milliseconds a step.
   /// A loading bar that moves is worth more than the half-second.
+  ///
+  /// Two things narrow when that price is paid, and both are about *not*
+  /// paying it when nobody can see the result.
+  ///
+  /// **A hidden tab produces no frames at all.** Browsers stop
+  /// `requestAnimationFrame` for a backgrounded page and Flutter web's frame
+  /// loop is that callback, so [SchedulerBinding.endOfFrame] there is not
+  /// slow — it never completes. This build awaits a report between every
+  /// step, so switching tabs during loading froze the whole thing until the
+  /// visitor came back. The wait exists to let the bar paint; a hidden page
+  /// has no bar to paint, so it is skipped and the build runs on.
+  ///
+  /// **And a bar cannot usefully move faster than it can be read.** There are
+  /// something over a hundred steps in this build, and giving a frame back to
+  /// each one buys nothing after the first: two reports a hundredth of a
+  /// second apart are one report as far as an eye is concerned, and the
+  /// second frame is pure delay. [_paintInterval] is how often the bar is
+  /// worth repainting; between those moments the steps run back to back.
   static Future<void> _report(
     void Function(double)? onProgress,
     double value,
   ) async {
     onProgress?.call(value);
     if (onProgress == null) return;
+
+    // Nothing to paint into.
+    if (!PageVisibility.isVisible) return;
+
+    if (!_sincePaint.isRunning) _sincePaint.start();
+    if (_sincePaint.elapsed < _paintInterval) return;
+
     await SchedulerBinding.instance.endOfFrame;
+    _sincePaint.reset();
   }
+
+  /// How often the loading bar is worth handing a frame to.
+  ///
+  /// Twenty a second. Fast enough that the bar reads as continuous motion,
+  /// and slow enough that a run of cheap steps is not spending a frame each
+  /// to say the same thing.
+  static const Duration _paintInterval = Duration(milliseconds: 50);
+
+  /// Time since the bar was last given a frame to draw in.
+  ///
+  /// Static because the build is: [warmUp] memoises one build for the life of
+  /// the app, so there is never a second one running alongside it to confuse
+  /// this with.
+  static final Stopwatch _sincePaint = Stopwatch();
 
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.
