@@ -28,29 +28,32 @@
   <meta property="og:title" content="Vishal Raj">
   <meta property="og:description" content="Mobile and Flutter engineer. A gallery of work you walk through rather than scroll.">
   <meta property="og:url" content="https://www.vishalraj.space/">
-  <meta property="og:image" content="https://www.vishalraj.space/favicon.png">
+  <meta property="og:image" content="https://www.vishalraj.space/android-chrome-512x512.png">
 
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Vishal Raj">
   <meta name="twitter:description" content="Mobile and Flutter engineer. A gallery of work you walk through rather than scroll.">
-  <meta name="twitter:image" content="https://www.vishalraj.space/favicon.png">
+  <meta name="twitter:image" content="https://www.vishalraj.space/android-chrome-512x512.png">
 
   <!--
     The site's own mark, and only it. There was an SVG here first, carried
     over from the previous site along with everything else in its public
     folder — a different logo entirely, in purple and blue — and because it
     was listed first, browsers preferred it. The tab showed the old brand.
-
-    The artwork is `assets/images/logo.png`, the same file the loading screen
-    and the corner mark are drawn from, so the icon cannot drift from the
-    mark. In the app it is pure black and the shape lives in its alpha; the
-    scene cuts it out of a lit ground, which is where the orange comes from.
-    A favicon has no glow behind it, so a black mark would simply vanish on a
-    dark tab bar — this copy is repainted in AppColors.loadingAccent, the
-    colour of the aura the mark sits in, which reads on light and dark alike.
+    Every file below is now the same mark, so there is nothing to prefer
+    wrongly.
   -->
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="apple-touch-icon" href="favicon.png">
+  <!--
+    The mark, in four formats because browsers disagree about which they want.
+    `.ico` carries the small raster sizes Windows and older browsers ask for;
+    the SVG is what a modern browser prefers and the only one that stays sharp
+    on a high-density tab strip; the touch icon is what iOS puts on a home
+    screen. Listed `.ico` first with `sizes="any"` so a browser that
+    understands SVG skips it rather than downloading both.
+  -->
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
