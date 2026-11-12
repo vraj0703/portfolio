@@ -3,7 +3,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/frame_card.dart';
+import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/platform/page_visibility.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
@@ -38,6 +40,7 @@ class GalleryScene {
     this.controls,
     this.keyboard,
     this.radio,
+    this.testimonials,
     this._artwork,
     this._textures,
   );
@@ -54,6 +57,10 @@ class GalleryScene {
 
   /// The skills board in its hall, exposed so the view can turn it.
   final SkillKeyboard keyboard;
+
+  /// The testimonial wall's cards, exposed so the view can put a visitor's
+  /// own words on frame 2 the moment they write them.
+  final TestimonialCards testimonials;
 
   /// The radios — one by the entrance, one in the hall — exposed so the view
   /// can re-letter them when the station or the status changes.
@@ -119,8 +126,16 @@ class GalleryScene {
       ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient);
     final artwork = <ui.Image>[];
     final textures = <Texture2D>[];
+    final testimonials = TestimonialCards();
 
-    await _populate(scene, artwork, textures, artworkSize, onProgress);
+    await _populate(
+      scene,
+      artwork,
+      textures,
+      artworkSize,
+      onProgress,
+      testimonials,
+    );
     _light(scene);
 
     var tail = 0;
@@ -182,6 +197,7 @@ class GalleryScene {
       controls,
       keyboard,
       radio,
+      testimonials,
       artwork,
       textures,
     );
@@ -319,6 +335,7 @@ class GalleryScene {
     List<Texture2D> textures,
     int artworkSize,
     void Function(double)? onProgress,
+    TestimonialCards testimonials,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -450,6 +467,7 @@ class GalleryScene {
           artwork,
           textures,
           artworkSize,
+          testimonials,
         );
         continue;
       }
@@ -651,6 +669,7 @@ class GalleryScene {
     List<ui.Image> images,
     List<Texture2D> textures,
     int artworkSize,
+    TestimonialCards testimonials,
   ) async {
     final width = GalleryLayout.frameWidth;
     final height = piece.extents.y;
@@ -679,6 +698,32 @@ class GalleryScene {
     // card's face — shaped to the card, so the type is not stretched. Unlit,
     // like the lettering on the walls: it is a printed surface, and lit by a
     // picture light this dim its smaller type sinks into the gradient.
+    // A testimonial frame's card: the invitation, a reserved card, or a
+    // visitor's own pending words, from their browser only.
+    if (piece.kind == SurfaceKind.testimonialFrame) {
+      final slot = testimonials.nextSlot();
+      final pending = locate<RecommendationStore>().load();
+      final width = artworkSize;
+      final height = (artworkSize * cardHeight / cardWidth).round();
+      final image = await TestimonialCard.render(
+        slot: TestimonialWall.slotFor(slot, pending: pending),
+        pending: pending,
+        width: width,
+        height: height,
+      );
+      images.add(image);
+      final texture = await Texture2D.fromImage(image);
+      textures.add(texture);
+
+      final material = UnlitMaterial(colorTexture: texture);
+      final node = Node(mesh: Mesh(cardShape, material), localTransform: card);
+      scene.add(node);
+      if (slot == TestimonialWall.pendingSlot) {
+        testimonials.attach(node, material, card, width: width, height: height);
+      }
+      return;
+    }
+
     if (FrameCard.paints(piece.project)) {
       final image = await FrameCard.render(
         project: piece.project!,
@@ -799,7 +844,12 @@ class GalleryScene {
     for (final image in _artwork) {
       image.dispose();
     }
+    for (final image in testimonials.images) {
+      image.dispose();
+    }
     _artwork.clear();
     _textures.clear();
+    testimonials.images.clear();
+    testimonials.textures.clear();
   }
 }

@@ -31,6 +31,26 @@ abstract class AppStrings {
   /// On a frame whose work is not ready yet, under its title.
   String get frameComingSoon;
 
+  /// The testimonial wall: its first frame's title and invitation, the quiet
+  /// line on the frames still empty, and the mark on a visitor's own words.
+  String get testimonialsTitle;
+  String get testimonialsInvite;
+  String get testimonialsReserved;
+  String get testimonialPending;
+
+  /// The control that opens the recommendation form, and the form itself.
+  String get recommendAddYours;
+  String get recommendFormTitle;
+  String get recommendName;
+  String get recommendRole;
+  String get recommendRelationship;
+  String get recommendWords;
+  String get recommendRequired;
+  String get recommendSubmit;
+  String get recommendCancel;
+  String get recommendDone;
+  String get recommendClose;
+
   /// The control that opens the focused work's link, and what it is called
   /// to someone who cannot see it.
   String get galleryOpen;
@@ -114,6 +134,54 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get frameComingSoon => 'coming soon';
+
+  @override
+  String get testimonialsTitle => 'Testimonials';
+
+  @override
+  String get testimonialsInvite =>
+      'Worked with Vishal? Leave a recommendation.';
+
+  @override
+  String get testimonialsReserved => 'Reserved for the first words';
+
+  @override
+  String get testimonialPending => 'pending';
+
+  @override
+  String get recommendAddYours => 'add yours';
+
+  @override
+  String get recommendFormTitle => 'Recommend Vishal';
+
+  @override
+  String get recommendName => 'Your name';
+
+  @override
+  String get recommendRole => 'Role and company';
+
+  @override
+  String get recommendRelationship => 'How you worked together';
+
+  @override
+  String get recommendWords => 'Your words';
+
+  @override
+  String get recommendRequired => 'Needed';
+
+  @override
+  String get recommendSubmit => 'Copy and open LinkedIn';
+
+  @override
+  String get recommendCancel => 'Cancel';
+
+  /// Shown once the words are copied and LinkedIn is open in a new tab.
+  @override
+  String get recommendDone =>
+      "Copied. On Vishal's LinkedIn, choose More > Recommend and paste.";
+
+  @override
+  String get recommendClose => 'Done';
 
   @override
   String get galleryOpen => 'open';

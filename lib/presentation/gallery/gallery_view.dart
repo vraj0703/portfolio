@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/keyboard_nav.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
+import 'package:portfolio/presentation/gallery/recommendation_form.dart';
 import 'package:portfolio/presentation/gallery/skill_caption.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -192,6 +194,11 @@ class _GalleryViewState extends State<GalleryView> {
   /// Takes the arrow keys and Enter while the visitor stands at the board.
   final FocusNode _keys = FocusNode(debugLabel: 'gallery keys');
 
+  /// Whether the camera is panning the testimonial wall, which is when the
+  /// "add yours" control shows. A notifier, so the one control rebuilds as
+  /// the visitor passes rather than the whole view every frame.
+  final ValueNotifier<bool> _onWall = ValueNotifier<bool>(false);
+
   /// How the visitor has turned the board.
   late final KeyboardOrbit _orbit = KeyboardOrbit(
     restElevation: GalleryCameraPath.hallRestElevation,
@@ -356,6 +363,29 @@ class _GalleryViewState extends State<GalleryView> {
     setState(() => _leavingFor = event);
   }
 
+  /// Opens the recommendation form.
+  void _addYours() {
+    if (!mounted) return;
+    unawaited(
+      RecommendationForm.open(context, onSubmit: _submitRecommendation),
+    );
+  }
+
+  /// What submitting the form does: LinkedIn opens first, inside the press,
+  /// or the browser takes the new tab for a pop-up; then the words are
+  /// copied for pasting there, kept in this browser, and put on frame 2.
+  Future<void> _submitRecommendation(PendingRecommendation words) async {
+    unawaited(locate<ContactLinks>().openLinkedIn());
+    // Best effort: a browser may refuse the clipboard, and the words must
+    // still be kept and shown — the form says where to paste them, and they
+    // are on the wall to copy by hand.
+    try {
+      await Clipboard.setData(ClipboardData(text: words.clipboardText));
+    } catch (_) {}
+    locate<RecommendationStore>().save(words);
+    await _gallery?.testimonials.show(words);
+  }
+
   /// Opens [frame]'s own link, or null when it has none to open.
   ///
   /// The same sound as the two signs on the walls: it puts the room away and
@@ -421,8 +451,16 @@ class _GalleryViewState extends State<GalleryView> {
         // back of the corridor would take the visitor out of a gallery they
         // had not finished walking.
         if (_inHall) SurfaceKind.connectSign,
+        SurfaceKind.testimonialFrame,
       },
     );
+
+    // Any testimonial frame opens the form: the wall is an invitation.
+    if (hit?.kind == SurfaceKind.testimonialFrame) {
+      _sound(AudioCue.click);
+      _addYours();
+      return;
+    }
 
     // The board is only reachable once the visitor has arrived at it, and
     // only then is it still enough to aim at.
@@ -688,6 +726,7 @@ class _GalleryViewState extends State<GalleryView> {
   @override
   void dispose() {
     _keys.dispose();
+    _onWall.dispose();
     _radio?.cancel();
     _leaving.dispose();
     _markJourney.dispose();
@@ -803,19 +842,23 @@ class _GalleryViewState extends State<GalleryView> {
               // stepped to the next piece and was immediately overruled by a
               // pick of whatever was still under the pointer. That is why the
               // arrows did nothing.
-              GalleryOverlay(
-                focused: _focused,
-                canGoBack: _focused != null && _order.hasPrevious(_focused!),
-                canGoForward: _focused != null && _order.hasNext(_focused!),
-                // Through the same dispatch as the icons on the wall, so the
-                // fallback cannot do anything the real controls do not — or
-                // sound different doing it.
-                onBack: () => _control(ControlAction.previous),
-                onExit: () => _control(ControlAction.exit),
-                onForward: () => _control(ControlAction.next),
-                mirrored: !(_focused?.position.x.isNegative ?? true),
-                asFallback: _gallery?.controls == null,
-                onOpen: _openFor(_focused),
+              ValueListenableBuilder<bool>(
+                valueListenable: _onWall,
+                builder: (context, onWall, _) => GalleryOverlay(
+                  focused: _focused,
+                  canGoBack: _focused != null && _order.hasPrevious(_focused!),
+                  canGoForward: _focused != null && _order.hasNext(_focused!),
+                  // Through the same dispatch as the icons on the wall, so the
+                  // fallback cannot do anything the real controls do not — or
+                  // sound different doing it.
+                  onBack: () => _control(ControlAction.previous),
+                  onExit: () => _control(ControlAction.exit),
+                  onForward: () => _control(ControlAction.next),
+                  mirrored: !(_focused?.position.x.isNegative ?? true),
+                  asFallback: _gallery?.controls == null,
+                  onOpen: _openFor(_focused),
+                  onAddYours: onWall ? _addYours : null,
+                ),
               ),
 
               // What the key under the pointer, or the key pressed, is. The
@@ -917,6 +960,15 @@ class _GalleryViewState extends State<GalleryView> {
           // know how long the frame was.
           dt: deltaSeconds,
         );
+
+        // The pending card's entrance, and whether the wall is in front of
+        // the visitor for the "add yours" control.
+        gallery.testimonials.tick(deltaSeconds);
+        final wallProgress = _scroll.progress;
+        _onWall.value =
+            _focused == null &&
+            wallProgress >= GalleryCameraPath.walkFraction &&
+            wallProgress <= GalleryCameraPath.panEnd;
 
         if (!_atBoard) {
           // Leaving. Eased back to the doorway view so a reverse scroll walks

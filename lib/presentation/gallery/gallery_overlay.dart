@@ -27,6 +27,7 @@ class GalleryOverlay extends StatelessWidget {
     required this.mirrored,
     required this.asFallback,
     this.onOpen,
+    this.onAddYours,
     super.key,
   });
 
@@ -61,6 +62,11 @@ class GalleryOverlay extends StatelessWidget {
   /// corridor and live on the wall; this leaves it, for the work's own page,
   /// and is drawn over the room whether or not the wall's controls loaded.
   final VoidCallback? onOpen;
+
+  /// Opens the recommendation form; null when the visitor is not at the
+  /// testimonial wall. Shown with nothing focused, which is how the wall is
+  /// read: the camera pans along it.
+  final VoidCallback? onAddYours;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +126,20 @@ class GalleryOverlay extends StatelessWidget {
                 label: context.strings.galleryOpenLabel(
                   focused?.project?.title ?? '',
                 ),
+                text: context.strings.galleryOpen,
                 onTap: onOpen!,
+              ),
+            ),
+          ),
+        if (!isFocused && onAddYours != null)
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 24, bottom: 44),
+              child: _OpenControl(
+                label: context.strings.recommendFormTitle,
+                text: context.strings.recommendAddYours,
+                onTap: onAddYours!,
               ),
             ),
           ),
@@ -132,13 +151,20 @@ class GalleryOverlay extends StatelessWidget {
 /// The way out to a work's own page: a word in a pill, not a glyph, because
 /// it goes somewhere the corridor's arrows do not.
 class _OpenControl extends StatelessWidget {
-  const _OpenControl({required this.label, required this.onTap});
+  const _OpenControl({
+    required this.label,
+    required this.text,
+    required this.onTap,
+  });
 
   /// A touch target, and no more: the pill is a small label beside the
   /// work, not a control the size of the room's arrows.
   static const double minSize = 48;
 
   final String label;
+
+  /// The word on the pill, an arrow after it.
+  final String text;
   final VoidCallback onTap;
 
   @override
@@ -167,10 +193,7 @@ class _OpenControl extends StatelessWidget {
             child: Center(
               widthFactor: 1,
               // A plain arrow: the diagonal one falls back to a colour emoji.
-              child: Text(
-                '${context.strings.galleryOpen} →',
-                style: context.typography.galleryOpen,
-              ),
+              child: Text('$text →', style: context.typography.galleryOpen),
             ),
           ),
         ),

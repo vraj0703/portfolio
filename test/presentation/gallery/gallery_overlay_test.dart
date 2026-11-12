@@ -14,6 +14,7 @@ void main() {
     bool canGoForward = true,
     bool mirrored = false,
     VoidCallback? onOpen,
+    VoidCallback? onAddYours,
   }) {
     taps.clear();
     return MaterialApp(
@@ -28,6 +29,7 @@ void main() {
           mirrored: mirrored,
           asFallback: true,
           onOpen: onOpen,
+          onAddYours: onAddYours,
         ),
       ),
     );
@@ -52,9 +54,7 @@ void main() {
     expect(taps, <String>['back', 'exit', 'forward']);
   });
 
-  testWidgets('an unavailable control is hidden, not disabled', (
-    tester,
-  ) async {
+  testWidgets('an unavailable control is hidden, not disabled', (tester) async {
     await tester.pumpWidget(
       host(focused: order.frames.first, canGoBack: false),
     );
@@ -141,10 +141,12 @@ void main() {
     testWidgets('is at least a touch target', (tester) async {
       await tester.pumpWidget(host(focused: linked, onOpen: () {}));
       final size = tester.getSize(
-        find.ancestor(
-          of: find.textContaining('open'),
-          matching: find.byType(Container),
-        ).first,
+        find
+            .ancestor(
+              of: find.textContaining('open'),
+              matching: find.byType(Container),
+            )
+            .first,
       );
       expect(size.height, greaterThanOrEqualTo(44));
       expect(size.width, greaterThanOrEqualTo(44));
@@ -152,6 +154,28 @@ void main() {
       // size dims the whole room behind it.
       expect(size.width, lessThan(300));
       expect(size.height, lessThan(80));
+    });
+  });
+
+  group('add yours', () {
+    testWidgets('shows at the wall, with nothing focused, and opens', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(onAddYours: () => taps.add('add')));
+      await tester.tap(find.textContaining('add yours'));
+      expect(taps, <String>['add']);
+    });
+
+    testWidgets('is not offered over a focused work', (tester) async {
+      await tester.pumpWidget(
+        host(focused: order.frames.first, onAddYours: () {}),
+      );
+      expect(find.textContaining('add yours'), findsNothing);
+    });
+
+    testWidgets('is not offered away from the wall', (tester) async {
+      await tester.pumpWidget(host());
+      expect(find.textContaining('add yours'), findsNothing);
     });
   });
 }

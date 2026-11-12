@@ -13,18 +13,15 @@ import 'package:portfolio/domain/gallery/testimonial_data.dart';
 void main() {
   group('GalleryProjects', () {
     test('holds the seven frames in wall order', () {
-      expect(
-        GalleryProjects.all.map((p) => p.id).toList(),
-        <String>[
-          'shunya-systems',
-          'twin-health',
-          'tantr',
-          'fieldassist-payu',
-          'publications',
-          'school-college',
-          'creative-works',
-        ],
-      );
+      expect(GalleryProjects.all.map((p) => p.id).toList(), <String>[
+        'shunya-systems',
+        'twin-health',
+        'tantr',
+        'fieldassist-payu',
+        'publications',
+        'school-college',
+        'creative-works',
+      ]);
     });
 
     test('splits walls on even/odd indices for the paired layout', () {
@@ -72,35 +69,42 @@ void main() {
     });
   });
 
-  group('GalleryTestimonials', () {
-    test('holds 7 entries, exactly one of which is the CTA', () {
-      expect(GalleryTestimonials.all, hasLength(7));
-      expect(GalleryTestimonials.all.where((t) => t.isCTA), hasLength(1));
-    });
-
-    test('the CTA sits last so it anchors the end of the wall pan', () {
-      expect(GalleryTestimonials.all.last.isCTA, isTrue);
-    });
-
-    test('cards excludes the CTA', () {
-      expect(GalleryTestimonials.cards, hasLength(6));
-      expect(GalleryTestimonials.cards.any((t) => t.isCTA), isFalse);
-    });
-
-    test('every real testimonial has attribution', () {
-      for (final t in GalleryTestimonials.cards) {
-        expect(t.name, isNotEmpty, reason: '${t.id} has no name');
-        expect(t.text, isNotEmpty, reason: '${t.id} has no text');
-        expect(t.company, isNotEmpty, reason: '${t.id} has no company');
+  group('TestimonialWall', () {
+    test('five frames: the invitation, then reserved ones', () {
+      expect(TestimonialWall.slots, 5);
+      expect(TestimonialWall.slotFor(0), TestimonialSlot.invitation);
+      for (var i = 1; i < TestimonialWall.slots; i++) {
+        expect(TestimonialWall.slotFor(i), TestimonialSlot.reserved);
       }
+    });
+
+    test("a visitor's own words take frame 2, and only frame 2", () {
+      const mine = PendingRecommendation(
+        name: 'A',
+        role: 'B',
+        relationship: 'C',
+        words: 'D',
+      );
+      expect(
+        TestimonialWall.slotFor(1, pending: mine),
+        TestimonialSlot.pending,
+      );
+      expect(
+        TestimonialWall.slotFor(2, pending: mine),
+        TestimonialSlot.reserved,
+      );
     });
   });
 
   group('GallerySkills', () {
     test('keeps the 4-row keyboard layout', () {
       expect(GallerySkills.rows, hasLength(4));
-      expect(GallerySkills.rows.map((r) => r.length).toList(),
-          <int>[8, 7, 6, 5]);
+      expect(GallerySkills.rows.map((r) => r.length).toList(), <int>[
+        8,
+        7,
+        6,
+        5,
+      ]);
     });
 
     test('flattens to 26 keycaps', () {

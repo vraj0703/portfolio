@@ -1,6 +1,8 @@
 import 'package:portfolio/data/audio/flame_app_audio.dart';
 import 'package:portfolio/data/config/durations.dart';
 import 'package:portfolio/data/contact/url_contact_links.dart';
+import 'package:portfolio/data/recommendations/local_recommendation_store.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/radio/streaming_radio.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -53,6 +55,9 @@ Future<void> initDependencies() async {
   // Everything the contact menu reaches for outside the scene. Stateless, and
   // behind an interface so the menu can be exercised without a platform
   // channel underneath it.
+  // A visitor's own pending recommendation, in their browser only.
+  di.registerLazySingleton<RecommendationStore>(LocalRecommendationStore.new);
+
   di.registerLazySingleton<ContactLinks>(
     () => UrlContactLinks(profile: ContactProfile.vishal),
   );
