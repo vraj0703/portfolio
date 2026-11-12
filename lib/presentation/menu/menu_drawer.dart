@@ -4,23 +4,19 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
-import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
-import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
 /// The panel the title screen's control opens.
 ///
 /// Slides in from the right over a scrim, and closes on the scrim, on its own
 /// control, or on Escape. The project list the previous site kept in here is
-/// deferred; what it holds now is the two things a visitor on the title
-/// screen has no other way to reach — the sound switch and the way to the
-/// contact screen.
+/// deferred, and the two things it used to hold — the sound switch and the
+/// way to the contact screen — sit beside the control that opens it now, so
+/// for the moment it holds only its own way out.
 class MenuDrawer extends StatelessWidget {
   const MenuDrawer({super.key});
 
@@ -183,13 +179,10 @@ class _Panel extends StatelessWidget {
                 _CloseRow(onClose: onClose),
 
                 // Where the projects and the writing will go. Empty on
-                // purpose, and it takes the space so the two controls below
-                // sit at the foot of the panel rather than floating under
-                // the way out.
+                // purpose: the sound switch and the way to the contact screen
+                // used to sit at the foot of it, and they moved up beside the
+                // control that opens it (`TitleActions`).
                 const Expanded(child: SizedBox.shrink()),
-
-                const _SoundSwitch(),
-                _ConnectRow(onClose: onClose),
               ],
             ),
           ),
@@ -227,163 +220,6 @@ class _CloseRow extends StatelessWidget {
             style: context.typography.menuAction.copyWith(
               color: context.colors.menuTextSoft,
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Turns every sound in the site off, and on again.
-///
-/// Both of them. The scene's cues and the wall radio are separate players,
-/// and a switch that silenced one while the other played on would not be a
-/// mute — it would be a volume control the visitor could not find.
-class _SoundSwitch extends StatefulWidget {
-  const _SoundSwitch();
-
-  @override
-  State<_SoundSwitch> createState() => _SoundSwitchState();
-}
-
-class _SoundSwitchState extends State<_SoundSwitch> {
-  static const String speaker = 'assets/vectors/speaker.svg';
-  static const String mute = 'assets/vectors/mute.svg';
-
-  void _toggle() {
-    final audio = context.audio;
-    final silencing = !audio.isMuted;
-
-    // The confirmation plays before the silence, and not at all on the way
-    // into it — a click swallowed by the thing it is confirming leaves the
-    // press feeling unregistered.
-    if (!silencing) audio.play(AudioCue.click);
-
-    audio.setMuted(silencing);
-    unawaited(
-      locate<RadioPlayer>().setVolume(
-        silencing ? 0 : RadioState.defaultVolume,
-      ),
-    );
-
-    setState(() {});
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final strings = context.strings;
-    final muted = context.audio.isMuted;
-
-    // Both the mark and the word say what pressing will do, never what the
-    // switch currently is: silent, this offers to turn the sound on and
-    // shows a speaker; sounding, it offers to turn it off and shows the
-    // mute. A row in a list is something to choose, and one labelled with
-    // its own state reads as a description until somebody presses it.
-    return _MenuRow(
-      icon: muted ? speaker : mute,
-      label: muted ? strings.menuSoundOn : strings.menuSoundOff,
-      tint: muted ? colors.menuTextSoft : colors.menuMark,
-      onTap: _toggle,
-    );
-  }
-}
-
-class _ConnectRow extends StatelessWidget {
-  const _ConnectRow({required this.onClose});
-
-  final Future<void> Function() onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final bloc = context.read<SceneBloc>();
-    final audio = context.audio;
-
-    return _MenuRow(
-      icon: 'assets/vectors/heart.svg',
-      label: context.strings.menuConnect,
-      tint: context.colors.menuMark,
-      leading: true,
-      onTap: () async {
-        // Closed first, then the scene moves. The contact screen is the logo
-        // composition and the mark travels into the middle of it; a panel
-        // still sliding off the right while that happens is two animations
-        // arguing over one screen.
-        audio.play(AudioCue.pageTurn);
-        await onClose();
-        bloc.queue(event: const SceneEvent.contactRequested());
-      },
-    );
-  }
-}
-
-/// One pressable row: a mark, a word, and the panel's whole width to hit.
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({
-    required this.icon,
-    required this.label,
-    required this.tint,
-    required this.onTap,
-    this.leading = false,
-  });
-
-  final String icon;
-  final String label;
-  final Color tint;
-
-  /// Whether this row opens the group, and so carries the heavier rule above.
-  final bool leading;
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-
-    return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: Container(
-          height: 64,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(
-                color: colors.menuEdge.withValues(
-                  alpha: leading ? 0.15 : 0.08,
-                ),
-              ),
-            ),
-          ),
-          child: Row(
-            children: <Widget>[
-              SvgPicture.asset(
-                icon,
-                height: 20,
-                colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
-              ),
-              const SizedBox(width: 16),
-
-              // Given the rest of the row rather than its natural width. At
-              // 20pt in a 320 panel a label has little room to spare, and a
-              // `Row` hands an unbounded child exactly what it asks for and
-              // then overflows — so the one thing that can yield has to be
-              // told that it may.
-              Expanded(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: context.typography.menuEntry.copyWith(
-                    color: colors.menuText,
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ),

@@ -37,7 +37,8 @@ abstract class AppStrings {
   String get contactGithub;
   String get contactLinkedIn;
 
-  /// The drawer opened from the title screen.
+  /// The title screen's controls, and the drawer one of them opens.
+  String get menuOpen;
   String get menuClose;
   String get menuSoundOn;
   String get menuSoundOff;
@@ -123,6 +124,11 @@ class DefaultAppStrings implements AppStrings {
   /// Its own string rather than the credits dialog's, though both are the
   /// same word: they are two panels that happen to agree, not one phrase
   /// used twice, and either could be reworded without the other following.
+  /// Never drawn: the hamburger is a glyph. This is what it is called to
+  /// anyone who cannot see it.
+  @override
+  String get menuOpen => 'Open menu';
+
   @override
   String get menuClose => 'close';
 
