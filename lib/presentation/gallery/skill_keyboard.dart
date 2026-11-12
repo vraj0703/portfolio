@@ -218,22 +218,17 @@ class SkillKeyboard {
       final texture = await Texture2D.fromImage(image);
       textures.add(texture);
 
-      // On the face toward the visitor, not the top: from where they stand
-      // at the board the tops are seen nearly edge-on, and a legend there is
-      // a smudge. Set high on the face so the rows behind still show theirs
-      // above the row in front.
-      final half = KeyboardLayout.capSize * scale / 2 + legendRise;
+      // On the cap's top, now that the board tips toward the visitor and
+      // the tops are what they see.
+      final top = KeyboardLayout.keyHeight / 2 * scale + legendRise;
       cap.node.add(
         Node(
           mesh: Mesh(
             PlaneGeometry(width: face, depth: face),
             UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend,
           ),
-          // The cap's -z face, turned round to face out: in the board's
-          // own axes that is the side toward the visitor.
-          localTransform: Matrix4.translation(Vector3(0, legendLift, -half))
-            ..rotateY(math.pi)
-            ..rotateX(math.pi / 2),
+          localTransform: Matrix4.translation(Vector3(0, top, 0))
+            ..rotateY(legendTurn),
         ),
       );
     }
@@ -246,8 +241,9 @@ class SkillKeyboard {
   /// depth and flicker between each other.
   static const double legendRise = 0.004;
 
-  /// How high on the face a legend sits.
-  static const double legendLift = 0.03;
+  /// Which way a legend is turned on its cap's top, so it reads from where
+  /// the visitor stands at the board.
+  static const double legendTurn = math.pi;
 
   void select(Skill? skill) {
     _selected = skill;
@@ -347,9 +343,16 @@ class SkillKeyboard {
             )
             ..rotateY(SceneAxes.rotationY(restRotation + _heading))
             // Tips toward the visitor, so they see the tops of the caps
-            // rather than looking along them edge-on. Unaffected by the axis
-            // mirror: reflecting x leaves a turn about x alone.
-            ..rotateX(_tilt));
+            // rather than looking along them edge-on.
+            //
+            // Negated in engine space. This turn about x comes *after* the
+            // turn about y, so it is about the board's own x axis, and the
+            // axis mirror reverses that y turn and with it which way the
+            // board's x points. Unnegated, the tilt tipped the board away
+            // from the visitor by as much as the camera looked down on it,
+            // and the board was seen nearly edge-on: five of twenty-six keys
+            // showed. Picking works in design space, where it is unmirrored.
+            ..rotateX(-_tilt));
   }
 }
 

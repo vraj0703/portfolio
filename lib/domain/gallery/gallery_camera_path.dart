@@ -135,9 +135,35 @@ abstract final class GalleryCameraPath {
   /// the board is an object in a place rather than a picture of one. Turning
   /// the board instead moves nothing but the board, and the room behind it
   /// sits dead still.
-  static CameraPose orbitPose(double azimuth, double elevation) {
+  /// Breathing room either side of the board when it is fitted to a
+  /// narrow screen.
+  static const double boardFitMargin = 1.08;
+
+  /// How far from the board the orbit stands on a screen of [aspect].
+  ///
+  /// [hallOrbitRadius] on a landscape screen, where the board already sits
+  /// well inside the width. A phone held upright is a third as wide for the
+  /// same height, and at that radius the board ran off both sides: the end
+  /// keys of every row were cut. So a narrow screen stands back far enough
+  /// to fit the board's whole width, and never closer than the rest pose.
+  static double orbitRadiusFor(
+    double aspect, {
+    double fovY = GalleryDimensions.fovRadians,
+  }) {
+    final halfH = math.tan(fovY / 2) * aspect;
+    if (halfH <= 0) return hallOrbitRadius;
+    final width = KeyboardLayout.boardWidth * KeyboardLayout.scale;
+    final fit = width * boardFitMargin / 2 / halfH;
+    return math.max(hallOrbitRadius, fit);
+  }
+
+  static CameraPose orbitPose(
+    double azimuth,
+    double elevation, {
+    double? radius,
+  }) {
     final board = KeyboardLayout.anchor;
-    final r = hallOrbitRadius;
+    final r = radius ?? hallOrbitRadius;
     final flat = r * math.cos(elevation);
 
     return CameraPose(

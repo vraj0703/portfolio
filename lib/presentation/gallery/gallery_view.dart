@@ -573,13 +573,10 @@ class _GalleryViewState extends State<GalleryView> {
     final from = _skill ?? _hoverSkill;
     final key = event.logicalKey;
     final Skill? next;
-    // The board is presented turned round: from where the visitor stands a
-    // row's first key is on the right. Left and right are the screen's, so
-    // they walk the row backwards.
     if (key == LogicalKeyboardKey.arrowLeft) {
-      next = KeyboardNav.move(from, dx: 1);
-    } else if (key == LogicalKeyboardKey.arrowRight) {
       next = KeyboardNav.move(from, dx: -1);
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      next = KeyboardNav.move(from, dx: 1);
     } else if (key == LogicalKeyboardKey.arrowUp) {
       next = KeyboardNav.move(from, dy: -1);
     } else if (key == LogicalKeyboardKey.arrowDown) {
@@ -985,6 +982,10 @@ class _GalleryViewState extends State<GalleryView> {
       final pose = GalleryCameraPath.orbitPose(
         _orbit.azimuth,
         _orbit.elevation,
+        // Stood back on a narrow screen so the whole board fits across it.
+        radius: GalleryCameraPath.orbitRadiusFor(
+          _viewSize.isEmpty ? 16 / 9 : _viewSize.width / _viewSize.height,
+        ),
       );
       return FocusPose(position: pose.position, target: pose.target);
     }

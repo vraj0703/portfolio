@@ -22,7 +22,9 @@ void main() {
 
       expect(
         centre,
-        closeTo(KeyboardLayout.rowStagger[row], 1e-6),
+        // Mirrored with the columns, so a row's stagger lands on the same
+        // side of the board the visitor sees it on.
+        closeTo(-KeyboardLayout.rowStagger[row], 1e-6),
         reason: 'row $row is off centre',
       );
     }
@@ -30,10 +32,30 @@ void main() {
 
   test('caps are evenly pitched along a row', () {
     for (var row = 0; row < KeyboardLayout.rows; row++) {
-      final xs = keys.where((k) => k.row == row).map((k) => k.position.x)
+      final xs = keys
+          .where((k) => k.row == row)
+          .map((k) => k.position.x)
           .toList();
       for (var i = 1; i < xs.length; i++) {
-        expect(xs[i] - xs[i - 1], closeTo(KeyboardLayout.keyStep, 1e-6));
+        expect(
+          (xs[i] - xs[i - 1]).abs(),
+          closeTo(KeyboardLayout.keyStep, 1e-6),
+        );
+      }
+    }
+  });
+
+  test('a row reads in the data order, one way along x', () {
+    // Every row runs the same way, so the first key of each is at the same
+    // end of the board: the visitor reads Dart, Flutter, Docker, Claude down
+    // one side rather than zig-zagging.
+    for (var row = 0; row < KeyboardLayout.rows; row++) {
+      final xs = keys
+          .where((k) => k.row == row)
+          .map((k) => k.position.x)
+          .toList();
+      for (var i = 1; i < xs.length; i++) {
+        expect(xs[i], lessThan(xs[i - 1]), reason: 'row $row, key $i');
       }
     }
   });
@@ -67,19 +89,18 @@ void main() {
   test('the case is cut closer at the sides than at the ends', () {
     // The rows taper 8/7/6/5, so a margin generous enough to look right at
     // the ends leaves the sides reading as empty deck.
-    expect(
-      KeyboardLayout.boardSidePad,
-      lessThan(KeyboardLayout.boardPad),
-    );
+    expect(KeyboardLayout.boardSidePad, lessThan(KeyboardLayout.boardPad));
   });
 
   test('caps leave a gap between them', () {
     // Cap smaller than pitch by exactly the gap, which is what makes the
     // gaps even rather than an artefact of two independent numbers.
-    expect(KeyboardLayout.capSize, KeyboardLayout.keyUnit - KeyboardLayout.keyGap);
+    expect(
+      KeyboardLayout.capSize,
+      KeyboardLayout.keyUnit - KeyboardLayout.keyGap,
+    );
     expect(KeyboardLayout.capSize, lessThan(KeyboardLayout.keyStep));
   });
-
 
   test('it floats clear of the floor, inside its hall', () {
     final anchor = KeyboardLayout.anchor;
