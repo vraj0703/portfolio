@@ -182,7 +182,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     Emitter<SceneState> emit,
   ) {
     // Two ways in now: the sign cut into the skills hall wall, and the
-    // drawer on the title screen. Both are screens a visitor can be standing
+    // heart among the title screen's controls. Both are screens a visitor can be standing
     // on with somewhere to go; the ones left out are the ones that cannot
     // ask — loading, the logo screen, the exits already in flight, and the
     // contact screen itself.
