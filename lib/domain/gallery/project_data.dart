@@ -162,14 +162,18 @@ abstract final class GalleryProjects {
     Project(
       id: 'publications',
       title: 'Publications',
-      // TODO(vishal): what is published, where, and a link.
-      description: '',
-      url: '#',
+      description: 'Open-Source Packages and an App on Google Play',
+      url: 'https://www.npmjs.com/~vraj0703',
       gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
-      stats: <String>[],
+      stats: <String>['6 npm Packages', '5 PyPI Projects', '1 Play Store App'],
       visual: ProjectVisual.timeline,
-      status: ProjectStatus.soon,
-      // TODO(vishal): two or three sentences on the writing.
+      summary:
+          'The parts of the agent systems, published for anyone to install: '
+          'six npm packages under @raj-sadan (mind, memory, knowledge, '
+          'senses, a dashboard and a utility library) and five Python '
+          'projects on PyPI, among them ai-constitution. Jotter, a notes '
+          'app, is on Google Play.',
+      stack: <String>['Node', 'Python', 'Flutter'],
     ),
     // 5 · right 3
     Project(
@@ -202,18 +206,9 @@ abstract final class GalleryProjects {
   /// Left wall, what he builds now: indices 0, 2, 4, 6. Takes the extra
   /// frame — the last hangs alone past the point where the right wall stops
   /// and opens into the L.
-  static final List<Project> left = <Project>[
-    all[0],
-    all[2],
-    all[4],
-    all[6],
-  ];
+  static final List<Project> left = <Project>[all[0], all[2], all[4], all[6]];
 
   /// Right wall, where he built before: indices 1, 3, 5. Each faces its
   /// left-wall pair.
-  static final List<Project> right = <Project>[
-    all[1],
-    all[3],
-    all[5],
-  ];
+  static final List<Project> right = <Project>[all[1], all[3], all[5]];
 }
