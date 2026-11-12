@@ -51,13 +51,59 @@ void main() {
   }
 
   group('which frames carry a card', () {
-    test('slice one paints the tantr frame and no other', () {
-      expect(FrameCard.paints(tantr), isTrue);
-      for (final p in GalleryProjects.all.where((p) => p.id != 'tantr')) {
-        expect(FrameCard.paints(p), isFalse, reason: p.id);
+    test('every frame with a project, and nothing without one', () {
+      for (final p in GalleryProjects.all) {
+        expect(FrameCard.paints(p), isTrue, reason: p.id);
       }
       expect(FrameCard.paints(null), isFalse);
     });
+  });
+
+  test(
+    'a frame that is not ready shows its title and nothing it cannot back',
+    () async {
+      // Publications is `soon`: its stats are still TODO placeholders, and a
+      // card that printed them would put Vishal's to-do list on the wall.
+      final soon = GalleryProjects.all.firstWhere((p) => !p.isLive);
+      final bytes = await bake(soon);
+      final top = (height * FrameCard.margin).round();
+      expect(
+        inked(bytes, top, top + 100),
+        greaterThan(2000),
+        reason: 'no title',
+      );
+
+      // Below the title and its one line, the card is ground only.
+      final lower = inked(bytes, height ~/ 2, height - 10);
+      expect(lower, 0, reason: 'a soon card drew more than its title');
+    },
+  );
+
+  test('the warm tone moves the ground toward the room', () async {
+    final own = await FrameCard.render(
+      project: tantr,
+      width: 64,
+      height: 46,
+      tone: ProjectTone.own,
+    );
+    final warm = await FrameCard.render(
+      project: tantr,
+      width: 64,
+      height: 46,
+      tone: ProjectTone.warm,
+    );
+    final a = (await own.toByteData())!;
+    final b = (await warm.toByteData())!;
+    own.dispose();
+    warm.dispose();
+    // At the top-left corner the toned ground is nearer the room's walnut
+    // than the project's own colour is.
+    final walnut = colors.frameCardWarmTop;
+    double far(ByteData d) =>
+        (d.getUint8(0) - walnut.r * 255).abs() +
+        (d.getUint8(1) - walnut.g * 255).abs() +
+        (d.getUint8(2) - walnut.b * 255).abs();
+    expect(far(b), lessThan(far(a) / 2));
   });
 
   group('the tantr card', () {

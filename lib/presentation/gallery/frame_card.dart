@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/painting.dart';
 import 'package:portfolio/domain/gallery/project_data.dart';
 import 'package:portfolio/domain/style/colors.dart';
+import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 
 /// A project's card, rasterised once and bound to the card inside its frame.
@@ -22,15 +23,21 @@ import 'package:portfolio/domain/style/text_styles.dart';
 /// ink for every word on every card — the ground changes card to card, so
 /// the type is what holds them together as a set.
 abstract final class FrameCard {
-  /// Which frames carry a card so far, by project id.
-  ///
-  /// Slice one of PORTFOLIO-6 draws one frame end to end so the design can be
-  /// judged before the other six are filled; every other frame keeps its
-  /// blank card until it joins this set.
-  static const Set<String> painted = <String>{'tantr'};
+  /// Whether a frame carries a card: every frame with a project behind it.
+  static bool paints(Project? project) => project != null;
 
-  static bool paints(Project? project) =>
-      project != null && painted.contains(project.id);
+  /// How a card's ground is coloured.
+  ///
+  /// [ProjectTone.own] paints each project's own gradient. [ProjectTone.warm]
+  /// tones it toward the room's walnut, so the seven sit in the marble rather
+  /// than in their own colours. Chosen at build time (`FRAME_TONE=warm`) so
+  /// both can be judged in a real build; the default is the project's own.
+  static const ProjectTone tone = String.fromEnvironment('FRAME_TONE') == 'warm'
+      ? ProjectTone.warm
+      : ProjectTone.own;
+
+  /// How far [ProjectTone.warm] moves each stop toward the room's pair.
+  static const double warmth = 0.75;
 
   /// Margin from every edge, as a fraction of the card's width.
   static const double margin = 0.065;
@@ -59,6 +66,8 @@ abstract final class FrameCard {
     required int height,
     AppColors colors = const DefaultAppColors(),
     AppTypography type = const DefaultAppTypography(),
+    AppStrings strings = const DefaultAppStrings(),
+    ProjectTone tone = FrameCard.tone,
   }) {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -68,6 +77,8 @@ abstract final class FrameCard {
       project: project,
       colors: colors,
       type: type,
+      strings: strings,
+      tone: tone,
     );
     return recorder.endRecording().toImage(width, height);
   }
@@ -80,8 +91,16 @@ abstract final class FrameCard {
     required Project project,
     required AppColors colors,
     required AppTypography type,
+    required AppStrings strings,
+    ProjectTone tone = ProjectTone.own,
   }) {
-    final (top, bottom) = project.gradient;
+    final (own, ownBottom) = project.gradient;
+    final top = tone == ProjectTone.warm
+        ? Color.lerp(own, colors.frameCardWarmTop, warmth)!
+        : own;
+    final bottom = tone == ProjectTone.warm
+        ? Color.lerp(ownBottom, colors.frameCardWarmBottom, warmth)!
+        : ownBottom;
     canvas.drawRect(
       Offset.zero & size,
       Paint()
@@ -106,6 +125,20 @@ abstract final class FrameCard {
       measure,
       maxLines: 1,
     );
+
+    // Work that is not ready shows its name and says so, and nothing it
+    // cannot back yet: no stats, no summary, no stack.
+    if (!project.isLive) {
+      _text(
+        canvas,
+        strings.frameComingSoon,
+        type.frameDescription.copyWith(color: colors.frameCardInkSoft),
+        Offset(left, y),
+        measure,
+        maxLines: 1,
+      );
+      return;
+    }
 
     // The one-line description.
     y += _text(
@@ -232,3 +265,6 @@ abstract final class FrameCard {
     return height;
   }
 }
+
+/// How a card's ground is coloured; see [FrameCard.tone].
+enum ProjectTone { own, warm }

@@ -13,6 +13,7 @@ void main() {
     bool canGoBack = true,
     bool canGoForward = true,
     bool mirrored = false,
+    VoidCallback? onOpen,
   }) {
     taps.clear();
     return MaterialApp(
@@ -26,6 +27,7 @@ void main() {
           onForward: () => taps.add('forward'),
           mirrored: mirrored,
           asFallback: true,
+          onOpen: onOpen,
         ),
       ),
     );
@@ -100,6 +102,52 @@ void main() {
 
       expect(find.text('‹'), findsOneWidget);
       expect(find.text('›'), findsNothing);
+    });
+  });
+
+  group('open', () {
+    final linked = order.frames.firstWhere((f) => f.project?.hasLink ?? false);
+
+    testWidgets('shows on a focused work that has a link, and opens it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(focused: linked, onOpen: () => taps.add('open')),
+      );
+
+      final open = find.bySemanticsLabel('Open ${linked.project!.title}');
+      expect(open, findsOneWidget);
+      await tester.tap(find.textContaining('open'));
+      expect(taps, <String>['open']);
+    });
+
+    testWidgets('is absent when the work has nowhere to go', (tester) async {
+      // The view passes null for a work with no link; nothing is drawn, so
+      // there is no dead control to press.
+      final unlinked = order.frames.firstWhere(
+        (f) => !(f.project?.hasLink ?? true),
+      );
+      await tester.pumpWidget(host(focused: unlinked));
+      expect(find.textContaining('open'), findsNothing);
+    });
+
+    testWidgets('is absent while walking, with nothing focused', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(onOpen: () => taps.add('open')));
+      expect(find.textContaining('open'), findsNothing);
+    });
+
+    testWidgets('is at least a touch target', (tester) async {
+      await tester.pumpWidget(host(focused: linked, onOpen: () {}));
+      final size = tester.getSize(
+        find.ancestor(
+          of: find.textContaining('open'),
+          matching: find.byType(Container),
+        ).first,
+      );
+      expect(size.height, greaterThanOrEqualTo(44));
+      expect(size.width, greaterThanOrEqualTo(44));
     });
   });
 }

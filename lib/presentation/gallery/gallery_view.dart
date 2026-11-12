@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
@@ -344,6 +345,19 @@ class _GalleryViewState extends State<GalleryView> {
   void _leave(SceneEvent event) {
     if (_leavingFor != null) return;
     setState(() => _leavingFor = event);
+  }
+
+  /// Opens [frame]'s own link, or null when it has none to open.
+  ///
+  /// The same sound as the two signs on the walls: it puts the room away and
+  /// opens something else, which is more than a click can say.
+  VoidCallback? _openFor(Placement? frame) {
+    final project = frame?.project;
+    if (project == null || !project.hasLink) return null;
+    return () {
+      _sound(AudioCue.pageTurn);
+      unawaited(locate<ContactLinks>().open(Uri.parse(project.url)));
+    };
   }
 
   /// Acts on one of the three controls, whichever way it was pressed.
@@ -719,6 +733,7 @@ class _GalleryViewState extends State<GalleryView> {
               onForward: () => _control(ControlAction.next),
               mirrored: !(_focused?.position.x.isNegative ?? true),
               asFallback: _gallery?.controls == null,
+              onOpen: _openFor(_focused),
             ),
 
             // Over the room *and* over its controls. A ✕ still lit on a

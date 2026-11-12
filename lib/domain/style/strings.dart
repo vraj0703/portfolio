@@ -26,6 +26,14 @@ abstract class AppStrings {
 
   /// The two signs painted on the gallery's marble.
   String get galleryBack;
+
+  /// On a frame whose work is not ready yet, under its title.
+  String get frameComingSoon;
+
+  /// The control that opens the focused work's link, and what it is called
+  /// to someone who cannot see it.
+  String get galleryOpen;
+  String galleryOpenLabel(String title);
   String get letsConnect;
 
   /// How to handle the skills board, painted on the wall behind it.
@@ -98,6 +106,15 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get galleryBack => 'BACK';
+
+  @override
+  String get frameComingSoon => 'coming soon';
+
+  @override
+  String get galleryOpen => 'open';
+
+  @override
+  String galleryOpenLabel(String title) => 'Open $title';
 
   @override
   String get letsConnect => "LET'S CONNECT";

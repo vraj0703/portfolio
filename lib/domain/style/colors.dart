@@ -111,6 +111,12 @@ abstract class AppColors {
   Color get frameCardInkSoft;
   Color get frameCardTagFill;
   Color get frameCardTagEdge;
+
+  /// The room's own warm pair, which a card's gradient can be toned toward
+  /// (`FRAME_TONE=warm`) so the seven cards sit in the marble and walnut
+  /// rather than in their own colours. An alternative for Vishal to judge.
+  Color get frameCardWarmTop;
+  Color get frameCardWarmBottom;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -275,6 +281,13 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get frameCardTagEdge => _menuInk.withValues(alpha: 0.38);
+
+  /// The walnut of the mouldings at its light and its dark.
+  @override
+  Color get frameCardWarmTop => const Color(0xFF8A5A32);
+
+  @override
+  Color get frameCardWarmBottom => const Color(0xFF2E1D12);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

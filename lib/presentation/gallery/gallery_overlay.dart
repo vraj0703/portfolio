@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
+import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 
 /// The gallery's controls, drawn over the room.
@@ -25,6 +26,7 @@ class GalleryOverlay extends StatelessWidget {
     required this.onForward,
     required this.mirrored,
     required this.asFallback,
+    this.onOpen,
     super.key,
   });
 
@@ -36,6 +38,7 @@ class GalleryOverlay extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onExit;
   final VoidCallback onForward;
+
   /// Whether the piece in view hangs on the right-hand wall.
   ///
   /// The camera reads that wall from the opposite side, so the corridor runs
@@ -52,6 +55,12 @@ class GalleryOverlay extends StatelessWidget {
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
 
+  /// Opens the focused work's link; null when it has none.
+  ///
+  /// Not one of the room's controls. Those move the visitor through the
+  /// corridor and live on the wall; this leaves it, for the work's own page,
+  /// and is drawn over the room whether or not the wall's controls loaded.
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +111,65 @@ class GalleryOverlay extends StatelessWidget {
             ),
           ),
 
+        if (isFocused && onOpen != null)
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 24, bottom: 44),
+              child: _OpenControl(
+                label: context.strings.galleryOpenLabel(
+                  focused?.project?.title ?? '',
+                ),
+                onTap: onOpen!,
+              ),
+            ),
+          ),
       ],
+    );
+  }
+}
+
+/// The way out to a work's own page: a word in a pill, not a glyph, because
+/// it goes somewhere the corridor's arrows do not.
+class _OpenControl extends StatelessWidget {
+  const _OpenControl({required this.label, required this.onTap});
+
+  /// Never smaller than a touch target.
+  static const double minSize = 52;
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(
+              minWidth: minSize,
+              minHeight: minSize,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 22),
+            decoration: BoxDecoration(
+              color: context.colors.galleryControlPlate,
+              borderRadius: BorderRadius.circular(minSize / 2),
+              border: Border.all(color: context.colors.galleryControlEdge),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '${context.strings.galleryOpen} ↗',
+              style: context.typography.galleryControl,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
