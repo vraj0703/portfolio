@@ -101,6 +101,16 @@ abstract class AppColors {
   /// Under the scroll arrow, so it survives the lighter passages of the
   /// backdrop it travels over.
   Color get scrollCueShadow;
+
+  /// A project's card in the corridor, baked onto its frame: the ink every
+  /// word on it is set in, the quieter ink of the lines under the title, and
+  /// the fill and edge of the small tags. One ink on every card, because
+  /// the ground under it is the project's own gradient and changes card to
+  /// card.
+  Color get frameCardInk;
+  Color get frameCardInkSoft;
+  Color get frameCardTagFill;
+  Color get frameCardTagEdge;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -251,6 +261,20 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get scrollCueShadow => const Color(0xFF000000);
+
+  /// The menu's warm ink, which holds on every gradient the cards are
+  /// painted on: they are all mid-to-dark at their lower stop.
+  @override
+  Color get frameCardInk => _menuInk;
+
+  @override
+  Color get frameCardInkSoft => _menuInk.withValues(alpha: 0.78);
+
+  @override
+  Color get frameCardTagFill => _menuInk.withValues(alpha: 0.12);
+
+  @override
+  Color get frameCardTagEdge => _menuInk.withValues(alpha: 0.38);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

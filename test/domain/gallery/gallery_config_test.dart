@@ -12,17 +12,17 @@ import 'package:portfolio/domain/gallery/testimonial_data.dart';
 /// source so drift fails loudly instead of rendering a subtly wrong gallery.
 void main() {
   group('GalleryProjects', () {
-    test('preserves the 7 projects in source order', () {
+    test('holds the seven frames in wall order', () {
       expect(
         GalleryProjects.all.map((p) => p.id).toList(),
         <String>[
-          'raj-sadan',
-          'ai-mind',
-          'ai-constitution',
-          'ai-knowledge',
-          'subwise',
-          'jotter',
+          'shunya-systems',
           'twin-health',
+          'tantr',
+          'fieldassist-payu',
+          'publications',
+          'school-college',
+          'creative-works',
         ],
       );
     });
@@ -30,10 +30,18 @@ void main() {
     test('splits walls on even/odd indices for the paired layout', () {
       // Left wall takes indices 0, 2, 4, 6; right wall takes 1, 3, 5. The
       // asymmetry is intentional — P7 sits alone on the left.
-      expect(GalleryProjects.left.map((p) => p.id).toList(),
-          <String>['raj-sadan', 'ai-constitution', 'subwise', 'twin-health']);
-      expect(GalleryProjects.right.map((p) => p.id).toList(),
-          <String>['ai-mind', 'ai-knowledge', 'jotter']);
+      // Left is what Vishal builds now, right is where he built before.
+      expect(GalleryProjects.left.map((p) => p.id).toList(), <String>[
+        'shunya-systems',
+        'tantr',
+        'publications',
+        'creative-works',
+      ]);
+      expect(GalleryProjects.right.map((p) => p.id).toList(), <String>[
+        'twin-health',
+        'fieldassist-payu',
+        'school-college',
+      ]);
     });
 
     test('every project carries the stats the frame canvas draws', () {
