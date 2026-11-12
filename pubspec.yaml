@@ -125,37 +125,37 @@ flutter:
     # Every set now uses the OpenGL normal variant, never the DirectX one:
     # `NormalDX` has green inverted, which lights every bump from the wrong
     # side and reads as the surface being subtly inside-out.
-    - assets/textures/floor/Tiles013_1K-JPG_Color.jpg
-    - assets/textures/floor/Tiles013_1K-JPG_Roughness.jpg
-    - assets/textures/floor/Tiles013_1K-JPG_NormalGL.jpg
-    - assets/textures/roof/OfficeCeiling001_1K-JPG_Color.jpg
-    - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg
-    - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg
-    - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg
-    - assets/textures/keys/set_1/Metal023_1K-JPG_Color.jpg
-    - assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.jpg
-    - assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.jpg
-    - assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.jpg
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_Color.jpg
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.jpg
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.jpg
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.jpg
-    - assets/textures/keys/set_3/Metal022_1K-JPG_Color.jpg
-    - assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.jpg
-    - assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.jpg
-    - assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.jpg
-    - assets/textures/keyboard_base/Metal048B_1K-JPG_Color.jpg
-    - assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.jpg
-    - assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.jpg
-    - assets/textures/frame_testimonials/Wood020_1K-JPG_Color.jpg
-    - assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.jpg
-    - assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.jpg
-    - assets/textures/frame/Wood066_1K-JPG_Color.jpg
-    - assets/textures/frame/Wood066_1K-JPG_Roughness.jpg
-    - assets/textures/frame/Wood066_1K-JPG_NormalGL.jpg
-    - assets/textures/wall/Marble004_1K-JPG_Color.jpg
-    - assets/textures/wall/Marble004_1K-JPG_Roughness.jpg
-    - assets/textures/wall/Marble004_1K-JPG_NormalGL.jpg
+    - assets/textures/floor/Tiles013_1K-JPG_Color.webp
+    - assets/textures/floor/Tiles013_1K-JPG_Roughness.webp
+    - assets/textures/floor/Tiles013_1K-JPG_NormalGL.webp
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_Color.webp
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.webp
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.webp
+    - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.webp
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Color.webp
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.webp
+    - assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.webp
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Color.webp
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.webp
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.webp
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Color.webp
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.webp
+    - assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.webp
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_Color.webp
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.webp
+    - assets/textures/frame_testimonials/Wood020_1K-JPG_Color.webp
+    - assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.webp
+    - assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.webp
+    - assets/textures/frame/Wood066_1K-JPG_Color.webp
+    - assets/textures/frame/Wood066_1K-JPG_Roughness.webp
+    - assets/textures/frame/Wood066_1K-JPG_NormalGL.webp
+    - assets/textures/wall/Marble004_1K-JPG_Color.webp
+    - assets/textures/wall/Marble004_1K-JPG_Roughness.webp
+    - assets/textures/wall/Marble004_1K-JPG_NormalGL.webp
     # A multi-file glTF is a *set*: the .gltf names scene.bin as its geometry
     # buffer, and the model cannot load without it. Listed by directory so a
     # companion arriving later is picked up without another pubspec edit.

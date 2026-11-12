@@ -94,9 +94,9 @@ abstract final class GallerySurfaces {
   /// wash of the constant environment, so it reads as glare rather than as
   /// polish. Semi-matte is the range where a floor still looks like stone.
   static const TextureSet floor = TextureSet(
-    colour: 'assets/textures/floor/Tiles013_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/floor/Tiles013_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/floor/Tiles013_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/floor/Tiles013_1K-JPG_Color.webp',
+    roughness: 'assets/textures/floor/Tiles013_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/floor/Tiles013_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 4,
     metallic: 0,
   );
@@ -109,9 +109,9 @@ abstract final class GallerySurfaces {
   /// recognises. Tiled as tightly as brick, the same vein reappears every two
   /// units and the wall reads as wallpaper.
   static const TextureSet wall = TextureSet(
-    colour: 'assets/textures/wall/Marble004_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/wall/Marble004_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/wall/Marble004_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/wall/Marble004_1K-JPG_Color.webp',
+    roughness: 'assets/textures/wall/Marble004_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/wall/Marble004_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 4,
     // Stone is dielectric. The polish comes from the roughness map, not from
     // metallic, which would tint the highlight with the marble's own colour.
@@ -125,9 +125,9 @@ abstract final class GallerySurfaces {
   /// board over the whole frame and read as a photograph of wood rather than
   /// as wood.
   static const TextureSet frame = TextureSet(
-    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/frame/Wood066_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.webp',
+    roughness: 'assets/textures/frame/Wood066_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 0.6,
     metallic: 0,
   );
@@ -139,10 +139,10 @@ abstract final class GallerySurfaces {
   /// its own timber says so before any label does. Same short repeat, for the
   /// same reason: a moulding is centimetres across.
   static const TextureSet testimonialFrame = TextureSet(
-    colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.jpg',
+    colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.webp',
     roughness:
-        'assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.jpg',
+        'assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 0.6,
     metallic: 0,
   );
@@ -158,9 +158,9 @@ abstract final class GallerySurfaces {
   /// this the most polished thing in the gallery, which is right for the one
   /// manufactured object in a room full of plaster and timber.
   static const TextureSet keyboardBase = TextureSet(
-    colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.webp',
+    roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 2.5,
     metallic: 1,
   );
@@ -177,28 +177,28 @@ abstract final class GallerySurfaces {
   /// one value.
   static const List<TextureSet> keyRows = <TextureSet>[
     TextureSet(
-      colour: 'assets/textures/keys/set_1/Metal023_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_1/Metal023_1K-JPG_Color.webp',
+      roughness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.webp',
+      normal: 'assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.webp',
+      metalness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.webp',
       // One repeat across a cap: the cap is the size of the detail, so
       // anything longer shows a single flat patch of it.
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
     TextureSet(
-      colour: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Color.webp',
+      roughness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.webp',
+      normal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.webp',
+      metalness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.webp',
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
     TextureSet(
-      colour: 'assets/textures/keys/set_3/Metal022_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_3/Metal022_1K-JPG_Color.webp',
+      roughness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.webp',
+      normal: 'assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.webp',
+      metalness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.webp',
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
@@ -213,11 +213,11 @@ abstract final class GallerySurfaces {
   /// nothing, and a metalness map of solid black is what [metallic] already
   /// says — so both would cost a decode and an upload to change nothing.
   static const TextureSet ceiling = TextureSet(
-    colour: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Color.webp',
+    roughness: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.webp',
     occlusion:
-        'assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg',
+        'assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.webp',
     // Panels rather than a plaster field, so a shorter repeat: at four units
     // a single panel would be wider than half the corridor.
     unitsPerRepeat: 2,
