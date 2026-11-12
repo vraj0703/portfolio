@@ -13,7 +13,11 @@ void main() {
 
   // Laptop, portrait phone, and an ultrawide — the fit is governed by height
   // on one and by width on another, and only checking both catches it.
-  const aspects = <double>[16 / 9, 9 / 16, 21 / 9];
+  // Plus today's phones, 19.5:9 and 20:9 (a 390 and a 360 wide screen),
+  // which are narrower than 9:16 and are where the camera used to end up
+  // behind the far wall.
+  const aspects = <double>[16 / 9, 9 / 16, 21 / 9, 9 / 19.5, 9 / 20];
+  const phones = <double>[9 / 19.5, 9 / 20];
 
   group('framing a piece of work', () {
     test('the camera stands in the corridor, not inside the wall', () {
@@ -158,5 +162,25 @@ void main() {
       // Fitting edge to edge reads as a crop rather than a composition.
       expect(exact, lessThan(0.5773), reason: 'tan(65deg/2) with no margin');
     });
+  });
+
+  test('on a phone the whole card is in the shot, side to side', () {
+    // Fitting the card rather than the moulding is what keeps the camera in
+    // the corridor at 19.5:9; it must not trade that for a cropped card.
+    for (final aspect in phones) {
+      for (final frame in frames) {
+        final pose = ProjectFocus.poseFor(frame, aspect: aspect);
+        final distance = (pose.position.x - frame.position.x).abs();
+        final halfV = math.tan(GalleryDimensions.fovRadians / 2);
+        final halfWidth = distance * halfV * aspect;
+
+        expect(
+          halfWidth * 2,
+          greaterThanOrEqualTo(ProjectFocus.cardWidth),
+          reason: 'at aspect $aspect the card is cropped at the sides',
+        );
+        expect(ProjectFocus.fitsInside(pose), isTrue);
+      }
+    }
   });
 }

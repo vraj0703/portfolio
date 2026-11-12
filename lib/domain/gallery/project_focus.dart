@@ -46,6 +46,19 @@ abstract final class ProjectFocus {
   /// the work by standing inside the frame shows nothing at all.
   static const double minimumStandoff = 1.2;
 
+  /// Breathing room on a portrait screen, where the fit is the card's width.
+  ///
+  /// On a phone the shot is governed by width, and fitting the whole frame
+  /// with [margin] around it took eight metres at 19.5:9 — wider than the
+  /// corridor, so the camera stood behind the far wall and showed the back
+  /// of a moulding. A portrait screen fits the card instead, edge to edge
+  /// with a sliver either side: the moulding is cropped, the work is not.
+  static const double portraitMargin = 1.04;
+
+  /// The card inside the moulding, which is what has to be read.
+  static double get cardWidth =>
+      GalleryLayout.frameWidth - GalleryLayout.frameBorder * 2;
+
   /// Distance needed to fit [width] by [height] at [aspect].
   ///
   /// Both axes are checked and the larger distance wins. Checking only the
@@ -56,12 +69,13 @@ abstract final class ProjectFocus {
     required double height,
     required double aspect,
     double fovY = GalleryDimensions.fovRadians,
+    double room = margin,
   }) {
     final halfV = math.tan(fovY / 2);
-    final forHeight = (height * margin / 2) / halfV;
+    final forHeight = (height * room / 2) / halfV;
 
     final halfH = math.tan(2 * math.atan(halfV * aspect) / 2);
-    final forWidth = (width * margin / 2) / halfH;
+    final forWidth = (width * room / 2) / halfH;
 
     return math.max(math.max(forHeight, forWidth), minimumStandoff);
   }
@@ -82,10 +96,12 @@ abstract final class ProjectFocus {
   /// at the centre of the composition — square on, not angled. A raking view
   /// of a flat plane of text is a view you cannot read.
   static FocusPose poseFor(Placement frame, {required double aspect}) {
+    final portrait = aspect < 1;
     final distance = distanceFor(
-      width: GalleryLayout.frameWidth,
+      width: portrait ? cardWidth : GalleryLayout.frameWidth,
       height: GalleryDimensions.frameMaxHeight + reachBelow,
       aspect: aspect,
+      room: portrait ? portraitMargin : margin,
     );
 
     // Aimed low of the work's own centre by half what was added beneath it,
