@@ -9,6 +9,7 @@ import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 
 Future<void> initDependencies() async {
   final di = DependencyManager.instance;
@@ -30,6 +31,12 @@ Future<void> initDependencies() async {
   // and closed by a single widget subtree and has nothing to say to anything
   // outside it.
   di.registerFactory<MenuDrawerCubit>(MenuDrawerCubit.new);
+
+  // A factory for the same reason, and seeded from the shared audio backend
+  // so a remounted scene shows the mute the visit already chose.
+  di.registerFactory<SoundCubit>(
+    () => SoundCubit(audio: di.get<AppAudio>(), radio: di.get<RadioPlayer>()),
+  );
 
   di.registerFactory<SceneBloc>(() => SceneBloc(radio: di.get<RadioPlayer>()));
 

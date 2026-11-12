@@ -6,6 +6,7 @@ import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/screen/scene_view.dart';
 
@@ -34,6 +35,10 @@ class FlameScene extends StatelessWidget {
         // is not a fact about where the visitor is, and folding it in would
         // make every scene transition decide what happens to the drawer.
         BlocProvider(create: (_) => locate<MenuDrawerCubit>()),
+
+        // Whether the site is silent, so the switch that flips it can stay
+        // stateless.
+        BlocProvider(create: (_) => locate<SoundCubit>()),
       ],
       child: const Scaffold(body: SceneView()),
     );
