@@ -1,7 +1,14 @@
 import 'dart:ui';
 
-/// Portfolio project data, ported 1:1 from the React gallery's
-/// `src/config/projects.ts`.
+/// The corridor's seven frames. The left wall is what Vishal builds now; the
+/// right wall is where he built before.
+///
+/// Every number and claim here can be checked: Shunya Systems against the
+/// mantr, yantr and infra repositories, tantr against the tantr-app
+/// repository and https://tantr.app, Twin Health and FieldAssist / PayU
+/// against the entries this list replaced and the old static page. Anything
+/// not yet backed by a fact is a `TODO(vishal)` placeholder, left visible on
+/// purpose so it cannot ship looking finished.
 ///
 /// Ordering is load-bearing. [GalleryProjects.left] and
 /// [GalleryProjects.right] index into [GalleryProjects.all] to build the
@@ -83,78 +90,25 @@ class Project {
 
 abstract final class GalleryProjects {
   static const List<Project> all = <Project>[
+    // 0 · left 1 — what he builds now.
     Project(
-      id: 'raj-sadan',
-      title: 'Raj Sadan',
-      description: 'Multi-Agent AI Governance System',
-      url: 'https://github.com/vraj0703',
+      id: 'shunya-systems',
+      title: 'Shunya Systems',
+      description: 'A Two-Person Company Run with AI Agents',
+      // TODO(vishal): the repositories are private; link a public page here
+      // or leave it without one.
+      url: '#',
       gradient: (Color(0xFFD4A800), Color(0xFF5C3A1E)),
-      stats: <String>['11 Public Repos', '474 Tests', '4-Layer Governance'],
+      stats: <String>['5 Nodes', '22 Written Rules', '15 Instruments'],
       visual: ProjectVisual.mesh,
       summary:
-          'An operating system for a team of AI agents. Four layers of '
-          'governance decide what an agent may do on its own, what it must '
-          'ask about, and what it must never touch.',
-      stack: <String>['TypeScript', 'Node', 'TOML', 'MCP'],
+          'A company of two, Vishal and an AI chief of staff. The agent '
+          'plans and reviews on one machine and hands the work to agents on '
+          'the others, under 22 written rules that say what it may do alone, '
+          'what it must ask about, and what it must never touch.',
+      stack: <String>['Claude Code', 'Python', 'Salt', 'Tailscale'],
     ),
-    Project(
-      id: 'ai-mind',
-      title: 'ai-mind',
-      description: 'Cognitive Orchestration Organ',
-      url: 'https://github.com/vraj0703/ai-mind',
-      gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
-      stats: <String>['Decision Routing', '3-Tier LLM', 'Clean Architecture'],
-      visual: ProjectVisual.pipeline,
-      summary:
-          'The part that decides which model answers. Routes each request by '
-          'what it actually needs, so the expensive tier is spent on the work '
-          'that warrants it and not on everything.',
-      stack: <String>['Clean Architecture', 'Multi-model'],
-    ),
-    Project(
-      id: 'ai-constitution',
-      title: 'ai-constitution',
-      description: 'Trust Layer for Autonomous Agents',
-      url: 'https://github.com/vraj0703/ai-constitution',
-      gradient: (Color(0xFF10B981), Color(0xFF064E3B)),
-      stats: <String>['Governance', 'Autonomy Limits', 'Audit Trails'],
-      visual: ProjectVisual.timeline,
-      summary:
-          'Rules an autonomous agent cannot talk its way out of. Limits are '
-          'declared outside the agent and every decision leaves a trail, so '
-          'what it did is answerable after the fact.',
-      stack: <String>['TOML', 'Policy engine', 'Audit log'],
-    ),
-    Project(
-      id: 'ai-knowledge',
-      title: 'ai-knowledge',
-      description: 'Self-Learning Tool Registry',
-      url: 'https://github.com/vraj0703/ai-knowledge',
-      gradient: (Color(0xFFF59E0B), Color(0xFF78350F)),
-      stats: <String>['71 Capabilities', 'Hebbian Graph', 'Semantic Search'],
-      visual: ProjectVisual.graph,
-      status: ProjectStatus.soon,
-    ),
-    Project(
-      id: 'subwise',
-      title: 'SubWise',
-      description: 'Subscription Tracker',
-      url: 'https://github.com/vraj0703/subwise',
-      gradient: (Color(0xFFC8A45C), Color(0xFF5C3A1E)),
-      stats: <String>['Kotlin 2', 'Compose', 'Material 3'],
-      visual: ProjectVisual.dashboard,
-      status: ProjectStatus.soon,
-    ),
-    Project(
-      id: 'jotter',
-      title: 'Jotter',
-      description: 'Notes App with In-App Purchases',
-      url: 'https://github.com/vraj0703/jotter',
-      gradient: (Color(0xFFEF4444), Color(0xFF7F1D1D)),
-      stats: <String>['Flutter', 'RevenueCat', 'Play Store'],
-      visual: ProjectVisual.chat,
-      status: ProjectStatus.soon,
-    ),
+    // 1 · right 1 — where he built before.
     Project(
       id: 'twin-health',
       title: 'Twin Health',
@@ -163,12 +117,90 @@ abstract final class GalleryProjects {
       gradient: (Color(0xFF6366F1), Color(0xFF312E81)),
       stats: <String>['67 Releases', '0 Hotfixes', r'$87K Saved'],
       visual: ProjectVisual.funnel,
+      summary:
+          'A digital health platform, from 2022: 67 releases shipped '
+          'without a single hotfix. '
+          'TODO(vishal): the role, and what the \$87K saving was.',
+      // TODO(vishal): the stack at Twin Health.
+      stack: <String>['TODO(vishal)'],
+    ),
+    // 2 · left 2
+    Project(
+      id: 'tantr',
+      title: 'tantr app',
+      description: 'One Runtime for the Five Things Every App Rebuilds',
+      url: 'https://tantr.app',
+      gradient: (Color(0xFF10B981), Color(0xFF064E3B)),
+      stats: <String>['31 Packages', '5 Profiles', '7 Apps'],
+      visual: ProjectVisual.pipeline,
+      summary:
+          'Most product apps rebuild the same five things: forms, insight '
+          'cards, notifications, asking the user to act, and chat. tantr '
+          'writes them once behind one wire contract, and a new product is '
+          'carved from a reference app in one command.',
+      stack: <String>['Flutter', 'Dart', 'shelf', 'JSON Schema'],
+    ),
+    // 3 · right 2
+    Project(
+      id: 'fieldassist-payu',
+      title: 'FieldAssist / PayU',
+      description: 'Field Force at Scale · Payment Encryption',
+      url: '#',
+      gradient: (Color(0xFFC8A45C), Color(0xFF5C3A1E)),
+      stats: <String>['1600+ Files', 'Multi-Flavor', 'Triple DES'],
+      visual: ProjectVisual.dashboard,
+      summary:
+          'At PayU, in fintech from 2016: client-side encryption of card PIN '
+          'and PAN with Triple DES. At FieldAssist, in FMCG from 2018: an '
+          'enterprise field-force app of more than 1,600 files, shipped in '
+          'several flavors. TODO(vishal): the role at each.',
+      // TODO(vishal): the stack at FieldAssist and at PayU.
+      stack: <String>['TODO(vishal)'],
+    ),
+    // 4 · left 3
+    Project(
+      id: 'publications',
+      title: 'Publications',
+      // TODO(vishal): what is published, where, and a link.
+      description: 'TODO(vishal): Publications',
+      url: '#',
+      gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
+      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      visual: ProjectVisual.timeline,
       status: ProjectStatus.soon,
+      summary: 'TODO(vishal): two or three sentences on the writing.',
+    ),
+    // 5 · right 3
+    Project(
+      id: 'school-college',
+      title: 'School and College',
+      // TODO(vishal): the schools, the college, the degree and the years.
+      description: 'TODO(vishal): School and College',
+      url: '#',
+      gradient: (Color(0xFFF59E0B), Color(0xFF78350F)),
+      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      visual: ProjectVisual.graph,
+      status: ProjectStatus.soon,
+      summary: 'TODO(vishal): two or three sentences on where it started.',
+    ),
+    // 6 · left 4, alone past the end of the right wall
+    Project(
+      id: 'creative-works',
+      title: 'Creative Works',
+      // TODO(vishal): which works, and a link.
+      description: 'TODO(vishal): Creative Works',
+      url: '#',
+      gradient: (Color(0xFFEF4444), Color(0xFF7F1D1D)),
+      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      visual: ProjectVisual.chat,
+      status: ProjectStatus.soon,
+      summary: 'TODO(vishal): two or three sentences on the creative work.',
     ),
   ];
 
-  /// Left wall: indices 0, 2, 4, 6. Takes the extra project — P7 hangs alone
-  /// past the point where the right wall stops and opens into the L.
+  /// Left wall, what he builds now: indices 0, 2, 4, 6. Takes the extra
+  /// frame — the last hangs alone past the point where the right wall stops
+  /// and opens into the L.
   static final List<Project> left = <Project>[
     all[0],
     all[2],
@@ -176,7 +208,8 @@ abstract final class GalleryProjects {
     all[6],
   ];
 
-  /// Right wall: indices 1, 3, 5. Each faces its left-wall pair.
+  /// Right wall, where he built before: indices 1, 3, 5. Each faces its
+  /// left-wall pair.
   static final List<Project> right = <Project>[
     all[1],
     all[3],
