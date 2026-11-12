@@ -63,6 +63,11 @@ class SkillKeyboard {
   /// How much brighter the chosen cap burns.
   static const double selectedGlow = 1.6;
 
+  /// How much brighter a cap under the pointer burns: between at rest and
+  /// chosen, so the visitor sees which key a press would take before making
+  /// it.
+  static const double hoverGlow = 1.05;
+
   /// How far a chosen cap rises out of the board.
   static const double pressLift = 0.12;
 
@@ -187,9 +192,27 @@ class SkillKeyboard {
   }
 
   /// Raises and brightens one cap, and returns the rest.
+  Skill? _selected;
+  Skill? _hovered;
+
   void select(Skill? skill) {
+    _selected = skill;
+    _replace();
+  }
+
+  /// Lights the cap under the pointer, or none.
+  void hover(Skill? skill) {
+    if (skill?.id == _hovered?.id) return;
+    _hovered = skill;
+    _replace();
+  }
+
+  void _replace() {
     for (final cap in _caps.values) {
-      cap.place(lifted: cap.key.skill.id == skill?.id);
+      cap.place(
+        lifted: cap.key.skill.id == _selected?.id,
+        hovered: cap.key.skill.id == _hovered?.id,
+      );
     }
   }
 
@@ -260,14 +283,14 @@ class SkillKeyboard {
       ..visible = _reveal > 0
       ..localTransform =
           (Matrix4.translation(
-            SceneAxes.position(
-              Vector3(
-                anchor.x,
-                anchor.y - hiddenDrop * (1 - eased) + _bob,
-                anchor.z,
+              SceneAxes.position(
+                Vector3(
+                  anchor.x,
+                  anchor.y - hiddenDrop * (1 - eased) + _bob,
+                  anchor.z,
+                ),
               ),
-            ),
-          )
+            )
             ..rotateY(SceneAxes.rotationY(restRotation + _heading))
             // Tips toward the visitor, so they see the tops of the caps
             // rather than looking along them edge-on. Unaffected by the axis
@@ -287,10 +310,14 @@ class _Cap {
       (KeyboardLayout.boardHeight + key.extents.y) / 2 * KeyboardLayout.scale +
       (lifted ? SkillKeyboard.pressLift : 0);
 
-  void place({required bool lifted}) {
+  void place({required bool lifted, bool hovered = false}) {
     final scale = KeyboardLayout.scale;
     final colour = key.skill.color;
-    final glow = lifted ? SkillKeyboard.selectedGlow : SkillKeyboard.legendGlow;
+    final glow = lifted
+        ? SkillKeyboard.selectedGlow
+        : hovered
+        ? SkillKeyboard.hoverGlow
+        : SkillKeyboard.legendGlow;
 
     // Lit from inside rather than tinted on the surface, so a pressed key
     // reads as the glass itself glowing rather than as a swatch changing

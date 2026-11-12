@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/gallery/skill_data.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 
 /// [AppStrings] defines the contract for localized or global strings across the application.
@@ -38,6 +39,10 @@ abstract class AppStrings {
 
   /// How to handle the skills board, painted on the wall behind it.
   String get keyboardInstruction;
+
+  /// What kind of skill a key is, after its name in the caption under the
+  /// board.
+  String skillCategory(SkillCategory category);
 
   /// The contact menu, in the order [ContactMenu] reads.
   String get contactCv;
@@ -125,6 +130,15 @@ class DefaultAppStrings implements AppStrings {
   // longer than a line goes unread, and a line that has to be studied is
   // worse than no line, because it takes the attention the board wants.
   String get keyboardInstruction => 'Scroll to end, Drag, Rotate, Click a key';
+
+  @override
+  String skillCategory(SkillCategory category) => switch (category) {
+    SkillCategory.language => 'language',
+    SkillCategory.framework => 'framework',
+    SkillCategory.tool => 'tool',
+    SkillCategory.platform => 'platform',
+    SkillCategory.ai => 'AI',
+  };
 
   @override
   String get contactCv => 'cv';

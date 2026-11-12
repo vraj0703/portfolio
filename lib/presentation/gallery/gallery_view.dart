@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/keyboard_nav.dart';
+import 'package:portfolio/presentation/gallery/skill_caption.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -182,6 +185,12 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// The key the visitor last pressed on the skills board.
   Skill? _skill;
+
+  /// The key under the pointer, which the caption names before a press.
+  Skill? _hoverSkill;
+
+  /// Takes the arrow keys and Enter while the visitor stands at the board.
+  final FocusNode _keys = FocusNode(debugLabel: 'gallery keys');
 
   /// How the visitor has turned the board.
   late final KeyboardOrbit _orbit = KeyboardOrbit(
@@ -418,24 +427,11 @@ class _GalleryViewState extends State<GalleryView> {
     // The board is only reachable once the visitor has arrived at it, and
     // only then is it still enough to aim at.
     if (_inHall) {
-      final caps = gallery.keyboard.keycaps();
-      final hit = FramePicker.at(
-        at,
-        _viewSize,
-        caps,
-        camera.position,
-        (world) => camera.worldToScreen(world, _viewSize),
-        kinds: const <SurfaceKind>{SurfaceKind.keycap},
-      );
-
-      if (hit != null) {
-        _sound(AudioCue.keyStroke);
-        final skill = gallery.keyboard.skillAt(hit);
+      final skill = _skillAt(at);
+      if (skill != null) {
         // Pressing the key already up releases it, so the board is never
         // stuck showing a choice the visitor has moved on from.
-        final next = skill?.id == _skill?.id ? null : skill;
-        gallery.keyboard.select(next);
-        setState(() => _skill = next);
+        _press(skill.id == _skill?.id ? null : skill);
         return;
       }
     }
@@ -523,6 +519,74 @@ class _GalleryViewState extends State<GalleryView> {
   bool get _inHall {
     final eye = _eye;
     return eye != null && eye.x > GalleryDimensions.kbEntryX;
+  }
+
+  /// The skill whose cap is under [at], if the visitor is at the board.
+  Skill? _skillAt(Offset at) {
+    final camera = _lastCamera;
+    final gallery = _gallery;
+    if (camera == null || gallery == null || _viewSize.isEmpty) return null;
+    if (!_inHall) return null;
+
+    final hit = FramePicker.at(
+      at,
+      _viewSize,
+      gallery.keyboard.keycaps(),
+      camera.position,
+      (world) => camera.worldToScreen(world, _viewSize),
+      kinds: const <SurfaceKind>{SurfaceKind.keycap},
+    );
+    return hit == null ? null : gallery.keyboard.skillAt(hit);
+  }
+
+  /// Presses [skill] on the board, or releases it with null. One way in for
+  /// the pointer, a tap and the keys, so all three sound and look the same.
+  void _press(Skill? skill) {
+    final gallery = _gallery;
+    if (gallery == null) return;
+    _sound(AudioCue.keyStroke);
+    gallery.keyboard.select(skill);
+    setState(() => _skill = skill);
+  }
+
+  /// Lights the cap under the pointer, so a press is never a guess.
+  void _hover(Offset at) {
+    final skill = _skillAt(at);
+    if (skill?.id == _hoverSkill?.id) return;
+    _gallery?.keyboard.hover(skill);
+    setState(() => _hoverSkill = skill);
+  }
+
+  /// The arrows walk the board and Enter or Space presses or releases the
+  /// key, while the visitor stands at it. Anywhere else they are not this
+  /// view's to take, and go on up to the scene.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (!_inHall || _gallery == null) return KeyEventResult.ignored;
+
+    final from = _skill ?? _hoverSkill;
+    final key = event.logicalKey;
+    final Skill? next;
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      next = KeyboardNav.move(from, dx: -1);
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      next = KeyboardNav.move(from, dx: 1);
+    } else if (key == LogicalKeyboardKey.arrowUp) {
+      next = KeyboardNav.move(from, dy: -1);
+    } else if (key == LogicalKeyboardKey.arrowDown) {
+      next = KeyboardNav.move(from, dy: 1);
+    } else if (key == LogicalKeyboardKey.enter ||
+        key == LogicalKeyboardKey.space) {
+      if (event is KeyRepeatEvent) return KeyEventResult.handled;
+      next = _skill != null ? null : (from ?? KeyboardNav.start);
+    } else {
+      return KeyEventResult.ignored;
+    }
+
+    _press(next);
+    return KeyEventResult.handled;
   }
 
   /// Which control is under [at], if any.
@@ -616,6 +680,7 @@ class _GalleryViewState extends State<GalleryView> {
 
   @override
   void dispose() {
+    _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
     _markJourney.dispose();
@@ -636,150 +701,165 @@ class _GalleryViewState extends State<GalleryView> {
     // the activity clock stays frozen at the handover, and the first event
     // the gate actually sees reads as the pause it was waiting for. It then
     // arms mid-gesture, which is precisely the leak it exists to prevent.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        _viewSize = constraints.biggest;
+    return Focus(
+      focusNode: _keys,
+      autofocus: true,
+      onKeyEvent: _onKey,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _viewSize = constraints.biggest;
 
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            // The gate wraps every branch without exception. Mount it only
-            // around the finished scene and it is blind for as long as the
-            // scene takes to arrive: the tail of the previous gesture flows
-            // past unseen, the activity clock stays frozen at the handover,
-            // and the first event the gate actually sees reads as the pause
-            // it was waiting for. It then arms mid-gesture, which is
-            // precisely the leak it exists to prevent.
-            Listener(
-              onPointerSignal: (event) {
-                if (event is! PointerScrollEvent) return;
-                // Every event is offered to the gate, including the ones it
-                // swallows — a continuous stream must not look like a pause
-                // simply because none of it was acted on.
-                if (!_gate.accept(_clock.elapsedMilliseconds)) return;
-                // The driver clamps to `[0, extent]`, so scrolling the wrong
-                // way at the entrance simply holds there rather than running
-                // off the start.
-                _scroll.scrollBy(
-                  event.scrollDelta.dy * GalleryView.scrollDirection,
-                );
-              },
-              // Without this the placeholder is not a hit-test target, and
-              // the events it is here to swallow go straight past it.
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (event) {
-                _dragFrom = event.localPosition;
-                _dragDistance = 0;
-              },
-              onPointerMove: (event) {
-                final from = _dragFrom;
-                if (from == null) return;
-                _dragDistance += event.delta.distance;
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              // The gate wraps every branch without exception. Mount it only
+              // around the finished scene and it is blind for as long as the
+              // scene takes to arrive: the tail of the previous gesture flows
+              // past unseen, the activity clock stays frozen at the handover,
+              // and the first event the gate actually sees reads as the pause
+              // it was waiting for. It then arms mid-gesture, which is
+              // precisely the leak it exists to prevent.
+              Listener(
+                onPointerSignal: (event) {
+                  if (event is! PointerScrollEvent) return;
+                  // Every event is offered to the gate, including the ones it
+                  // swallows — a continuous stream must not look like a pause
+                  // simply because none of it was acted on.
+                  if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+                  // The driver clamps to `[0, extent]`, so scrolling the wrong
+                  // way at the entrance simply holds there rather than running
+                  // off the start.
+                  _scroll.scrollBy(
+                    event.scrollDelta.dy * GalleryView.scrollDirection,
+                  );
+                },
+                // Without this the placeholder is not a hit-test target, and
+                // the events it is here to swallow go straight past it.
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (event) {
+                  _dragFrom = event.localPosition;
+                  _dragDistance = 0;
+                },
+                onPointerMove: (event) {
+                  final from = _dragFrom;
+                  if (from == null) return;
+                  _dragDistance += event.delta.distance;
 
-                // Only the board turns by dragging. Everywhere else a drag
-                // *is* the scroll — on a phone, where there is no wheel, it
-                // is the only way down the corridor at all.
-                if (_inHall) {
-                  _orbit.drag(event.delta.dx, event.delta.dy);
-                  return;
-                }
+                  // Only the board turns by dragging. Everywhere else a drag
+                  // *is* the scroll — on a phone, where there is no wheel, it
+                  // is the only way down the corridor at all.
+                  if (_inHall) {
+                    _orbit.drag(event.delta.dx, event.delta.dy);
+                    return;
+                  }
 
-                // Touch and stylus only. A mouse has a wheel, and making a
-                // held button drag the corridor as well would fight picking
-                // a frame: every slightly unsteady click would walk the
-                // camera before landing.
-                if (event.kind != PointerDeviceKind.touch &&
-                    event.kind != PointerDeviceKind.stylus) {
-                  return;
-                }
+                  // Touch and stylus only. A mouse has a wheel, and making a
+                  // held button drag the corridor as well would fight picking
+                  // a frame: every slightly unsteady click would walk the
+                  // camera before landing.
+                  if (event.kind != PointerDeviceKind.touch &&
+                      event.kind != PointerDeviceKind.stylus) {
+                    return;
+                  }
 
-                // Through the same gate as the wheel, so being caught at the
-                // back wall feels the same whichever way the visitor moves.
-                if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+                  // Through the same gate as the wheel, so being caught at the
+                  // back wall feels the same whichever way the visitor moves.
+                  if (!_gate.accept(_clock.elapsedMilliseconds)) return;
 
-                // A finger moving up walks forward: the room follows the
-                // hand rather than opposing it.
-                _scroll.scrollBy(
-                  -event.delta.dy *
-                      GalleryView.dragScrollGain *
-                      GalleryView.scrollDirection,
-                );
-              },
-              onPointerUp: (event) {
-                final dragged = _dragDistance > _tapSlop;
-                _dragFrom = null;
-                if (dragged) return;
-                _pick(event.localPosition);
-              },
-              onPointerCancel: (_) => _dragFrom = null,
-              child: _surface(context),
-            ),
+                  // A finger moving up walks forward: the room follows the
+                  // hand rather than opposing it.
+                  _scroll.scrollBy(
+                    -event.delta.dy *
+                        GalleryView.dragScrollGain *
+                        GalleryView.scrollDirection,
+                  );
+                },
+                onPointerUp: (event) {
+                  final dragged = _dragDistance > _tapSlop;
+                  _dragFrom = null;
+                  if (dragged) return;
+                  _pick(event.localPosition);
+                },
+                onPointerCancel: (_) => _dragFrom = null,
+                onPointerHover: (event) => _hover(event.localPosition),
+                child: MouseRegion(
+                  cursor: _hoverSkill != null
+                      ? SystemMouseCursors.click
+                      : MouseCursor.defer,
+                  child: _surface(context),
+                ),
+              ),
 
-            // A sibling above the gate, not a child of it. Nested, every tap
-            // on a control also reached the listener's `onPointerUp` —
-            // ancestors receive every event in the hit path — so pressing ›
-            // stepped to the next piece and was immediately overruled by a
-            // pick of whatever was still under the pointer. That is why the
-            // arrows did nothing.
-            GalleryOverlay(
-              focused: _focused,
-              canGoBack: _focused != null && _order.hasPrevious(_focused!),
-              canGoForward: _focused != null && _order.hasNext(_focused!),
-              // Through the same dispatch as the icons on the wall, so the
-              // fallback cannot do anything the real controls do not — or
-              // sound different doing it.
-              onBack: () => _control(ControlAction.previous),
-              onExit: () => _control(ControlAction.exit),
-              onForward: () => _control(ControlAction.next),
-              mirrored: !(_focused?.position.x.isNegative ?? true),
-              asFallback: _gallery?.controls == null,
-              onOpen: _openFor(_focused),
-            ),
+              // A sibling above the gate, not a child of it. Nested, every tap
+              // on a control also reached the listener's `onPointerUp` —
+              // ancestors receive every event in the hit path — so pressing ›
+              // stepped to the next piece and was immediately overruled by a
+              // pick of whatever was still under the pointer. That is why the
+              // arrows did nothing.
+              GalleryOverlay(
+                focused: _focused,
+                canGoBack: _focused != null && _order.hasPrevious(_focused!),
+                canGoForward: _focused != null && _order.hasNext(_focused!),
+                // Through the same dispatch as the icons on the wall, so the
+                // fallback cannot do anything the real controls do not — or
+                // sound different doing it.
+                onBack: () => _control(ControlAction.previous),
+                onExit: () => _control(ControlAction.exit),
+                onForward: () => _control(ControlAction.next),
+                mirrored: !(_focused?.position.x.isNegative ?? true),
+                asFallback: _gallery?.controls == null,
+                onOpen: _openFor(_focused),
+              ),
 
-            // Over the room *and* over its controls. A ✕ still lit on a
-            // corridor that has gone dark reads as the page having failed
-            // rather than as a door closing.
-            // Boundaried, like the mark. A full-screen wash whose colour
-            // changes every frame repaints whatever shares its layer, and
-            // what shares this one is a 3D scene being composited — so the
-            // fade was costing a re-composite of the whole corridor sixty
-            // times a second on its way out.
-            RepaintBoundary(
-              child: ValueListenableBuilder<double>(
-                valueListenable: _leaving,
-                builder: (context, leaving, _) => leaving <= 0
-                    ? const SizedBox.shrink()
-                    : AbsorbPointer(
-                        // Absorbing, not passing through: once the lights are
-                        // going down the room stops answering. `IgnorePointer`
-                        // is the wrong tool however it is configured — off, it
-                        // is a no-op, and a `ColoredBox` does not hit-test
-                        // itself, so every click and scroll went straight
-                        // through to the room behind.
-                        child: ColoredBox(
-                          color: context.colors.sceneVeil.withValues(
-                            alpha: leaving,
+              // What the key under the pointer, or the key pressed, is. The
+              // caps carry no legend, so this is the only place a key says so.
+              if (_inHall) SkillCaption(skill: _hoverSkill ?? _skill),
+
+              // Over the room *and* over its controls. A ✕ still lit on a
+              // corridor that has gone dark reads as the page having failed
+              // rather than as a door closing.
+              // Boundaried, like the mark. A full-screen wash whose colour
+              // changes every frame repaints whatever shares its layer, and
+              // what shares this one is a 3D scene being composited — so the
+              // fade was costing a re-composite of the whole corridor sixty
+              // times a second on its way out.
+              RepaintBoundary(
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _leaving,
+                  builder: (context, leaving, _) => leaving <= 0
+                      ? const SizedBox.shrink()
+                      : AbsorbPointer(
+                          // Absorbing, not passing through: once the lights are
+                          // going down the room stops answering. `IgnorePointer`
+                          // is the wrong tool however it is configured — off, it
+                          // is a no-op, and a `ColoredBox` does not hit-test
+                          // itself, so every click and scroll went straight
+                          // through to the room behind.
+                          child: ColoredBox(
+                            color: context.colors.sceneVeil.withValues(
+                              alpha: leaving,
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
-            ),
 
-            // The header mark, above everything the room draws and above
-            // the dark it goes out through. It is the one thing that
-            // survives the handover between the two renderers, so covering
-            // it with the fade would defeat the point of drawing it here.
-            // No boundary out here: the mark returns a `Positioned`, and a
-            // render object between it and the `Stack` leaves it with no
-            // stack to give its parent data to. It carries its own boundary
-            // inside, where it belongs.
-            ValueListenableBuilder<double>(
-              valueListenable: _markJourney,
-              builder: (context, journey, _) => GalleryMark(journey: journey),
-            ),
-          ],
-        );
-      },
+              // The header mark, above everything the room draws and above
+              // the dark it goes out through. It is the one thing that
+              // survives the handover between the two renderers, so covering
+              // it with the fade would defeat the point of drawing it here.
+              // No boundary out here: the mark returns a `Positioned`, and a
+              // render object between it and the `Stack` leaves it with no
+              // stack to give its parent data to. It carries its own boundary
+              // inside, where it belongs.
+              ValueListenableBuilder<double>(
+                valueListenable: _markJourney,
+                builder: (context, journey, _) => GalleryMark(journey: journey),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
