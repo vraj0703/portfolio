@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/platform/page_visibility.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
@@ -440,7 +441,15 @@ class GalleryScene {
           piece.kind == SurfaceKind.testimonialFrame) {
         // The same shell either way — a moulding with a blank card inside it
         // — differing only in which timber it is cut from.
-        _hangFrame(scene, piece, surfaces[piece.kind], transform);
+        await _hangFrame(
+          scene,
+          piece,
+          surfaces[piece.kind],
+          transform,
+          artwork,
+          textures,
+          artworkSize,
+        );
         continue;
       }
 
@@ -633,12 +642,15 @@ class GalleryScene {
   /// material and the card is a flat surface with another, and a single box
   /// carrying one texture cannot be both — which is what made the old frames
   /// read as printed panels rather than as work in a frame.
-  static void _hangFrame(
+  static Future<void> _hangFrame(
     Scene scene,
     Placement piece,
     SurfaceMaps? wood,
     Matrix4 transform,
-  ) {
+    List<ui.Image> images,
+    List<Texture2D> textures,
+    int artworkSize,
+  ) async {
     final width = GalleryLayout.frameWidth;
     final height = piece.extents.y;
     final depth = piece.extents.z;
@@ -654,22 +666,44 @@ class GalleryScene {
       ),
     );
 
+    final card = Matrix4.copy(transform)
+      ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
+    final cardWidth = width - GalleryLayout.frameBorder * 2;
+    final cardHeight = height - GalleryLayout.frameBorder * 2;
+    final cardShape = CuboidGeometry(
+      Vector3(cardWidth, cardHeight, GalleryLayout.cardRelief * 2),
+    );
+
+    // A project with a designed card gets it baked once and bound to the
+    // card's face — shaped to the card, so the type is not stretched. Unlit,
+    // like the lettering on the walls: it is a printed surface, and lit by a
+    // picture light this dim its smaller type sinks into the gradient.
+    if (FrameCard.paints(piece.project)) {
+      final image = await FrameCard.render(
+        project: piece.project!,
+        width: artworkSize,
+        height: (artworkSize * cardHeight / cardWidth).round(),
+      );
+      images.add(image);
+      final texture = await Texture2D.fromImage(image);
+      textures.add(texture);
+
+      scene.add(
+        Node(
+          mesh: Mesh(cardShape, UnlitMaterial(colorTexture: texture)),
+          localTransform: card,
+        ),
+      );
+      return;
+    }
+
     // Blank on purpose, for now — the card is the surface the work will be
     // presented on, and an empty one states the shape of the room without
     // pretending to content it does not have yet.
-    final card = Matrix4.copy(transform)
-      ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
-
     scene.add(
       Node(
         mesh: Mesh(
-          CuboidGeometry(
-            Vector3(
-              width - GalleryLayout.frameBorder * 2,
-              height - GalleryLayout.frameBorder * 2,
-              GalleryLayout.cardRelief * 2,
-            ),
-          ),
+          cardShape,
           // Lifted slightly by its own emission. A matte white card under a
           // picture light this dim otherwise settles to grey, and a gallery
           // card that reads as grey reads as unlit rather than as blank.
