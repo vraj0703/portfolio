@@ -73,6 +73,10 @@ abstract class AppTypography {
   TextStyle get frameStat;
   TextStyle get frameSummary;
   TextStyle get frameTag;
+
+  /// The word on the "open" pill over a focused frame: the stat pills' face
+  /// and scale, so it reads as part of the card's set rather than the system.
+  TextStyle get galleryOpen;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -217,6 +221,15 @@ class DefaultAppTypography implements AppTypography {
   /// The face the far wall's name is cut in, so a card reads as part of
   /// the same room. Large enough to be read from a frame or two away, which
   /// is how far the title has to carry.
+  @override
+  TextStyle get galleryOpen => const TextStyle(
+    fontSize: 15,
+    height: 1.2,
+    letterSpacing: 1.2,
+    color: Color(0xFFF0E4CC),
+    fontFamily: 'AzeretMono',
+  );
+
   @override
   TextStyle get frameTitle => const TextStyle(
     fontSize: 104,

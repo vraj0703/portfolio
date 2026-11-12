@@ -7,8 +7,10 @@ import 'dart:ui';
 /// mantr, yantr and infra repositories, tantr against the tantr-app
 /// repository and https://tantr.app, Twin Health and FieldAssist / PayU
 /// against the entries this list replaced and the old static page. Anything
-/// not yet backed by a fact is a `TODO(vishal)` placeholder, left visible on
-/// purpose so it cannot ship looking finished.
+/// not yet backed by a fact is left out of what renders and marked with a
+/// `TODO(vishal)` comment beside it. A TODO marker never reaches the wall or
+/// the static page; the frames still waiting on facts are `soon`, which show
+/// their title and nothing they cannot back.
 ///
 /// Ordering is load-bearing. [GalleryProjects.left] and
 /// [GalleryProjects.right] index into [GalleryProjects.all] to build the
@@ -119,10 +121,9 @@ abstract final class GalleryProjects {
       visual: ProjectVisual.funnel,
       summary:
           'A digital health platform, from 2022: 67 releases shipped '
-          'without a single hotfix. '
-          'TODO(vishal): the role, and what the \$87K saving was.',
-      // TODO(vishal): the stack at Twin Health.
-      stack: <String>['TODO(vishal)'],
+          'without a single hotfix.',
+      // TODO(vishal): the role, what the $87K saving was, and the stack.
+      stack: <String>[],
     ),
     // 2 · left 2
     Project(
@@ -153,48 +154,48 @@ abstract final class GalleryProjects {
           'At PayU, in fintech from 2016: client-side encryption of card PIN '
           'and PAN with Triple DES. At FieldAssist, in FMCG from 2018: an '
           'enterprise field-force app of more than 1,600 files, shipped in '
-          'several flavors. TODO(vishal): the role at each.',
-      // TODO(vishal): the stack at FieldAssist and at PayU.
-      stack: <String>['TODO(vishal)'],
+          'several flavors.',
+      // TODO(vishal): the role at each, and the stack.
+      stack: <String>[],
     ),
     // 4 · left 3
     Project(
       id: 'publications',
       title: 'Publications',
       // TODO(vishal): what is published, where, and a link.
-      description: 'TODO(vishal): Publications',
+      description: '',
       url: '#',
       gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
-      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      stats: <String>[],
       visual: ProjectVisual.timeline,
       status: ProjectStatus.soon,
-      summary: 'TODO(vishal): two or three sentences on the writing.',
+      // TODO(vishal): two or three sentences on the writing.
     ),
     // 5 · right 3
     Project(
       id: 'school-college',
       title: 'School and College',
       // TODO(vishal): the schools, the college, the degree and the years.
-      description: 'TODO(vishal): School and College',
+      description: '',
       url: '#',
       gradient: (Color(0xFFF59E0B), Color(0xFF78350F)),
-      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      stats: <String>[],
       visual: ProjectVisual.graph,
       status: ProjectStatus.soon,
-      summary: 'TODO(vishal): two or three sentences on where it started.',
+      // TODO(vishal): two or three sentences on where it started.
     ),
     // 6 · left 4, alone past the end of the right wall
     Project(
       id: 'creative-works',
       title: 'Creative Works',
       // TODO(vishal): which works, and a link.
-      description: 'TODO(vishal): Creative Works',
+      description: '',
       url: '#',
       gradient: (Color(0xFFEF4444), Color(0xFF7F1D1D)),
-      stats: <String>['TODO(vishal)', 'TODO(vishal)', 'TODO(vishal)'],
+      stats: <String>[],
       visual: ProjectVisual.chat,
       status: ProjectStatus.soon,
-      summary: 'TODO(vishal): two or three sentences on the creative work.',
+      // TODO(vishal): two or three sentences on the creative work.
     ),
   ];
 

@@ -134,8 +134,9 @@ class GalleryOverlay extends StatelessWidget {
 class _OpenControl extends StatelessWidget {
   const _OpenControl({required this.label, required this.onTap});
 
-  /// Never smaller than a touch target.
-  static const double minSize = 52;
+  /// A touch target, and no more: the pill is a small label beside the
+  /// work, not a control the size of the room's arrows.
+  static const double minSize = 48;
 
   final String label;
   final VoidCallback onTap;
@@ -157,7 +158,7 @@ class _OpenControl extends StatelessWidget {
           child: Container(
             height: minSize,
             constraints: const BoxConstraints(minWidth: minSize),
-            padding: const EdgeInsets.symmetric(horizontal: 22),
+            padding: const EdgeInsets.symmetric(horizontal: 18),
             decoration: BoxDecoration(
               color: context.colors.galleryControlPlate,
               borderRadius: BorderRadius.circular(minSize / 2),
@@ -168,7 +169,7 @@ class _OpenControl extends StatelessWidget {
               // A plain arrow: the diagonal one falls back to a colour emoji.
               child: Text(
                 '${context.strings.galleryOpen} →',
-                style: context.typography.galleryControl,
+                style: context.typography.galleryOpen,
               ),
             ),
           ),

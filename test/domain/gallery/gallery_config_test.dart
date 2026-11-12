@@ -44,10 +44,30 @@ void main() {
       ]);
     });
 
-    test('every project carries the stats the frame canvas draws', () {
+    test('every finished project carries the stats its card draws', () {
+      // A `soon` frame shows its title and "coming soon" only.
       for (final p in GalleryProjects.all) {
-        expect(p.stats, isNotEmpty, reason: '${p.id} has no stats');
         expect(p.title, isNotEmpty, reason: '${p.id} has no title');
+        if (p.isLive) {
+          expect(p.stats, isNotEmpty, reason: '${p.id} has no stats');
+        }
+      }
+    });
+
+    test('no TODO marker reaches anything a card renders', () {
+      // TODOs live in comments and the PR's gap list. On the wall, an
+      // unknown is left out, not announced.
+      for (final p in GalleryProjects.all) {
+        final shown = <String>[
+          p.title,
+          p.description,
+          p.summary,
+          ...p.stats,
+          ...p.stack,
+        ];
+        for (final text in shown) {
+          expect(text, isNot(contains('TODO')), reason: p.id);
+        }
       }
     });
   });

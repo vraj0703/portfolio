@@ -11,6 +11,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final tantr = GalleryProjects.all.firstWhere((p) => p.id == 'tantr');
+
+  test('the default tone is the warm one; bold is the switch', () {
+    expect(FrameCard.tone, ProjectTone.warm);
+  });
   const colors = DefaultAppColors();
 
   // The shape of the card face, at the size the builder bakes it.
@@ -18,10 +22,13 @@ void main() {
   const height = 736;
 
   Future<ByteData> bake(Project project) async {
+    // The project's own colours, which the pixel checks below compare
+    // against; the warm default has a test of its own.
     final image = await FrameCard.render(
       project: project,
       width: width,
       height: height,
+      tone: ProjectTone.own,
     );
     expect(image.width, width);
     expect(image.height, height);

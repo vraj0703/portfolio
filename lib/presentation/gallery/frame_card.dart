@@ -28,13 +28,15 @@ abstract final class FrameCard {
 
   /// How a card's ground is coloured.
   ///
-  /// [ProjectTone.own] paints each project's own gradient. [ProjectTone.warm]
-  /// tones it toward the room's walnut, so the seven sit in the marble rather
-  /// than in their own colours. Chosen at build time (`FRAME_TONE=warm`) so
-  /// both can be judged in a real build; the default is the project's own.
-  static const ProjectTone tone = String.fromEnvironment('FRAME_TONE') == 'warm'
-      ? ProjectTone.warm
-      : ProjectTone.own;
+  /// [ProjectTone.warm], the default, tones each project's gradient toward
+  /// the room's walnut so the seven sit in the marble: the bold primaries
+  /// fought it. [ProjectTone.own] paints each project's own colours and is
+  /// one build switch away (`--dart-define=FRAME_TONE=bold`) — mantr's
+  /// recommendation is warm, and the call is Vishal's.
+  static const ProjectTone tone =
+      String.fromEnvironment('FRAME_TONE') == 'bold'
+      ? ProjectTone.own
+      : ProjectTone.warm;
 
   /// How far [ProjectTone.warm] moves each stop toward the room's pair.
   static const double warmth = 0.75;
