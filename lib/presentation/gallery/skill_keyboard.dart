@@ -235,7 +235,7 @@ class SkillKeyboard {
   }
 
   /// How much of a cap's top its legend may cover.
-  static const double legendShare = 0.86;
+  static const double legendShare = 0.94;
 
   /// How far a legend stands off the cap's face, so the two never share a
   /// depth and flicker between each other.

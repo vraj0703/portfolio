@@ -9,9 +9,12 @@ import 'package:portfolio/domain/style/text_styles.dart';
 /// A keycap's legend, baked once to a small transparent image.
 ///
 /// The FrameCard and WallText way: rasterised at build, bound to an unlit
-/// blended quad on the cap's top, never a live widget in the room. In the
-/// skill's own accent colour with a dark edge, because the caps are metal
-/// and some accents are as pale as the metal they sit on.
+/// blended quad on the cap's top, never a live widget in the room. The cap
+/// is already the skill's accent, so the ink is not: it is near-black on a
+/// light cap and near-white on a dark one, chosen by the cap's luminance,
+/// with a thin edge of the opposite tone.
+///
+/// The light/dark split is [inkFor].
 ///
 /// Every cap on a row shares one type size — the size that fits that row's
 /// longest label — so a row reads as a set rather than as labels each shrunk
@@ -21,12 +24,39 @@ abstract final class KeycapLegend {
   static const int size = 256;
 
   /// How much of the image's width the longest label on a row may take.
-  static const double fill = 0.82;
+  ///
+  /// The image covers 94% of the cap's top (`SkillKeyboard.legendShare`),
+  /// so this sets the longest label at about 70% of the cap's width.
+  static const double fill = 0.745;
+
+  /// The ink for a legend on [cap], and the edge that keeps it apart:
+  /// whichever of near-black and near-white contrasts more with the cap.
+  /// By contrast rather than by a luminance cut, because a mid green sits
+  /// near any cut and white on it read at under 3:1.
+  static (Color ink, Color edge) inkFor(
+    Color cap, {
+    AppColors colors = const DefaultAppColors(),
+  }) {
+    final dark = colors.keycapInkDark;
+    final light = colors.keycapInkLight;
+    return contrast(dark, cap) >= contrast(light, cap)
+        ? (dark, light.withValues(alpha: 0.55))
+        : (light, dark.withValues(alpha: 0.7));
+  }
+
+  /// WCAG contrast ratio between two colours.
+  static double contrast(Color a, Color b) {
+    final la = a.computeLuminance();
+    final lb = b.computeLuminance();
+    final hi = math.max(la, lb);
+    final lo = math.min(la, lb);
+    return (hi + 0.05) / (lo + 0.05);
+  }
 
   /// The tallest a legend may stand, as a share of the image, whatever its
   /// row allows across: a row of short labels would otherwise set them as
   /// tall as the cap.
-  static const double maxHeight = 0.42;
+  static const double maxHeight = 0.5;
 
   /// The type size that fits [row]'s longest label across [fill] of the cap.
   static double fontSizeFor(
@@ -70,14 +100,15 @@ abstract final class KeycapLegend {
       maxLines: 1,
     )..layout();
 
+    final (inkColour, edgeColour) = inkFor(skill.color, colors: colors);
     final edge = painter(
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = fontSize * 0.14
+        ..strokeWidth = fontSize * 0.1
         ..strokeJoin = StrokeJoin.round
-        ..color = colors.keycapLegendEdge,
+        ..color = edgeColour,
     );
-    final ink = painter(Paint()..color = skill.color);
+    final ink = painter(Paint()..color = inkColour);
 
     // Mirrored left to right: the room's x axis is flipped on the way into
     // the engine (SceneAxes), and a legend baked the right way round arrives

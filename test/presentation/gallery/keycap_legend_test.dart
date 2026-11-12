@@ -41,6 +41,19 @@ void main() {
     });
   }
 
+  test('the ink contrasts with the cap, not matches it', () {
+    // Blue on blue was the complaint: the legend is never the cap's accent.
+    for (final skill in GallerySkills.all) {
+      final (ink, _) = KeycapLegend.inkFor(skill.color);
+      final contrast = KeycapLegend.contrast(ink, skill.color);
+      expect(
+        contrast,
+        greaterThan(3),
+        reason: '${skill.label} reads $contrast:1',
+      );
+    }
+  });
+
   test('one row shares one size, so it reads as a set', () {
     // The size is a property of the row, not of each label: a short label on
     // a long row is not blown up to fill its own cap.

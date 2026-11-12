@@ -234,7 +234,7 @@ class DefaultAppTypography implements AppTypography {
   TextStyle get keycapLegend => const TextStyle(
     fontSize: 100,
     height: 1,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w800,
     fontFamily: 'AzeretMono',
   );
 

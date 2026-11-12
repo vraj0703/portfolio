@@ -121,6 +121,12 @@ abstract class AppColors {
   /// The dark edge around a keycap's legend, so a pale accent still reads on
   /// a pale metal cap.
   Color get keycapLegendEdge;
+
+  /// A keycap legend's ink: near-black on a light cap, near-white on a dark
+  /// one. Not the cap's own accent, which on a cap of the same colour read
+  /// as blue on blue.
+  Color get keycapInkDark;
+  Color get keycapInkLight;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -295,6 +301,12 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get keycapLegendEdge => const Color(0xD9140C06);
+
+  @override
+  Color get keycapInkDark => const Color(0xFF14100C);
+
+  @override
+  Color get keycapInkLight => const Color(0xFFFFF8EE);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].
