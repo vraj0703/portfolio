@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
@@ -87,6 +88,10 @@ class GalleryScene {
   /// that frame is a flat placeholder standing between the previous stage and
   /// the corridor — a visible seam in an otherwise continuous move.
   static GalleryScene? get ready => _ready;
+
+  /// How far the build has got, `0`..`1`, for whoever is waiting on it: the
+  /// crossing into the gallery shows it if the visitor arrives early.
+  static final ValueNotifier<double> progress = ValueNotifier<double>(0);
   static GalleryScene? _ready;
 
   /// Starts building the gallery ahead of time.
@@ -102,7 +107,20 @@ class GalleryScene {
   static Future<GalleryScene> warmUp({
     int artworkSize = 1024,
     void Function(double)? onProgress,
-  }) => _pending ??= build(artworkSize: artworkSize, onProgress: onProgress);
+    bool background = false,
+  }) {
+    // A build already under way keeps going in the background only if it
+    // was started that way; a visitor now waiting on it takes it over.
+    if (!background) _background = false;
+    return _pending ??= () {
+      _background = background;
+      return build(artworkSize: artworkSize, onProgress: onProgress);
+    }();
+  }
+
+  /// Whether the build in flight is one nobody is waiting for yet, and so
+  /// yields to every frame of the title (PORTFOLIO-8).
+  static bool _background = false;
 
   /// Assembles the corridor and everything hanging in it.
   ///
@@ -241,6 +259,21 @@ class GalleryScene {
     double value,
   ) async {
     onProgress?.call(value);
+    progress.value = value;
+
+    // Built in the background (PORTFOLIO-8), while the title is on screen:
+    // after every step, let a frame of the title through before taking the
+    // thread again. There are no isolates on the web, so yielding is the only
+    // way to keep the build off the frames the visitor is watching.
+    //
+    // A frame, not an idle-priority task. An idle task waits for a frame
+    // with no animation in it, and the title animates every frame — the
+    // build sat at 15% for as long as the sun was up. A visitor already
+    // waiting at the crossing takes the build over and it runs flat out.
+    if (_background) {
+      await SchedulerBinding.instance.endOfFrame;
+      return;
+    }
     if (onProgress == null) return;
 
     // Nothing to paint into.

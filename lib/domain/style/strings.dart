@@ -31,6 +31,9 @@ abstract class AppStrings {
   /// On a frame whose work is not ready yet, under its title.
   String get frameComingSoon;
 
+  /// What the crossing's progress bar is, to a screen reader.
+  String get galleryPreparing;
+
   /// The testimonial wall: its first frame's title and invitation, the quiet
   /// line on the frames still empty, and the mark on a visitor's own words.
   String get testimonialsTitle;
@@ -134,6 +137,9 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get frameComingSoon => 'coming soon';
+
+  @override
+  String get galleryPreparing => 'Preparing the gallery';
 
   @override
   String get testimonialsTitle => 'Testimonials';

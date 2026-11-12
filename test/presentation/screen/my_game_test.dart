@@ -3,7 +3,6 @@ import 'package:flame_test/flame_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
-import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
@@ -74,14 +73,12 @@ void main() {
       game,
     ) async {
       // A game that loads without reporting hangs the whole app behind the
-      // loading screen. Asserted on its own phase rather than on the scene
-      // leaving loading: the gallery loads alongside it now, and the scene
-      // waits for both.
+      // loading screen. And since PORTFOLIO-8 its report is all the gate
+      // waits for: the gallery builds in the background after the title, so
+      // the scene leaves loading on the game alone.
       await Future<void>.delayed(Duration.zero);
 
-      final state = game.bloc.state;
-      expect(state, isA<Loading>(), reason: 'gallery has not reported here');
-      expect((state as Loading).progress.of(LoadingPhase.game), 1);
+      expect(game.bloc.state, isA<Logo>());
     });
 
     testWithGame<MyGame>('paints the scene on the theme ground', _buildGame, (game) async {

@@ -8,7 +8,7 @@ import 'package:portfolio/domain/models/loading_progress.dart';
 /// rather than needing to be rewritten alongside it.
 void main() {
   final totalWeight =
-      LoadingPhase.values.fold<double>(0, (sum, p) => sum + p.weight);
+      LoadingPhase.gated.fold<double>(0, (sum, p) => sum + p.weight);
 
   group('LoadingProgress', () {
     test('starts empty and incomplete', () {
@@ -18,13 +18,13 @@ void main() {
 
     test('every phase declares a positive weight', () {
       // A zero or negative weight would silently distort the whole bar.
-      for (final phase in LoadingPhase.values) {
+      for (final phase in LoadingPhase.gated) {
         expect(phase.weight, greaterThan(0), reason: phase.name);
       }
     });
 
     test('a completed phase contributes exactly its share of the total', () {
-      for (final phase in LoadingPhase.values) {
+      for (final phase in LoadingPhase.gated) {
         final progress = LoadingProgress.empty.advance(phase, 1);
         expect(
           progress.value,
@@ -36,7 +36,7 @@ void main() {
 
     test('completing every phase lands exactly on 1.0', () {
       var progress = LoadingProgress.empty;
-      for (final phase in LoadingPhase.values) {
+      for (final phase in LoadingPhase.gated) {
         progress = progress.advance(phase, 1);
       }
 
@@ -46,9 +46,9 @@ void main() {
 
     test('is incomplete while any single phase is outstanding', () {
       // Complete everything, then hold one phase back at 99%.
-      for (final held in LoadingPhase.values) {
+      for (final held in LoadingPhase.gated) {
         var progress = LoadingProgress.empty;
-        for (final phase in LoadingPhase.values) {
+        for (final phase in LoadingPhase.gated) {
           progress = progress.advance(phase, phase == held ? 0.99 : 1.0);
         }
 
@@ -114,52 +114,24 @@ void main() {
     });
   });
 
-  group('the gallery shares the bar', () {
-    test('is weighted above the game, because it takes longer', () {
-      // A bar that races to half and then sits there while the slow half
-      // finishes is worse than no bar.
-      expect(
-        LoadingPhase.gallery.weight,
-        greaterThan(LoadingPhase.game.weight),
-      );
+  group('the gate', () {
+    test('waits for the title alone', () {
+      // PORTFOLIO-8: the gallery builds in the background once the title is
+      // up; the curtain no longer waits for it.
+      expect(LoadingPhase.gated, <LoadingPhase>[LoadingPhase.game]);
+      expect(LoadingPhase.gallery.gates, isFalse);
+      expect(LoadingPhase.priming.gates, isFalse);
     });
 
-    test('the scene is not ready until every phase has reported', () {
-      // Walked over `LoadingPhase.values` rather than naming the phases, so
-      // adding one does not quietly break this — it used to say "both", and
-      // a third phase made that sentence false rather than the code wrong.
-      // What is actually being asserted is that *no* phase can be skipped:
-      // one still building must hold the curtain down.
-      var progress = LoadingProgress.empty;
-
-      for (final phase in LoadingPhase.values) {
-        expect(
-          progress.isComplete,
-          isFalse,
-          reason: '$phase had not reported yet, and the bar was already done',
-        );
-        progress = progress.advance(phase, 1);
-      }
-
-      expect(progress.isComplete, isTrue);
+    test('is complete once the title has loaded, gallery or not', () {
+      final ready = LoadingProgress.empty.advance(LoadingPhase.game, 1);
+      expect(ready.isComplete, isTrue);
+      expect(ready.value, 1);
     });
 
-    test('finishing the light half moves the bar less than half way', () {
-      final progress = LoadingProgress.empty.advance(LoadingPhase.game, 1);
-
-      expect(progress.value, lessThan(0.5));
-      expect(progress.value, greaterThan(0));
-    });
-
-    test('every declared phase counts toward the bar', () {
-      // Adding a phase should widen the bar automatically; a phase that no
-      // one waits on is a phase that can silently never finish.
-      var progress = LoadingProgress.empty;
-      for (final phase in LoadingPhase.values) {
-        progress = progress.advance(phase, 1);
-      }
-      expect(progress.value, 1);
-      expect(progress.isComplete, isTrue);
+    test('a gallery report alone does not lift it', () {
+      final only = LoadingProgress.empty.advance(LoadingPhase.gallery, 1);
+      expect(only.isComplete, isFalse);
     });
   });
 }

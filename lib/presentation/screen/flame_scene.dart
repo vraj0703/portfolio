@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
-import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/bloc/sound_cubit.dart';
@@ -23,12 +22,8 @@ class FlameScene extends StatelessWidget {
           // the bloc's dependencies can grow without this widget knowing.
           // Registered as a factory, so each provider gets an instance it
           // exclusively owns and closes.
-          create: (_) {
-            final bloc = locate<SceneBloc>()
-              ..add(const SceneEvent.initialize());
-            _warmGallery(bloc);
-            return bloc;
-          },
+          create: (_) =>
+              locate<SceneBloc>()..add(const SceneEvent.initialize()),
         ),
 
         // Beside the scene's state, not inside it. Whether a panel is open
@@ -40,68 +35,56 @@ class FlameScene extends StatelessWidget {
         // stateless.
         BlocProvider(create: (_) => locate<SoundCubit>()),
       ],
-      child: const Scaffold(body: SceneView()),
+      // The gallery starts building once the title has finished arriving —
+      // not before, so it never competes with the title for a frame.
+      child: const GalleryPreload(child: Scaffold(body: SceneView())),
+    );
+  }
+}
+
+/// Starts the gallery's build once the title sequence has arrived.
+///
+/// The build used to start on the first frame and the loading screen waited
+/// for it: minutes on a throttled phone, for a room the visitor reaches long
+/// after the title. Now it waits for the title's entrance to be *reported*
+/// complete — the move to [Active] — and runs in idle-priority steps from
+/// there, so it never takes a frame of the name and the sun. A visitor who
+/// scrolls on before it is done meets the crossing's own short progress.
+///
+/// Any later stage starts it too, should one be reached first.
+class GalleryPreload extends StatelessWidget {
+  const GalleryPreload({required this.child, super.key});
+
+  final Widget child;
+
+  static bool _started = false;
+
+  static bool shouldStart(SceneState state) =>
+      state is Active || state is Gallery || state is Contact;
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<SceneBloc, SceneState>(
+      listenWhen: (previous, current) => !_started && shouldStart(current),
+      listener: (context, state) => _start(),
+      child: child,
     );
   }
 
-  /// Starts building the gallery while the loading screen is still up.
-  ///
-  /// The gallery is the heaviest thing the site builds, and it is the last
-  /// thing the visitor reaches — several minutes of intro later. Loading it on
-  /// arrival means a wait with nothing on screen; loading it here means the
-  /// wait happens once, behind the bar that exists to cover exactly this.
-  ///
-  /// Deferred to after the first frame because building the scene needs a GPU
-  /// context, which does not exist until the engine has painted once.
-  static void _warmGallery(SceneBloc bloc) {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Guarded, not merely awaited. The scene brings up a GPU context, and
-      // when that is unavailable — a headless test, a device without the
-      // backend — the failure surfaces from inside the engine's own async
-      // work rather than on the future returned here. A `catchError` never
-      // sees it, so the zone is what catches it.
-      //
-      // This is background work the visitor never asked for; it must not be
-      // able to take the app down.
-      runZonedGuarded(
-        () {
-          GalleryScene.warmUp(
-            onProgress: (value) => bloc.add(
-              SceneEvent.loadingProgressed(
-                phase: LoadingPhase.gallery,
-                value: value,
-              ),
-            ),
-          );
-        },
-        (error, stack) {
-          // Logged in every build, not just debug. A failure here is silent
-          // by design — the intro carries on and the loading bar completes —
-          // so without this the only symptom is the bar jumping to the end,
-          // which is indistinguishable from it having simply finished.
-          debugPrint('[gallery] warm-up failed: $error');
-          debugPrint('$stack');
-          _releaseGalleryPhase(bloc);
-        },
-      );
+  static void _start() {
+    if (_started) return;
+    _started = true;
+    // Guarded, not merely awaited: bringing up the scene starts GPU work of
+    // its own, and a failure surfaces from inside the engine's async work
+    // where a catchError never sees it. Background work the visitor never
+    // asked for must not take the app down; the view reports a failure if
+    // they arrive.
+    runZonedGuarded(() => GalleryScene.warmUp(background: true), (
+      error,
+      stack,
+    ) {
+      debugPrint('[gallery] background build failed: $error');
+      debugPrint('$stack');
     });
-  }
-
-  /// Lets the loading screen finish without the gallery.
-  ///
-  /// A gallery that will not build must not strand the visitor behind the bar
-  /// forever. The intro runs; the view surfaces the failure if they arrive.
-  static void _releaseGalleryPhase(SceneBloc bloc) {
-    if (bloc.isClosed) return;
-    bloc.add(
-      const SceneEvent.loadingProgressed(phase: LoadingPhase.gallery, value: 1),
-    );
-
-    // And the warm-up with it. It draws the built scene, so a scene that was
-    // never built leaves it with nothing to draw and nothing to report — and
-    // a phase nobody reports against holds the curtain down forever.
-    bloc.add(
-      const SceneEvent.loadingProgressed(phase: LoadingPhase.priming, value: 1),
-    );
   }
 }

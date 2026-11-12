@@ -40,7 +40,7 @@ class LoadingProgress {
   /// has at least one member — but guarded anyway so a future refactor that
   /// empties it degrades to "already done" rather than dividing by zero.
   static double get _totalWeight =>
-      LoadingPhase.values.fold<double>(0, (sum, p) => sum + p.weight);
+      LoadingPhase.gated.fold<double>(0, (sum, p) => sum + p.weight);
 
   /// How far [phase] has reported, in `0..1`.
   double of(LoadingPhase phase) => _reported[phase] ?? 0;
@@ -51,7 +51,7 @@ class LoadingProgress {
     if (total <= 0) return 1;
 
     var done = 0.0;
-    for (final phase in LoadingPhase.values) {
+    for (final phase in LoadingPhase.gated) {
       done += of(phase) * phase.weight;
     }
     return (done / total).clamp(0.0, 1.0);
@@ -61,8 +61,7 @@ class LoadingProgress {
   ///
   /// Checked per phase rather than against [value], so floating-point drift
   /// in the weighted sum can never gate the transition out of loading.
-  bool get isComplete =>
-      LoadingPhase.values.every((phase) => of(phase) >= 1.0);
+  bool get isComplete => LoadingPhase.gated.every((phase) => of(phase) >= 1.0);
 
   /// Returns a snapshot with [phase] moved to [value], clamped to `0..1`.
   ///
@@ -81,8 +80,7 @@ class LoadingProgress {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is LoadingProgress &&
-          mapEquals(_reported, other._reported);
+      other is LoadingProgress && mapEquals(_reported, other._reported);
 
   @override
   int get hashCode => Object.hashAllUnordered(
