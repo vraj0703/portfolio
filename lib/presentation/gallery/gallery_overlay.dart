@@ -151,21 +151,25 @@ class _OpenControl extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: GestureDetector(
           onTap: onTap,
+          // Sized to its word, not to the screen: a Container given an
+          // alignment grows to fill whatever holds it, and this one is held
+          // by the whole overlay.
           child: Container(
-            constraints: const BoxConstraints(
-              minWidth: minSize,
-              minHeight: minSize,
-            ),
+            height: minSize,
+            constraints: const BoxConstraints(minWidth: minSize),
             padding: const EdgeInsets.symmetric(horizontal: 22),
             decoration: BoxDecoration(
               color: context.colors.galleryControlPlate,
               borderRadius: BorderRadius.circular(minSize / 2),
               border: Border.all(color: context.colors.galleryControlEdge),
             ),
-            alignment: Alignment.center,
-            child: Text(
-              '${context.strings.galleryOpen} ↗',
-              style: context.typography.galleryControl,
+            child: Center(
+              widthFactor: 1,
+              // A plain arrow: the diagonal one falls back to a colour emoji.
+              child: Text(
+                '${context.strings.galleryOpen} →',
+                style: context.typography.galleryControl,
+              ),
             ),
           ),
         ),

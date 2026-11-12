@@ -148,6 +148,10 @@ void main() {
       );
       expect(size.height, greaterThanOrEqualTo(44));
       expect(size.width, greaterThanOrEqualTo(44));
+      // And no larger than its word: a pill that grows to the overlay's
+      // size dims the whole room behind it.
+      expect(size.width, lessThan(300));
+      expect(size.height, lessThan(80));
     });
   });
 }
