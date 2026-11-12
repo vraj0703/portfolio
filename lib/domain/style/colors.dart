@@ -117,6 +117,10 @@ abstract class AppColors {
   /// rather than in their own colours. An alternative for Vishal to judge.
   Color get frameCardWarmTop;
   Color get frameCardWarmBottom;
+
+  /// The dark edge around a keycap's legend, so a pale accent still reads on
+  /// a pale metal cap.
+  Color get keycapLegendEdge;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -288,6 +292,9 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get frameCardWarmBottom => const Color(0xFF2E1D12);
+
+  @override
+  Color get keycapLegendEdge => const Color(0xD9140C06);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

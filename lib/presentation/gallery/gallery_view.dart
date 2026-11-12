@@ -427,6 +427,9 @@ class _GalleryViewState extends State<GalleryView> {
     // The board is only reachable once the visitor has arrived at it, and
     // only then is it still enough to aim at.
     if (_inHall) {
+      // The scene's own input holds focus from the logo screen on, and an
+      // autofocus further down never takes it from there; the board asks.
+      _keys.requestFocus();
       final skill = _skillAt(at);
       if (skill != null) {
         // Pressing the key already up releases it, so the board is never
@@ -553,6 +556,7 @@ class _GalleryViewState extends State<GalleryView> {
   void _hover(Offset at) {
     final skill = _skillAt(at);
     if (skill?.id == _hoverSkill?.id) return;
+    if (skill != null && !_keys.hasFocus) _keys.requestFocus();
     _gallery?.keyboard.hover(skill);
     setState(() => _hoverSkill = skill);
   }
@@ -569,10 +573,13 @@ class _GalleryViewState extends State<GalleryView> {
     final from = _skill ?? _hoverSkill;
     final key = event.logicalKey;
     final Skill? next;
+    // The board is presented turned round: from where the visitor stands a
+    // row's first key is on the right. Left and right are the screen's, so
+    // they walk the row backwards.
     if (key == LogicalKeyboardKey.arrowLeft) {
-      next = KeyboardNav.move(from, dx: -1);
-    } else if (key == LogicalKeyboardKey.arrowRight) {
       next = KeyboardNav.move(from, dx: 1);
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      next = KeyboardNav.move(from, dx: -1);
     } else if (key == LogicalKeyboardKey.arrowUp) {
       next = KeyboardNav.move(from, dy: -1);
     } else if (key == LogicalKeyboardKey.arrowDown) {
@@ -585,6 +592,9 @@ class _GalleryViewState extends State<GalleryView> {
       return KeyEventResult.ignored;
     }
 
+    // The keys own the caption now: clear the pointer's claim on it.
+    _gallery?.keyboard.hover(null);
+    _hoverSkill = null;
     _press(next);
     return KeyEventResult.handled;
   }

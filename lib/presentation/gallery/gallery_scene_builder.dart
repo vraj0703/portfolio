@@ -152,6 +152,7 @@ class GalleryScene {
     ];
 
     final keyboard = SkillKeyboard.build(base: base, rows: rows);
+    await keyboard.letter(artwork, textures);
     scene.add(keyboard.node);
     await step();
 

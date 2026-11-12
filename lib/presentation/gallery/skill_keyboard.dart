@@ -1,9 +1,11 @@
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/keyboard_layout.dart';
 import 'package:portfolio/domain/gallery/skill_data.dart';
+import 'package:portfolio/presentation/gallery/keycap_legend.dart';
 import 'package:portfolio/presentation/gallery/rounded_box.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
@@ -194,6 +196,58 @@ class SkillKeyboard {
   /// Raises and brightens one cap, and returns the rest.
   Skill? _selected;
   Skill? _hovered;
+
+  /// Puts each cap's legend on its front face: baked once per cap, every cap on a
+  /// row at that row's size, on an unlit blended quad that is a child of the
+  /// cap so it rises with it when the key is pressed. [images] and
+  /// [textures] collect what was made, for the builder to release.
+  Future<void> letter(List<ui.Image> images, List<Texture2D> textures) async {
+    final scale = KeyboardLayout.scale;
+    final sizes = <int, double>{
+      for (var r = 0; r < GallerySkills.rows.length; r++)
+        r: KeycapLegend.fontSizeFor(GallerySkills.rows[r]),
+    };
+    final face = KeyboardLayout.capSize * scale * legendShare;
+
+    for (final cap in _caps.values) {
+      final image = await KeycapLegend.render(
+        cap.key.skill,
+        fontSize: sizes[cap.key.row] ?? 40,
+      );
+      images.add(image);
+      final texture = await Texture2D.fromImage(image);
+      textures.add(texture);
+
+      // On the face toward the visitor, not the top: from where they stand
+      // at the board the tops are seen nearly edge-on, and a legend there is
+      // a smudge. Set high on the face so the rows behind still show theirs
+      // above the row in front.
+      final half = KeyboardLayout.capSize * scale / 2 + legendRise;
+      cap.node.add(
+        Node(
+          mesh: Mesh(
+            PlaneGeometry(width: face, depth: face),
+            UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend,
+          ),
+          // The cap's -z face, turned round to face out: in the board's
+          // own axes that is the side toward the visitor.
+          localTransform: Matrix4.translation(Vector3(0, legendLift, -half))
+            ..rotateY(math.pi)
+            ..rotateX(math.pi / 2),
+        ),
+      );
+    }
+  }
+
+  /// How much of a cap's top its legend may cover.
+  static const double legendShare = 0.86;
+
+  /// How far a legend stands off the cap's face, so the two never share a
+  /// depth and flicker between each other.
+  static const double legendRise = 0.004;
+
+  /// How high on the face a legend sits.
+  static const double legendLift = 0.03;
 
   void select(Skill? skill) {
     _selected = skill;

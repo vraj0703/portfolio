@@ -81,6 +81,9 @@ abstract class AppTypography {
   /// The caption under the skills board: the key's full name, then its kind.
   TextStyle get skillCaptionName;
   TextStyle get skillCaptionKind;
+
+  /// A keycap's legend, baked onto the cap at a size fitted per row.
+  TextStyle get keycapLegend;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -225,6 +228,16 @@ class DefaultAppTypography implements AppTypography {
   /// The face the far wall's name is cut in, so a card reads as part of
   /// the same room. Large enough to be read from a frame or two away, which
   /// is how far the title has to carry.
+  /// Mono and heavy: a legend is read at an angle and from an arm's length
+  /// off, and a thin proportional face goes to a smear on a cap this small.
+  @override
+  TextStyle get keycapLegend => const TextStyle(
+    fontSize: 100,
+    height: 1,
+    fontWeight: FontWeight.w700,
+    fontFamily: 'AzeretMono',
+  );
+
   @override
   TextStyle get skillCaptionName => const TextStyle(
     fontSize: 22,
