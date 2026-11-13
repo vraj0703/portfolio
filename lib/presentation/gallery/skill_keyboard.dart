@@ -10,6 +10,7 @@ import 'package:portfolio/presentation/gallery/rounded_box.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:vector_math/vector_math.dart';
+import 'package:portfolio/presentation/gallery/build_yield.dart';
 
 /// The skills keyboard, floating in its hall.
 ///
@@ -217,6 +218,7 @@ class SkillKeyboard {
       images.add(image);
       final texture = await Texture2D.fromImage(image);
       textures.add(texture);
+      await BuildYield.frame();
 
       // On the cap's top, now that the board tips toward the visitor and
       // the tops are what they see.

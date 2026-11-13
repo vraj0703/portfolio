@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
+import 'package:portfolio/presentation/gallery/build_yield.dart';
 
 /// A photographed material: which files it is made of, and how big it is.
 ///
@@ -249,6 +250,9 @@ class SurfaceMaps {
   /// never exists in memory at all.
   static const int resolution = 1024;
 
+  /// Rows of pixels repacked between frames in a background build.
+  static const int repackRows = 128;
+
   /// Decodes and uploads [set], or returns null if any of it cannot be read.
   ///
   /// Null rather than a throw: a surface falling back to flat colour is a
@@ -276,6 +280,7 @@ class SurfaceMaps {
     Future<void> Function()? onStep,
   }) async {
     final colour = await decodeMap(set.colour);
+    await BuildYield.frame();
     await onStep?.call();
     final roughness = await packRoughness(set, onStep: onStep);
     await onStep?.call();
@@ -286,6 +291,7 @@ class SurfaceMaps {
     }
 
     final normal = set.normal == null ? null : await decodeMap(set.normal!);
+    await BuildYield.frame();
     if (set.normal != null) await onStep?.call();
     final occlusion = set.occlusion == null
         ? null
@@ -299,6 +305,7 @@ class SurfaceMaps {
     if (occlusion != null) images.add(occlusion);
 
     final colourTexture = await Texture2D.fromImage(colour);
+    await BuildYield.frame();
     await onStep?.call();
     // Linear data, not colour. Decoded as sRGB these would be averaged in the
     // wrong space down the mip chain, so roughness and occlusion would drift
@@ -307,10 +314,12 @@ class SurfaceMaps {
       roughness,
       content: TextureContent.data,
     );
+    await BuildYield.frame();
     await onStep?.call();
     final normalTexture = normal == null
         ? null
         : await Texture2D.fromImage(normal, content: TextureContent.normal);
+    await BuildYield.frame();
     if (normalTexture != null) await onStep?.call();
     final occlusionTexture = occlusion == null
         ? null
@@ -399,6 +408,7 @@ class SurfaceMaps {
         format: ui.ImageByteFormat.rawStraightRgba,
       );
       if (grey == null) return null;
+      await BuildYield.frame();
 
       final metal = await metalMap?.toByteData(
         format: ui.ImageByteFormat.rawStraightRgba,
@@ -409,13 +419,20 @@ class SurfaceMaps {
       final packed = Uint8List(src.length);
       final metallicByte = (set.metallic * 255).round().clamp(0, 255);
 
-      for (var i = 0; i < src.length; i += 4) {
-        packed[i] = 0;
-        packed[i + 1] = src[i]; // grey, so any channel is the roughness
-        packed[i + 2] = metalSrc != null && i < metalSrc.length
-            ? metalSrc[i]
-            : metallicByte;
-        packed[i + 3] = 255;
+      // In slices, a frame between each: a million pixels in one pass was
+      // one of the longest tasks behind the title on a slow CPU.
+      final slice = source.width * 4 * repackRows;
+      for (var start = 0; start < src.length; start += slice) {
+        final end = start + slice < src.length ? start + slice : src.length;
+        for (var i = start; i < end; i += 4) {
+          packed[i] = 0;
+          packed[i + 1] = src[i]; // grey, so any channel is the roughness
+          packed[i + 2] = metalSrc != null && i < metalSrc.length
+              ? metalSrc[i]
+              : metallicByte;
+          packed[i + 3] = 255;
+        }
+        await BuildYield.frame();
       }
 
       // Awaited inside the `try`, so the source is not disposed out from

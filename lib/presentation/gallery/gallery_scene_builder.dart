@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/presentation/gallery/build_yield.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
@@ -111,16 +112,12 @@ class GalleryScene {
   }) {
     // A build already under way keeps going in the background only if it
     // was started that way; a visitor now waiting on it takes it over.
-    if (!background) _background = false;
+    if (!background) BuildYield.background = false;
     return _pending ??= () {
-      _background = background;
+      BuildYield.background = background;
       return build(artworkSize: artworkSize, onProgress: onProgress);
     }();
   }
-
-  /// Whether the build in flight is one nobody is waiting for yet, and so
-  /// yields to every frame of the title (PORTFOLIO-8).
-  static bool _background = false;
 
   /// Assembles the corridor and everything hanging in it.
   ///
@@ -270,8 +267,8 @@ class GalleryScene {
     // with no animation in it, and the title animates every frame — the
     // build sat at 15% for as long as the sun was up. A visitor already
     // waiting at the crossing takes the build over and it runs flat out.
-    if (_background) {
-      await SchedulerBinding.instance.endOfFrame;
+    if (BuildYield.background) {
+      await BuildYield.frame();
       return;
     }
     if (onProgress == null) return;
@@ -754,6 +751,7 @@ class GalleryScene {
       if (slot == TestimonialWall.pendingSlot) {
         testimonials.attach(node, material, card, width: width, height: height);
       }
+      await BuildYield.frame();
       return;
     }
 
@@ -773,6 +771,7 @@ class GalleryScene {
           localTransform: card,
         ),
       );
+      await BuildYield.frame();
       return;
     }
 
