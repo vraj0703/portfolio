@@ -55,6 +55,13 @@ class TitleActions extends StatelessWidget {
   static const double minMark = 20;
   static const double maxMark = 32;
 
+  /// The gap between two controls, against the glyph they draw.
+  ///
+  /// Each target already overhangs its glyph, but on a desktop, where the
+  /// glyph nearly fills the 48 target, three of them side by side read as one
+  /// strip. A share of the glyph keeps the gap in proportion at every size.
+  static const double gapRatio = 0.5;
+
   /// How tall the parked mark stands, which is the line these hang from.
   static double markHeightFor(Size viewport) =>
       LogoConfig.logoMarkWidthFor(
@@ -90,15 +97,79 @@ class TitleActions extends StatelessWidget {
           child: FocusTraversalGroup(
             child: Row(
               mainAxisSize: MainAxisSize.min,
+              spacing: glyph * gapRatio,
               children: <Widget>[
-                SoundButton(glyph: glyph, target: target),
-                ConnectButton(glyph: glyph, target: target),
-                MenuButton(glyph: glyph, target: target),
+                TitleActionEntry(
+                  order: 0,
+                  child: SoundButton(glyph: glyph, target: target),
+                ),
+                TitleActionEntry(
+                  order: 1,
+                  child: ConnectButton(glyph: glyph, target: target),
+                ),
+                TitleActionEntry(
+                  order: 2,
+                  child: MenuButton(glyph: glyph, target: target),
+                ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// One control's way onto the screen: it rises a little, overshoots, and
+/// settles, [stagger] after the one before it, so the row arrives as a wave
+/// rather than all at once.
+///
+/// Implicit, so it stays stateless: a [TweenAnimationBuilder] runs once when
+/// the row is first built, which is when the title shows it
+/// ([SceneState.showsMenu]). The delay is an [Interval] inside each tween
+/// rather than a timer, so nothing outlives the widget. A visitor who asked
+/// for less motion gets the row already at rest.
+class TitleActionEntry extends StatelessWidget {
+  const TitleActionEntry({super.key, required this.order, required this.child});
+
+  /// How long after the one before it each control sets off.
+  static const Duration stagger = Duration(milliseconds: 100);
+
+  /// How long one control takes to rise and settle.
+  static const Duration rise = Duration(milliseconds: 420);
+
+  /// How far below its place a control starts, in logical pixels. Small: a
+  /// rise and settle, not a fly-in.
+  static const double lift = 10;
+
+  /// Place in the wave, from the left.
+  final int order;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final still = MediaQuery.disableAnimationsOf(context);
+    final delay = stagger * order;
+    final total = delay + rise;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: still ? 1 : 0, end: 1),
+      duration: still ? Duration.zero : total,
+      curve: Interval(delay.inMicroseconds / total.inMicroseconds, 1),
+      child: child,
+      builder: (context, t, child) => Opacity(
+        opacity: t,
+        // Announced from the first frame: a screen reader has no use for the
+        // fade, and a control it cannot find for half a second is missing.
+        alwaysIncludeSemantics: true,
+        // `easeOutBack` passes its target and comes back: the small rise
+        // above its place before it settles.
+        child: Transform.translate(
+          offset: Offset(0, (1 - Curves.easeOutBack.transform(t)) * lift),
+          child: child,
+        ),
+      ),
     );
   }
 }

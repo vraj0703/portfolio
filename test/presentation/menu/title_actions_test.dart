@@ -277,4 +277,72 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  group('the row arrives in a wave', () {
+    /// How far each control's glyph sits from its resting place right now.
+    double offsetOf(WidgetTester tester, Finder button) => tester
+        .widget<Transform>(
+          find.ancestor(of: button, matching: find.byType(Transform)).first,
+        )
+        .transform
+        .getTranslation()
+        .y;
+
+    testWidgets('one after another, then all at rest', (tester) async {
+      await tester.pumpWidget(host(state: const SceneState.title()));
+
+      // The first under way, the last not yet started.
+      await tester.pump(TitleActionEntry.stagger * 1.5);
+      final early = <double>[
+        for (final button in buttons) offsetOf(tester, button),
+      ];
+      expect(
+        early.first.abs(),
+        lessThan(early.last.abs()),
+        reason: 'the first did not lead the last: $early',
+      );
+      expect(early.last, TitleActionEntry.lift, reason: 'the last left early');
+
+      await tester.pumpAndSettle();
+      for (final button in buttons) {
+        expect(offsetOf(tester, button), 0, reason: '$button did not settle');
+      }
+    });
+
+    testWidgets('and stays still for a visitor who asked for less motion', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: host(state: const SceneState.title()),
+        ),
+      );
+      await tester.pump();
+
+      for (final button in buttons) {
+        expect(offsetOf(tester, button), 0, reason: '$button moved');
+      }
+      expect(tester.hasRunningAnimations, isFalse);
+    });
+  });
+
+  testWidgets('a clear gap between the three', (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(host(state: const SceneState.title()));
+    await tester.pumpAndSettle();
+
+    final rects = [for (final b in buttons) tester.getRect(b)];
+    final glyph = TitleActions.glyphHeightFor(const Size(1440, 900));
+    for (var i = 1; i < rects.length; i++) {
+      expect(
+        rects[i].left - rects[i - 1].right,
+        closeTo(glyph * TitleActions.gapRatio, 0.01),
+        reason: 'targets ${i - 1} and $i touch',
+      );
+    }
+  });
 }
