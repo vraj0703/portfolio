@@ -132,4 +132,17 @@ void main() {
       );
     });
   });
+
+  test('a far-wall frame spans x, the way it hangs', () {
+    final wall = pieces.firstWhere(
+      (p) => p.kind == SurfaceKind.testimonialFrame,
+    );
+    final xs = FramePicker.cornersOf(wall).map((c) => c.x).toSet();
+    final zs = FramePicker.cornersOf(wall).map((c) => c.z).toSet();
+    expect(zs, hasLength(1), reason: 'the frame is flat on the far wall');
+    expect(
+      xs.reduce((a, b) => a > b ? a : b) - xs.reduce((a, b) => a < b ? a : b),
+      closeTo(wall.extents.x, 1e-9),
+    );
+  });
 }

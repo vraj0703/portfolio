@@ -13,7 +13,6 @@ void main() {
     bool canGoBack = true,
     bool canGoForward = true,
     bool mirrored = false,
-    VoidCallback? onAddYours,
   }) {
     taps.clear();
     return MaterialApp(
@@ -27,7 +26,6 @@ void main() {
           onForward: () => taps.add('forward'),
           mirrored: mirrored,
           asFallback: true,
-          onAddYours: onAddYours,
         ),
       ),
     );
@@ -111,25 +109,8 @@ void main() {
     expect(find.textContaining('open'), findsNothing);
   });
 
-  group('add yours', () {
-    testWidgets('shows at the wall, with nothing focused, and opens', (
-      tester,
-    ) async {
-      await tester.pumpWidget(host(onAddYours: () => taps.add('add')));
-      await tester.tap(find.textContaining('add yours'));
-      expect(taps, <String>['add']);
-    });
-
-    testWidgets('is not offered over a focused work', (tester) async {
-      await tester.pumpWidget(
-        host(focused: order.frames.first, onAddYours: () {}),
-      );
-      expect(find.textContaining('add yours'), findsNothing);
-    });
-
-    testWidgets('is not offered away from the wall', (tester) async {
-      await tester.pumpWidget(host());
-      expect(find.textContaining('add yours'), findsNothing);
-    });
+  testWidgets('no floating add yours: frame 1 carries it', (tester) async {
+    await tester.pumpWidget(host());
+    expect(find.textContaining('add yours'), findsNothing);
   });
 }

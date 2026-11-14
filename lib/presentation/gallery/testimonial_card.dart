@@ -67,6 +67,13 @@ abstract final class TestimonialCard {
           measure,
           maxLines: 3,
         );
+        _button(
+          canvas,
+          buttonRect(size, type: type, strings: strings),
+          type,
+          strings,
+          colors,
+        );
 
       case TestimonialSlot.reserved:
         // Quiet, and centred: an empty frame waiting, not a placeholder
@@ -127,6 +134,86 @@ abstract final class TestimonialCard {
     }
 
     return recorder.endRecording().toImage(width, height);
+  }
+
+  /// Where the invitation's button sits on a card baked at [size], in that
+  /// card's pixels: at the foot on the right, like a project card's link.
+  ///
+  /// The one place its geometry is decided. The invitation is drawn with it
+  /// here and the gallery picks it here (through [buttonRegion]), so what is
+  /// pressed is exactly what is drawn.
+  static Rect buttonRect(
+    Size size, {
+    AppTypography type = const DefaultAppTypography(),
+    AppStrings strings = const DefaultAppStrings(),
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(text: buttonText(strings), style: type.frameLink),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width + buttonPadX * 2;
+    final height = painter.height + buttonPadY * 2;
+    painter.dispose();
+
+    final right = size.width - size.width * margin;
+    final bottom = size.height - size.height * margin;
+    return Rect.fromLTRB(right - width, bottom - height, right, bottom);
+  }
+
+  /// [buttonRect] as a share of the card, `0..1` on both axes.
+  static Rect buttonRegion(
+    Size size, {
+    AppTypography type = const DefaultAppTypography(),
+    AppStrings strings = const DefaultAppStrings(),
+  }) {
+    final rect = buttonRect(size, type: type, strings: strings);
+    return Rect.fromLTRB(
+      rect.left / size.width,
+      rect.top / size.height,
+      rect.right / size.width,
+      rect.bottom / size.height,
+    );
+  }
+
+  /// What the button says.
+  static String buttonText(AppStrings strings) =>
+      strings.cardButton(strings.recommendAddYours);
+
+  /// Inner padding of the button, in pixels at the size baked.
+  static const double buttonPadX = 26;
+  static const double buttonPadY = 14;
+
+  static void _button(
+    Canvas canvas,
+    Rect at,
+    AppTypography type,
+    AppStrings strings,
+    AppColors colors,
+  ) {
+    final box = RRect.fromRectAndRadius(at, Radius.circular(at.height / 2));
+    canvas
+      ..drawRRect(box, Paint()..color = colors.frameCardLinkFill)
+      ..drawRRect(
+        box,
+        Paint()
+          ..color = colors.frameCardInk
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    final painter = TextPainter(
+      text: TextSpan(
+        text: buttonText(strings),
+        style: type.frameLink.copyWith(color: colors.frameCardInk),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    painter.paint(
+      canvas,
+      Offset(at.left + buttonPadX, at.top + (at.height - painter.height) / 2),
+    );
+    painter.dispose();
   }
 
   static double _text(

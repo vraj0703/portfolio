@@ -57,6 +57,9 @@ abstract class AppStrings {
 
   /// The link drawn on a card, naming where it goes.
   String frameLink(String host);
+
+  /// A button drawn on a card: its word and the arrow that says it acts.
+  String cardButton(String word);
   String get letsConnect;
 
   /// How to handle the skills board, painted on the wall behind it.
@@ -189,6 +192,9 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String frameLink(String host) => '$host  ↗';
+
+  @override
+  String cardButton(String word) => '$word  →';
 
   @override
   String get letsConnect => "LET'S CONNECT";

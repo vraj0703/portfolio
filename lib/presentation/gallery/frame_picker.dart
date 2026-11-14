@@ -136,6 +136,19 @@ abstract final class FramePicker {
       ];
     }
 
+    // The testimonial frames hang on the far wall, which already faces down
+    // the corridor: unrotated, so their width runs along x, not z. Taken
+    // along z they projected to a sliver, and the wall was all but
+    // unpressable.
+    if (frame.kind == SurfaceKind.testimonialFrame) {
+      return <Vector3>[
+        Vector3(p.x - halfWidth, p.y - halfHeight, p.z),
+        Vector3(p.x + halfWidth, p.y - halfHeight, p.z),
+        Vector3(p.x + halfWidth, p.y + halfHeight, p.z),
+        Vector3(p.x - halfWidth, p.y + halfHeight, p.z),
+      ];
+    }
+
     return <Vector3>[
       Vector3(p.x, p.y - halfHeight, p.z - halfWidth),
       Vector3(p.x, p.y - halfHeight, p.z + halfWidth),

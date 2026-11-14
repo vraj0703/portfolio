@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
-import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 
 /// The gallery's controls, drawn over the room.
@@ -26,7 +25,6 @@ class GalleryOverlay extends StatelessWidget {
     required this.onForward,
     required this.mirrored,
     required this.asFallback,
-    this.onAddYours,
     super.key,
   });
 
@@ -54,11 +52,6 @@ class GalleryOverlay extends StatelessWidget {
   /// models cannot be read — a gallery whose navigation depends on a
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
-
-  /// Opens the recommendation form; null when the visitor is not at the
-  /// testimonial wall. Shown with nothing focused, which is how the wall is
-  /// read: the camera pans along it.
-  final VoidCallback? onAddYours;
 
   @override
   Widget build(BuildContext context) {
@@ -109,73 +102,7 @@ class GalleryOverlay extends StatelessWidget {
             ),
           ),
 
-        if (!isFocused && onAddYours != null)
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 24, bottom: 44),
-              child: _OpenControl(
-                label: context.strings.recommendFormTitle,
-                text: context.strings.recommendAddYours,
-                onTap: onAddYours!,
-              ),
-            ),
-          ),
       ],
-    );
-  }
-}
-
-/// The way out to a work's own page: a word in a pill, not a glyph, because
-/// it goes somewhere the corridor's arrows do not.
-class _OpenControl extends StatelessWidget {
-  const _OpenControl({
-    required this.label,
-    required this.text,
-    required this.onTap,
-  });
-
-  /// A touch target, and no more: the pill is a small label beside the
-  /// work, not a control the size of the room's arrows.
-  static const double minSize = 48;
-
-  final String label;
-
-  /// The word on the pill, an arrow after it.
-  final String text;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      onTap: onTap,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          onTap: onTap,
-          // Sized to its word, not to the screen: a Container given an
-          // alignment grows to fill whatever holds it, and this one is held
-          // by the whole overlay.
-          child: Container(
-            height: minSize,
-            constraints: const BoxConstraints(minWidth: minSize),
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            decoration: BoxDecoration(
-              color: context.colors.galleryControlPlate,
-              borderRadius: BorderRadius.circular(minSize / 2),
-              border: Border.all(color: context.colors.galleryControlEdge),
-            ),
-            child: Center(
-              widthFactor: 1,
-              // A plain arrow: the diagonal one falls back to a colour emoji.
-              child: Text('$text →', style: context.typography.galleryOpen),
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

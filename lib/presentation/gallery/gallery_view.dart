@@ -33,6 +33,7 @@ import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/presentation/gallery/scroll_gate.dart';
 import 'package:vector_math/vector_math.dart';
 
@@ -187,10 +188,11 @@ class _GalleryViewState extends State<GalleryView> {
   /// The key the visitor last pressed on the skills board.
   Skill? _skill;
 
-  /// Whether the camera is panning the testimonial wall, which is when the
-  /// "add yours" control shows. A notifier, so the one control rebuilds as
-  /// the visitor passes rather than the whole view every frame.
-  final ValueNotifier<bool> _onWall = ValueNotifier<bool>(false);
+  /// Whether the camera is panning the testimonial wall. That pan is how the
+  /// wall is read, with nothing focused, so it is what puts frame 1's button
+  /// within reach: a press on it, or Enter, opens the form. Set every frame
+  /// by the render loop; nothing rebuilds on it.
+  bool _onWall = false;
 
   /// Takes Enter while the visitor is in the room, so a focused frame can be
   /// opened from the keyboard. Focused when the room opens; the overlay's own
@@ -457,10 +459,14 @@ class _GalleryViewState extends State<GalleryView> {
       },
     );
 
-    // Any testimonial frame opens the form: the wall is an invitation.
+    // The wall is read by panning along it, not by focusing a frame, so the
+    // pan is what puts frame 1's button within reach. Only the button opens
+    // the form; a press anywhere else on the wall is not a request for it.
     if (hit?.kind == SurfaceKind.testimonialFrame) {
-      _sound(AudioCue.click);
-      _addYours();
+      if (_onWall && _onAddYours(hit!, at, camera)) {
+        _sound(AudioCue.click);
+        _addYours();
+      }
       return;
     }
 
@@ -550,6 +556,51 @@ class _GalleryViewState extends State<GalleryView> {
 
   bool _isFocused(Placement frame) => _focused?.position == frame.position;
 
+  /// Whether [at] falls on the button drawn on [frame], if [frame] is the
+  /// one that carries it (the invitation, frame 1).
+  bool _onAddYours(Placement frame, Offset at, PerspectiveCamera camera) {
+    if (_gallery == null || !_isInvitation(frame)) return false;
+    final onCard = _onCard(frame, at, camera);
+    if (onCard == null) return false;
+    return TestimonialCard.buttonRegion(_bakedCard(frame)).contains(onCard);
+  }
+
+  /// Whether [frame] is the testimonial wall's first, the invitation.
+  static bool _isInvitation(Placement frame) =>
+      frame.kind == SurfaceKind.testimonialFrame &&
+      frame.position.x ==
+          GalleryDimensions.testStartX +
+              TestimonialWall.invitation * GalleryDimensions.testSpacing;
+
+  /// Where [at] lands on [frame]'s card, `0..1` from its top left, or null.
+  ///
+  /// The frame's screen rectangle gives where the press landed on the frame;
+  /// the moulding is taken off each side to give where it landed on the
+  /// card.
+  Offset? _onCard(Placement frame, Offset at, PerspectiveCamera camera) {
+    final onFrame = FramePicker.fractionWithin(
+      at,
+      frame,
+      (world) => camera.worldToScreen(world, _viewSize),
+    );
+    if (onFrame == null) return null;
+    final border = GalleryLayout.frameBorder;
+    return Offset(
+      (onFrame.dx * frame.extents.x - border) / (frame.extents.x - border * 2),
+      (onFrame.dy * frame.extents.y - border) / (frame.extents.y - border * 2),
+    );
+  }
+
+  /// The size [frame]'s card was baked at, which is the size its type and
+  /// anything drawn on it were measured in.
+  Size _bakedCard(Placement frame) {
+    final border = GalleryLayout.frameBorder;
+    final baked = (_gallery?.artworkSize ?? 0).toDouble();
+    final ratio =
+        (frame.extents.y - border * 2) / (frame.extents.x - border * 2);
+    return Size(baked, (baked * ratio).roundToDouble());
+  }
+
   /// Whether [at] falls on the link drawn on [frame]'s card.
   ///
   /// The frame's screen rectangle gives where the press landed on the frame;
@@ -557,39 +608,28 @@ class _GalleryViewState extends State<GalleryView> {
   /// card; and the card says where its link is, at the size it was baked.
   bool _onLink(Placement frame, Offset at, PerspectiveCamera camera) {
     final project = frame.project;
-    final gallery = _gallery;
-    if (project == null || gallery == null) return false;
-
-    final onFrame = FramePicker.fractionWithin(
-      at,
-      frame,
-      (world) => camera.worldToScreen(world, _viewSize),
-    );
-    if (onFrame == null) return false;
-
-    final border = GalleryLayout.frameBorder;
-    final cardWidth = frame.extents.x - border * 2;
-    final cardHeight = frame.extents.y - border * 2;
-    final onCard = Offset(
-      (onFrame.dx * frame.extents.x - border) / cardWidth,
-      (onFrame.dy * frame.extents.y - border) / cardHeight,
-    );
-
-    final baked = gallery.artworkSize.toDouble();
-    final region = FrameCard.linkRegion(
-      Size(baked, (baked * cardHeight / cardWidth).roundToDouble()),
-      project: project,
-    );
+    if (project == null || _gallery == null) return false;
+    final onCard = _onCard(frame, at, camera);
+    if (onCard == null) return false;
+    final region = FrameCard.linkRegion(_bakedCard(frame), project: project);
     return region != null && region.contains(onCard);
   }
 
-  /// Enter on a focused frame opens its link, as pressing the link does.
+  /// Enter on a focused frame opens its link, as pressing the link does; on
+  /// the testimonial wall it opens the form, as frame 1's button does.
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey != LogicalKeyboardKey.enter &&
         event.logicalKey != LogicalKeyboardKey.numpadEnter) {
       return KeyEventResult.ignored;
     }
+    // At the testimonial wall, Enter is frame 1's button.
+    if (_onWall) {
+      _sound(AudioCue.click);
+      _addYours();
+      return KeyEventResult.handled;
+    }
+
     final focused = _focused;
     final open = focused == null ? null : _openFor(focused);
     if (open == null) return KeyEventResult.ignored;
@@ -725,7 +765,6 @@ class _GalleryViewState extends State<GalleryView> {
   @override
   void dispose() {
     _keys.dispose();
-    _onWall.dispose();
     _radio?.cancel();
     _leaving.dispose();
     _markJourney.dispose();
@@ -834,22 +873,18 @@ class _GalleryViewState extends State<GalleryView> {
               // stepped to the next piece and was immediately overruled by a
               // pick of whatever was still under the pointer. That is why the
               // arrows did nothing.
-              ValueListenableBuilder<bool>(
-                valueListenable: _onWall,
-                builder: (context, onWall, _) => GalleryOverlay(
-                  focused: _focused,
-                  canGoBack: _focused != null && _order.hasPrevious(_focused!),
-                  canGoForward: _focused != null && _order.hasNext(_focused!),
-                  // Through the same dispatch as the icons on the wall, so the
-                  // fallback cannot do anything the real controls do not — or
-                  // sound different doing it.
-                  onBack: () => _control(ControlAction.previous),
-                  onExit: () => _control(ControlAction.exit),
-                  onForward: () => _control(ControlAction.next),
-                  mirrored: !(_focused?.position.x.isNegative ?? true),
-                  asFallback: _gallery?.controls == null,
-                  onAddYours: onWall ? _addYours : null,
-                ),
+              GalleryOverlay(
+                focused: _focused,
+                canGoBack: _focused != null && _order.hasPrevious(_focused!),
+                canGoForward: _focused != null && _order.hasNext(_focused!),
+                // Through the same dispatch as the icons on the wall, so the
+                // fallback cannot do anything the real controls do not — or
+                // sound different doing it.
+                onBack: () => _control(ControlAction.previous),
+                onExit: () => _control(ControlAction.exit),
+                onForward: () => _control(ControlAction.next),
+                mirrored: !(_focused?.position.x.isNegative ?? true),
+                asFallback: _gallery?.controls == null,
               ),
 
               // Over the room *and* over its controls. A ✕ still lit on a
@@ -952,7 +987,7 @@ class _GalleryViewState extends State<GalleryView> {
         // the visitor for the "add yours" control.
         gallery.testimonials.tick(deltaSeconds);
         final wallProgress = _scroll.progress;
-        _onWall.value =
+        _onWall =
             _focused == null &&
             wallProgress >= GalleryCameraPath.walkFraction &&
             wallProgress <= GalleryCameraPath.panEnd;
