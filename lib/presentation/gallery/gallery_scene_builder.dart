@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
@@ -9,7 +8,6 @@ import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
-import 'package:portfolio/data/platform/page_visibility.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
@@ -89,10 +87,6 @@ class GalleryScene {
   /// that frame is a flat placeholder standing between the previous stage and
   /// the corridor — a visible seam in an otherwise continuous move.
   static GalleryScene? get ready => _ready;
-
-  /// How far the build has got, `0`..`1`, for whoever is waiting on it: the
-  /// crossing into the gallery shows it if the visitor arrives early.
-  static final ValueNotifier<double> progress = ValueNotifier<double>(0);
   static GalleryScene? _ready;
 
   /// Starts building the gallery ahead of time.
@@ -108,16 +102,7 @@ class GalleryScene {
   static Future<GalleryScene> warmUp({
     int artworkSize = 1024,
     void Function(double)? onProgress,
-    bool background = false,
-  }) {
-    // A build already under way keeps going in the background only if it
-    // was started that way; a visitor now waiting on it takes it over.
-    if (!background) BuildYield.background = false;
-    return _pending ??= () {
-      BuildYield.background = background;
-      return build(artworkSize: artworkSize, onProgress: onProgress);
-    }();
-  }
+  }) => _pending ??= build(artworkSize: artworkSize, onProgress: onProgress);
 
   /// Assembles the corridor and everything hanging in it.
   ///
@@ -246,55 +231,18 @@ class GalleryScene {
   ///
   /// **And a bar cannot usefully move faster than it can be read.** There are
   /// something over a hundred steps in this build, and giving a frame back to
-  /// each one buys nothing after the first: two reports a hundredth of a
-  /// second apart are one report as far as an eye is concerned, and the
-  /// second frame is pure delay. [_paintInterval] is how often the bar is
-  /// worth repainting; between those moments the steps run back to back.
+  /// each one buys nothing after the first. [BuildYield] paces it: the steps
+  /// run back to back until about [BuildYield.budget] of work has piled up,
+  /// and only then is a frame let through. The same pacing runs inside the
+  /// steps (a texture decode, a slice of a repack, a card bake), so the
+  /// loading screen keeps animating through the long ones too.
   static Future<void> _report(
     void Function(double)? onProgress,
     double value,
   ) async {
     onProgress?.call(value);
-    progress.value = value;
-
-    // Built in the background (PORTFOLIO-8), while the title is on screen:
-    // after every step, let a frame of the title through before taking the
-    // thread again. There are no isolates on the web, so yielding is the only
-    // way to keep the build off the frames the visitor is watching.
-    //
-    // A frame, not an idle-priority task. An idle task waits for a frame
-    // with no animation in it, and the title animates every frame — the
-    // build sat at 15% for as long as the sun was up. A visitor already
-    // waiting at the crossing takes the build over and it runs flat out.
-    if (BuildYield.background) {
-      await BuildYield.frame();
-      return;
-    }
-    if (onProgress == null) return;
-
-    // Nothing to paint into.
-    if (!PageVisibility.isVisible) return;
-
-    if (!_sincePaint.isRunning) _sincePaint.start();
-    if (_sincePaint.elapsed < _paintInterval) return;
-
-    await SchedulerBinding.instance.endOfFrame;
-    _sincePaint.reset();
+    await BuildYield.frame();
   }
-
-  /// How often the loading bar is worth handing a frame to.
-  ///
-  /// Twenty a second. Fast enough that the bar reads as continuous motion,
-  /// and slow enough that a run of cheap steps is not spending a frame each
-  /// to say the same thing.
-  static const Duration _paintInterval = Duration(milliseconds: 50);
-
-  /// Time since the bar was last given a frame to draw in.
-  ///
-  /// Static because the build is: [warmUp] memoises one build for the life of
-  /// the app, so there is never a second one running alongside it to confuse
-  /// this with.
-  static final Stopwatch _sincePaint = Stopwatch();
 
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.

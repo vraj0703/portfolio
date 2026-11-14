@@ -22,7 +22,6 @@ import 'package:portfolio/domain/gallery/skill_data.dart';
 import 'package:portfolio/domain/gallery/walk_order.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/colors.dart';
-import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
@@ -982,37 +981,12 @@ class _GalleryViewState extends State<GalleryView> {
 class GalleryPlaceholder extends StatelessWidget {
   const GalleryPlaceholder({super.key});
 
-  /// How wide the crossing's progress bar is.
-  static const double barWidth = 220;
-
   @override
   Widget build(BuildContext context) {
-    // Only seen when the visitor reaches the gallery before its background
-    // build has finished: a thin bar that fills as it does, then the room.
     return ColoredBox(
       key: GalleryView.placeholderKey,
       color: context.colors.sceneBackground,
-      child: Center(
-        child: SizedBox(
-          width: GalleryPlaceholder.barWidth,
-          child: ValueListenableBuilder<double>(
-            valueListenable: GalleryScene.progress,
-            builder: (context, value, _) => Semantics(
-              label: context.strings.galleryPreparing,
-              value: '${(value * 100).round()}%',
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(2),
-                child: LinearProgressIndicator(
-                  value: value,
-                  minHeight: 3,
-                  backgroundColor: context.colors.galleryProgressTrack,
-                  color: context.colors.loadingAccent,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: const SizedBox.expand(),
     );
   }
 }

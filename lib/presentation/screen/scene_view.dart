@@ -7,6 +7,7 @@ import 'package:portfolio/domain/config/durations.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
+import 'package:portfolio/presentation/gallery/gallery_primer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
@@ -80,15 +81,10 @@ class SceneView extends StatelessWidget {
             left: 0,
             width: GalleryWarmRender.edge,
             height: GalleryWarmRender.edge,
-            // At the crossing only (PORTFOLIO-8): drawing the room compiles
-            // its pipelines, and doing that during the title's entrance would
-            // take frames from the name and the sun.
             child: BlocBuilder<SceneBloc, SceneState>(
-              buildWhen: (previous, current) =>
-                  (previous is Active) != (current is Active),
-              builder: (context, state) => state is Active
-                  ? const GalleryWarmRender()
-                  : const SizedBox.shrink(),
+              builder: (context, state) => state is Gallery
+                  ? const SizedBox.shrink()
+                  : const GalleryWarmRender(),
             ),
           ),
 
@@ -148,6 +144,7 @@ class SceneView extends StatelessWidget {
                       //
                       // Below the `ClipPath`, never above: it has to be
                       // painted to be warmed, and it must not be seen.
+                      if (isLoading) GalleryPrimer(queuer: context.read<SceneBloc>()),
 
                       ClipPath(
                         clipper: CurtainClipper(revealProgress: reveal),

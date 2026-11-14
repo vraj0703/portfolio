@@ -18,7 +18,7 @@
 /// bar advances at a believable rate rather than stalling on the slow one.
 enum LoadingPhase {
   /// The Flame scene: engine boot, component construction, asset warm-up.
-  game(weight: 1, gates: true),
+  game(weight: 1),
 
   /// The gallery: shader bundle, a rasterised canvas per project, and a
   /// texture upload for each.
@@ -26,7 +26,7 @@ enum LoadingPhase {
   /// Weighted well above the game because it genuinely takes longer, and the
   /// bar should reflect that rather than sitting at 50% while the slow half
   /// finishes.
-  gallery(weight: 3, gates: false),
+  gallery(weight: 3),
 
   /// Drawing the finished gallery once, behind the curtain, so the pipelines
   /// its materials need are compiled before the visitor arrives in it.
@@ -39,21 +39,9 @@ enum LoadingPhase {
   ///
   /// Weighted well below the others because it is a handful of frames
   /// against seconds of building, and the bar should say so.
-  priming(weight: 0.5, gates: false);
+  priming(weight: 0.5);
 
-  const LoadingPhase({required this.weight, required this.gates});
-
-  /// Whether the loading screen waits for this phase (PORTFOLIO-8).
-  ///
-  /// Only the title's own work does. The gallery is built and warmed in the
-  /// background once the title is up — it is minutes of walking away, and
-  /// gating on it held the visitor behind the bar for two minutes on a
-  /// throttled phone while the title they had come to see was long ready.
-  final bool gates;
-
-  /// The phases the loading screen waits for.
-  static List<LoadingPhase> get gated =>
-      values.where((phase) => phase.gates).toList(growable: false);
+  const LoadingPhase({required this.weight});
 
   /// Relative share of the overall bar. Must be positive.
   final double weight;
