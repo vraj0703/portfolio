@@ -1,138 +1,105 @@
-/// Testimonial data, ported 1:1 from the React gallery's
-/// `src/config/testimonials.ts`.
+import 'dart:convert';
+
+/// The testimonial wall.
 ///
-/// TODO: replace with live LinkedIn recommendations via API — carried over
-/// from the TypeScript source.
+/// Five frames on the far wall of the wing. The six testimonials carried
+/// over from the React site are gone: they were invented names and words,
+/// and a gallery that hangs quotes nobody said is worse than one with empty
+/// frames. Until real recommendations are approved, the wall is:
 ///
-/// The list drives the back-wall layout: each entry becomes one framed card
-/// plus its own spotlight, spaced along the wall. The trailing CTA entry is a
-/// blank card that opens the recommendation form rather than showing a quote,
-/// so it must stay last — the camera's wall pan ends on it.
-class Testimonial {
-  const Testimonial({
-    required this.id,
-    required this.name,
-    required this.role,
-    required this.company,
-    required this.text,
-    required this.relationship,
-    this.date,
-    this.photoUrl,
-    this.linkedinUrl,
-    this.isCTA = false,
-  });
+/// - frame 1, [invitation]: the title and an invitation to add yours;
+/// - frames 2 to 5: a quiet "reserved" card, no fake quote;
+/// - except that a visitor who has just written a recommendation sees their
+///   own words in frame 2, [pendingSlot], marked pending — on their own
+///   machine only, kept in the browser, never sent anywhere.
+abstract final class TestimonialWall {
+  /// How many frames hang on the wall; see `GalleryDimensions`.
+  static const int slots = 5;
 
-  /// The blank end-of-wall card that opens the "leave a recommendation" form.
-  const Testimonial.cta()
-      : id = 'cta',
-        name = '',
-        role = '',
-        company = '',
-        text = '',
-        relationship = '',
-        date = null,
-        photoUrl = null,
-        linkedinUrl = null,
-        isCTA = true;
+  /// The frame that invites a recommendation.
+  static const int invitation = 0;
 
-  final String id;
-  final String name;
-  final String role;
-  final String company;
-  final String text;
+  /// The frame that shows a visitor's own pending words.
+  static const int pendingSlot = 1;
 
-  /// How the recommender knows Vishal — e.g. "Managed Vishal".
-  final String relationship;
-
-  final String? date;
-  final String? photoUrl;
-  final String? linkedinUrl;
-  final bool isCTA;
+  /// What [slot] shows, given the visitor's own [pending] words if any.
+  static TestimonialSlot slotFor(int slot, {PendingRecommendation? pending}) {
+    if (slot == invitation) return TestimonialSlot.invitation;
+    if (slot == pendingSlot && pending != null) return TestimonialSlot.pending;
+    return TestimonialSlot.reserved;
+  }
 }
 
-abstract final class GalleryTestimonials {
-  static const List<Testimonial> all = <Testimonial>[
-    Testimonial(
-      id: 't1',
-      name: 'Ankit Sharma',
-      role: 'Engineering Director',
-      company: 'Twin Health',
-      text: 'Vishal transformed our Flutter platform from a collection of '
-          'screens into a true SDK. His architectural instincts are '
-          'exceptional — he thinks in systems, not features. The modular '
-          'foundation he built powers our entire mobile fleet and has cut '
-          'onboarding time for new engineers by half.',
-      relationship: 'Managed Vishal',
-      date: '2024-11',
-    ),
-    Testimonial(
-      id: 't2',
-      name: 'Priya Menon',
-      role: 'Senior Product Manager',
-      company: 'Twin Health',
-      text: 'Working with Vishal was a masterclass in technical partnership. '
-          'He never just built what was asked — he challenged assumptions, '
-          'proposed elegant alternatives, and delivered solutions that were '
-          'both technically sound and user-centric. His AI integration work '
-          'was genuinely ahead of its time.',
-      relationship: 'Worked with Vishal',
-      date: '2024-10',
-    ),
-    Testimonial(
-      id: 't3',
-      name: 'Rahul Kapoor',
-      role: 'CTO',
-      company: 'FieldAssist',
-      text: 'Vishal joined us early and grew into one of our most impactful '
-          'engineers. He built our offline-first mobile architecture from '
-          'scratch — the kind of deep technical work that most engineers shy '
-          'away from. His code was clean, his designs were robust, and he '
-          'mentored juniors with genuine care.',
-      relationship: 'Managed Vishal',
-      date: '2022-06',
-    ),
-    Testimonial(
-      id: 't4',
-      name: 'Deepak Nair',
-      role: 'Lead Backend Engineer',
-      company: 'FieldAssist',
-      text: 'Rare to find a mobile engineer who truly understands the full '
-          'stack. Vishal would often catch API design issues before they '
-          'became problems and suggest contract changes that improved both '
-          'mobile and backend. His cross-functional thinking made every '
-          'project better.',
-      relationship: 'Worked with Vishal',
-      date: '2022-03',
-    ),
-    Testimonial(
-      id: 't5',
-      name: 'Siddharth Jain',
-      role: 'VP Engineering',
-      company: 'PayU',
-      text: "Vishal brought an architect's precision to every mobile project "
-          'at PayU. In the payments space, reliability is everything — and '
-          'his code reflected that philosophy. He delivered complex payment '
-          'flow integrations with clean, maintainable architecture under '
-          'tight deadlines.',
-      relationship: 'Managed Vishal',
-      date: '2019-08',
-    ),
-    Testimonial(
-      id: 't6',
-      name: 'Dr. Meera Krishnan',
-      role: 'Professor, Computer Science',
-      company: 'VIT University',
-      text: "Vishal stood out as someone who didn't just complete assignments "
-          '— he reimagined them. His final-year project demonstrated a '
-          'maturity in software design that I rarely see in undergraduates. '
-          'I knew he would go on to build remarkable things.',
-      relationship: 'Worked with Vishal',
-      date: '2016-05',
-    ),
-    Testimonial.cta(),
-  ];
+/// What a testimonial frame shows.
+enum TestimonialSlot { invitation, reserved, pending }
 
-  /// Real testimonials only — the CTA card renders a form, not a quote.
-  static final List<Testimonial> cards =
-      all.where((t) => !t.isCTA).toList(growable: false);
+/// A recommendation a visitor wrote here and is taking to LinkedIn.
+///
+/// Nothing is sent from the site: the words are copied for the visitor to
+/// paste into LinkedIn's own recommendation form, and kept in their browser
+/// so they see them on the wall straight away, marked pending.
+class PendingRecommendation {
+  const PendingRecommendation({
+    required this.name,
+    required this.role,
+    required this.relationship,
+    required this.words,
+  });
+
+  final String name;
+
+  /// Their role and company, as they would sign it.
+  final String role;
+
+  /// How they know Vishal: managed him, worked with him, and so on.
+  final String relationship;
+
+  final String words;
+
+  /// What is copied for LinkedIn: the words alone. LinkedIn already knows who
+  /// is writing and asks for the relationship itself, so anything more would
+  /// have to be deleted again before posting.
+  String get clipboardText => words.trim();
+
+  /// The sign-off under the words on the wall.
+  String get signature =>
+      role.trim().isEmpty ? name.trim() : '${name.trim()}, ${role.trim()}';
+
+  String toJson() => jsonEncode(<String, String>{
+    'name': name,
+    'role': role,
+    'relationship': relationship,
+    'words': words,
+  });
+
+  /// Null for anything that is not a recommendation this site wrote: browser
+  /// storage is the visitor's, and can hold anything.
+  static PendingRecommendation? fromJson(String? raw) {
+    if (raw == null || raw.isEmpty) return null;
+    try {
+      final map = jsonDecode(raw);
+      if (map is! Map<String, dynamic>) return null;
+      final name = map['name'];
+      final words = map['words'];
+      if (name is! String || words is! String) return null;
+      if (name.trim().isEmpty || words.trim().isEmpty) return null;
+      return PendingRecommendation(
+        name: name,
+        role: map['role'] is String ? map['role'] as String : '',
+        relationship: map['relationship'] is String
+            ? map['relationship'] as String
+            : '',
+        words: words,
+      );
+    } on FormatException {
+      return null;
+    }
+  }
+}
+
+/// Where a visitor's pending recommendation is kept between visits.
+abstract class RecommendationStore {
+  PendingRecommendation? load();
+
+  void save(PendingRecommendation recommendation);
 }

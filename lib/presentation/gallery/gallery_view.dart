@@ -1,11 +1,15 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
+import 'package:portfolio/presentation/gallery/recommendation_form.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
@@ -23,11 +27,13 @@ import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/presentation/gallery/scroll_gate.dart';
 import 'package:vector_math/vector_math.dart';
 
@@ -182,6 +188,17 @@ class _GalleryViewState extends State<GalleryView> {
   /// The key the visitor last pressed on the skills board.
   Skill? _skill;
 
+  /// Whether the camera is panning the testimonial wall. That pan is how the
+  /// wall is read, with nothing focused, so it is what puts frame 1's button
+  /// within reach: a press on it, or Enter, opens the form. Set every frame
+  /// by the render loop; nothing rebuilds on it.
+  bool _onWall = false;
+
+  /// Takes Enter while the visitor is in the room, so a focused frame can be
+  /// opened from the keyboard. Focused when the room opens; the overlay's own
+  /// buttons, once tabbed to, keep their Enter for themselves.
+  final FocusNode _keys = FocusNode(debugLabel: 'gallery');
+
   /// How the visitor has turned the board.
   late final KeyboardOrbit _orbit = KeyboardOrbit(
     restElevation: GalleryCameraPath.hallRestElevation,
@@ -235,6 +252,10 @@ class _GalleryViewState extends State<GalleryView> {
 
     _gallery = GalleryScene.ready;
     if (_gallery == null) _load();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _keys.requestFocus();
+    });
   }
 
   @override
@@ -346,6 +367,42 @@ class _GalleryViewState extends State<GalleryView> {
     setState(() => _leavingFor = event);
   }
 
+  /// Opens the recommendation form.
+  void _addYours() {
+    if (!mounted) return;
+    unawaited(
+      RecommendationForm.open(context, onSubmit: _submitRecommendation),
+    );
+  }
+
+  /// What submitting the form does: LinkedIn opens first, inside the press,
+  /// or the browser takes the new tab for a pop-up; then the words are
+  /// copied for pasting there, kept in this browser, and put on frame 2.
+  Future<void> _submitRecommendation(PendingRecommendation words) async {
+    unawaited(locate<ContactLinks>().openLinkedIn());
+    // Best effort: a browser may refuse the clipboard, and the words must
+    // still be kept and shown — the form says where to paste them, and they
+    // are on the wall to copy by hand.
+    try {
+      await Clipboard.setData(ClipboardData(text: words.clipboardText));
+    } catch (_) {}
+    locate<RecommendationStore>().save(words);
+    await _gallery?.testimonials.show(words);
+  }
+
+  /// Opens [frame]'s own link, or null when it has none to open.
+  ///
+  /// The same sound as the two signs on the walls: it puts the room away and
+  /// opens something else, which is more than a click can say.
+  VoidCallback? _openFor(Placement? frame) {
+    final project = frame?.project;
+    if (project == null || !project.hasLink) return null;
+    return () {
+      _sound(AudioCue.pageTurn);
+      unawaited(locate<ContactLinks>().open(Uri.parse(project.url)));
+    };
+  }
+
   /// Acts on one of the three controls, whichever way it was pressed.
   ///
   /// The 3D icons on the wall and the 2D fallback both come through here, so
@@ -398,8 +455,20 @@ class _GalleryViewState extends State<GalleryView> {
         // back of the corridor would take the visitor out of a gallery they
         // had not finished walking.
         if (_inHall) SurfaceKind.connectSign,
+        SurfaceKind.testimonialFrame,
       },
     );
+
+    // The wall is read by panning along it, not by focusing a frame, so the
+    // pan is what puts frame 1's button within reach. Only the button opens
+    // the form; a press anywhere else on the wall is not a request for it.
+    if (hit?.kind == SurfaceKind.testimonialFrame) {
+      if (_onWall && _onAddYours(hit!, at, camera)) {
+        _sound(AudioCue.click);
+        _addYours();
+      }
+      return;
+    }
 
     // The board is only reachable once the visitor has arrived at it, and
     // only then is it still enough to aim at.
@@ -471,8 +540,101 @@ class _GalleryViewState extends State<GalleryView> {
     // dismissing on any miss would make the room feel like it was trying to
     // get rid of you.
     if (hit == null) return;
+
+    // On the frame already in focus, the link drawn on its card opens the
+    // work. Only there: down the corridor the link is a few pixels wide, and
+    // the first press on a frame is a request to look at it.
+    final open = _openFor(hit);
+    if (open != null && _isFocused(hit) && _onLink(hit, at, camera)) {
+      open();
+      return;
+    }
+
     _sound(AudioCue.click);
     _focus(hit);
+  }
+
+  bool _isFocused(Placement frame) => _focused?.position == frame.position;
+
+  /// Whether [at] falls on the button drawn on [frame], if [frame] is the
+  /// one that carries it (the invitation, frame 1).
+  bool _onAddYours(Placement frame, Offset at, PerspectiveCamera camera) {
+    if (_gallery == null || !_isInvitation(frame)) return false;
+    final onCard = _onCard(frame, at, camera);
+    if (onCard == null) return false;
+    return TestimonialCard.buttonRegion(_bakedCard(frame)).contains(onCard);
+  }
+
+  /// Whether [frame] is the testimonial wall's first, the invitation.
+  static bool _isInvitation(Placement frame) =>
+      frame.kind == SurfaceKind.testimonialFrame &&
+      frame.position.x ==
+          GalleryDimensions.testStartX +
+              TestimonialWall.invitation * GalleryDimensions.testSpacing;
+
+  /// Where [at] lands on [frame]'s card, `0..1` from its top left, or null.
+  ///
+  /// The frame's screen rectangle gives where the press landed on the frame;
+  /// the moulding is taken off each side to give where it landed on the
+  /// card.
+  Offset? _onCard(Placement frame, Offset at, PerspectiveCamera camera) {
+    final onFrame = FramePicker.fractionWithin(
+      at,
+      frame,
+      (world) => camera.worldToScreen(world, _viewSize),
+    );
+    if (onFrame == null) return null;
+    final border = GalleryLayout.frameBorder;
+    return Offset(
+      (onFrame.dx * frame.extents.x - border) / (frame.extents.x - border * 2),
+      (onFrame.dy * frame.extents.y - border) / (frame.extents.y - border * 2),
+    );
+  }
+
+  /// The size [frame]'s card was baked at, which is the size its type and
+  /// anything drawn on it were measured in.
+  Size _bakedCard(Placement frame) {
+    final border = GalleryLayout.frameBorder;
+    final baked = (_gallery?.artworkSize ?? 0).toDouble();
+    final ratio =
+        (frame.extents.y - border * 2) / (frame.extents.x - border * 2);
+    return Size(baked, (baked * ratio).roundToDouble());
+  }
+
+  /// Whether [at] falls on the link drawn on [frame]'s card.
+  ///
+  /// The frame's screen rectangle gives where the press landed on the frame;
+  /// the moulding is taken off each side to give where it landed on the
+  /// card; and the card says where its link is, at the size it was baked.
+  bool _onLink(Placement frame, Offset at, PerspectiveCamera camera) {
+    final project = frame.project;
+    if (project == null || _gallery == null) return false;
+    final onCard = _onCard(frame, at, camera);
+    if (onCard == null) return false;
+    final region = FrameCard.linkRegion(_bakedCard(frame), project: project);
+    return region != null && region.contains(onCard);
+  }
+
+  /// Enter on a focused frame opens its link, as pressing the link does; on
+  /// the testimonial wall it opens the form, as frame 1's button does.
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    if (event.logicalKey != LogicalKeyboardKey.enter &&
+        event.logicalKey != LogicalKeyboardKey.numpadEnter) {
+      return KeyEventResult.ignored;
+    }
+    // At the testimonial wall, Enter is frame 1's button.
+    if (_onWall) {
+      _sound(AudioCue.click);
+      _addYours();
+      return KeyEventResult.handled;
+    }
+
+    final focused = _focused;
+    final open = focused == null ? null : _openFor(focused);
+    if (open == null) return KeyEventResult.ignored;
+    open();
+    return KeyEventResult.handled;
   }
 
   /// Whether the visitor has arrived at the board, close enough that the
@@ -602,6 +764,7 @@ class _GalleryViewState extends State<GalleryView> {
 
   @override
   void dispose() {
+    _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
     _markJourney.dispose();
@@ -622,149 +785,153 @@ class _GalleryViewState extends State<GalleryView> {
     // the activity clock stays frozen at the handover, and the first event
     // the gate actually sees reads as the pause it was waiting for. It then
     // arms mid-gesture, which is precisely the leak it exists to prevent.
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        _viewSize = constraints.biggest;
+    return Focus(
+      focusNode: _keys,
+      onKeyEvent: _onKey,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          _viewSize = constraints.biggest;
 
-        return Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            // The gate wraps every branch without exception. Mount it only
-            // around the finished scene and it is blind for as long as the
-            // scene takes to arrive: the tail of the previous gesture flows
-            // past unseen, the activity clock stays frozen at the handover,
-            // and the first event the gate actually sees reads as the pause
-            // it was waiting for. It then arms mid-gesture, which is
-            // precisely the leak it exists to prevent.
-            Listener(
-              onPointerSignal: (event) {
-                if (event is! PointerScrollEvent) return;
-                // Every event is offered to the gate, including the ones it
-                // swallows — a continuous stream must not look like a pause
-                // simply because none of it was acted on.
-                if (!_gate.accept(_clock.elapsedMilliseconds)) return;
-                // The driver clamps to `[0, extent]`, so scrolling the wrong
-                // way at the entrance simply holds there rather than running
-                // off the start.
-                _scroll.scrollBy(
-                  event.scrollDelta.dy * GalleryView.scrollDirection,
-                );
-              },
-              // Without this the placeholder is not a hit-test target, and
-              // the events it is here to swallow go straight past it.
-              behavior: HitTestBehavior.opaque,
-              onPointerDown: (event) {
-                _dragFrom = event.localPosition;
-                _dragDistance = 0;
-              },
-              onPointerMove: (event) {
-                final from = _dragFrom;
-                if (from == null) return;
-                _dragDistance += event.delta.distance;
+          return Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              // The gate wraps every branch without exception. Mount it only
+              // around the finished scene and it is blind for as long as the
+              // scene takes to arrive: the tail of the previous gesture flows
+              // past unseen, the activity clock stays frozen at the handover,
+              // and the first event the gate actually sees reads as the pause
+              // it was waiting for. It then arms mid-gesture, which is
+              // precisely the leak it exists to prevent.
+              Listener(
+                onPointerSignal: (event) {
+                  if (event is! PointerScrollEvent) return;
+                  // Every event is offered to the gate, including the ones it
+                  // swallows — a continuous stream must not look like a pause
+                  // simply because none of it was acted on.
+                  if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+                  // The driver clamps to `[0, extent]`, so scrolling the wrong
+                  // way at the entrance simply holds there rather than running
+                  // off the start.
+                  _scroll.scrollBy(
+                    event.scrollDelta.dy * GalleryView.scrollDirection,
+                  );
+                },
+                // Without this the placeholder is not a hit-test target, and
+                // the events it is here to swallow go straight past it.
+                behavior: HitTestBehavior.opaque,
+                onPointerDown: (event) {
+                  _dragFrom = event.localPosition;
+                  _dragDistance = 0;
+                },
+                onPointerMove: (event) {
+                  final from = _dragFrom;
+                  if (from == null) return;
+                  _dragDistance += event.delta.distance;
 
-                // Only the board turns by dragging. Everywhere else a drag
-                // *is* the scroll — on a phone, where there is no wheel, it
-                // is the only way down the corridor at all.
-                if (_inHall) {
-                  _orbit.drag(event.delta.dx, event.delta.dy);
-                  return;
-                }
+                  // Only the board turns by dragging. Everywhere else a drag
+                  // *is* the scroll — on a phone, where there is no wheel, it
+                  // is the only way down the corridor at all.
+                  if (_inHall) {
+                    _orbit.drag(event.delta.dx, event.delta.dy);
+                    return;
+                  }
 
-                // Touch and stylus only. A mouse has a wheel, and making a
-                // held button drag the corridor as well would fight picking
-                // a frame: every slightly unsteady click would walk the
-                // camera before landing.
-                if (event.kind != PointerDeviceKind.touch &&
-                    event.kind != PointerDeviceKind.stylus) {
-                  return;
-                }
+                  // Touch and stylus only. A mouse has a wheel, and making a
+                  // held button drag the corridor as well would fight picking
+                  // a frame: every slightly unsteady click would walk the
+                  // camera before landing.
+                  if (event.kind != PointerDeviceKind.touch &&
+                      event.kind != PointerDeviceKind.stylus) {
+                    return;
+                  }
 
-                // Through the same gate as the wheel, so being caught at the
-                // back wall feels the same whichever way the visitor moves.
-                if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+                  // Through the same gate as the wheel, so being caught at the
+                  // back wall feels the same whichever way the visitor moves.
+                  if (!_gate.accept(_clock.elapsedMilliseconds)) return;
 
-                // A finger moving up walks forward: the room follows the
-                // hand rather than opposing it.
-                _scroll.scrollBy(
-                  -event.delta.dy *
-                      GalleryView.dragScrollGain *
-                      GalleryView.scrollDirection,
-                );
-              },
-              onPointerUp: (event) {
-                final dragged = _dragDistance > _tapSlop;
-                _dragFrom = null;
-                if (dragged) return;
-                _pick(event.localPosition);
-              },
-              onPointerCancel: (_) => _dragFrom = null,
-              child: _surface(context),
-            ),
+                  // A finger moving up walks forward: the room follows the
+                  // hand rather than opposing it.
+                  _scroll.scrollBy(
+                    -event.delta.dy *
+                        GalleryView.dragScrollGain *
+                        GalleryView.scrollDirection,
+                  );
+                },
+                onPointerUp: (event) {
+                  final dragged = _dragDistance > _tapSlop;
+                  _dragFrom = null;
+                  if (dragged) return;
+                  _pick(event.localPosition);
+                },
+                onPointerCancel: (_) => _dragFrom = null,
+                child: _surface(context),
+              ),
 
-            // A sibling above the gate, not a child of it. Nested, every tap
-            // on a control also reached the listener's `onPointerUp` —
-            // ancestors receive every event in the hit path — so pressing ›
-            // stepped to the next piece and was immediately overruled by a
-            // pick of whatever was still under the pointer. That is why the
-            // arrows did nothing.
-            GalleryOverlay(
-              focused: _focused,
-              canGoBack: _focused != null && _order.hasPrevious(_focused!),
-              canGoForward: _focused != null && _order.hasNext(_focused!),
-              // Through the same dispatch as the icons on the wall, so the
-              // fallback cannot do anything the real controls do not — or
-              // sound different doing it.
-              onBack: () => _control(ControlAction.previous),
-              onExit: () => _control(ControlAction.exit),
-              onForward: () => _control(ControlAction.next),
-              mirrored: !(_focused?.position.x.isNegative ?? true),
-              asFallback: _gallery?.controls == null,
-            ),
+              // A sibling above the gate, not a child of it. Nested, every tap
+              // on a control also reached the listener's `onPointerUp` —
+              // ancestors receive every event in the hit path — so pressing ›
+              // stepped to the next piece and was immediately overruled by a
+              // pick of whatever was still under the pointer. That is why the
+              // arrows did nothing.
+              GalleryOverlay(
+                focused: _focused,
+                canGoBack: _focused != null && _order.hasPrevious(_focused!),
+                canGoForward: _focused != null && _order.hasNext(_focused!),
+                // Through the same dispatch as the icons on the wall, so the
+                // fallback cannot do anything the real controls do not — or
+                // sound different doing it.
+                onBack: () => _control(ControlAction.previous),
+                onExit: () => _control(ControlAction.exit),
+                onForward: () => _control(ControlAction.next),
+                mirrored: !(_focused?.position.x.isNegative ?? true),
+                asFallback: _gallery?.controls == null,
+              ),
 
-            // Over the room *and* over its controls. A ✕ still lit on a
-            // corridor that has gone dark reads as the page having failed
-            // rather than as a door closing.
-            // Boundaried, like the mark. A full-screen wash whose colour
-            // changes every frame repaints whatever shares its layer, and
-            // what shares this one is a 3D scene being composited — so the
-            // fade was costing a re-composite of the whole corridor sixty
-            // times a second on its way out.
-            RepaintBoundary(
-              child: ValueListenableBuilder<double>(
-                valueListenable: _leaving,
-                builder: (context, leaving, _) => leaving <= 0
-                    ? const SizedBox.shrink()
-                    : AbsorbPointer(
-                        // Absorbing, not passing through: once the lights are
-                        // going down the room stops answering. `IgnorePointer`
-                        // is the wrong tool however it is configured — off, it
-                        // is a no-op, and a `ColoredBox` does not hit-test
-                        // itself, so every click and scroll went straight
-                        // through to the room behind.
-                        child: ColoredBox(
-                          color: context.colors.sceneVeil.withValues(
-                            alpha: leaving,
+              // Over the room *and* over its controls. A ✕ still lit on a
+              // corridor that has gone dark reads as the page having failed
+              // rather than as a door closing.
+              // Boundaried, like the mark. A full-screen wash whose colour
+              // changes every frame repaints whatever shares its layer, and
+              // what shares this one is a 3D scene being composited — so the
+              // fade was costing a re-composite of the whole corridor sixty
+              // times a second on its way out.
+              RepaintBoundary(
+                child: ValueListenableBuilder<double>(
+                  valueListenable: _leaving,
+                  builder: (context, leaving, _) => leaving <= 0
+                      ? const SizedBox.shrink()
+                      : AbsorbPointer(
+                          // Absorbing, not passing through: once the lights are
+                          // going down the room stops answering. `IgnorePointer`
+                          // is the wrong tool however it is configured — off, it
+                          // is a no-op, and a `ColoredBox` does not hit-test
+                          // itself, so every click and scroll went straight
+                          // through to the room behind.
+                          child: ColoredBox(
+                            color: context.colors.sceneVeil.withValues(
+                              alpha: leaving,
+                            ),
                           ),
                         ),
-                      ),
+                ),
               ),
-            ),
 
-            // The header mark, above everything the room draws and above
-            // the dark it goes out through. It is the one thing that
-            // survives the handover between the two renderers, so covering
-            // it with the fade would defeat the point of drawing it here.
-            // No boundary out here: the mark returns a `Positioned`, and a
-            // render object between it and the `Stack` leaves it with no
-            // stack to give its parent data to. It carries its own boundary
-            // inside, where it belongs.
-            ValueListenableBuilder<double>(
-              valueListenable: _markJourney,
-              builder: (context, journey, _) => GalleryMark(journey: journey),
-            ),
-          ],
-        );
-      },
+              // The header mark, above everything the room draws and above
+              // the dark it goes out through. It is the one thing that
+              // survives the handover between the two renderers, so covering
+              // it with the fade would defeat the point of drawing it here.
+              // No boundary out here: the mark returns a `Positioned`, and a
+              // render object between it and the `Stack` leaves it with no
+              // stack to give its parent data to. It carries its own boundary
+              // inside, where it belongs.
+              ValueListenableBuilder<double>(
+                valueListenable: _markJourney,
+                builder: (context, journey, _) => GalleryMark(journey: journey),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -815,6 +982,15 @@ class _GalleryViewState extends State<GalleryView> {
           // know how long the frame was.
           dt: deltaSeconds,
         );
+
+        // The pending card's entrance, and whether the wall is in front of
+        // the visitor for the "add yours" control.
+        gallery.testimonials.tick(deltaSeconds);
+        final wallProgress = _scroll.progress;
+        _onWall =
+            _focused == null &&
+            wallProgress >= GalleryCameraPath.walkFraction &&
+            wallProgress <= GalleryCameraPath.panEnd;
 
         if (!_atBoard) {
           // Leaving. Eased back to the doorway view so a reverse scroll walks

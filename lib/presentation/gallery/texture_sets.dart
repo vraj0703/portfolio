@@ -1,11 +1,11 @@
-import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
-import 'package:flutter/foundation.dart' show visibleForTesting;
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
+import 'package:portfolio/presentation/gallery/build_yield.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
+import 'package:portfolio/presentation/gallery/map_prefetch.dart';
 
 /// A photographed material: which files it is made of, and how big it is.
 ///
@@ -21,19 +21,26 @@ import 'package:vector_math/vector_math.dart';
 class TextureSet {
   const TextureSet({
     required this.colour,
-    required this.roughness,
+    required this.roughMetal,
     required this.unitsPerRepeat,
+    required this.metallic,
     this.normal,
     this.occlusion,
-    this.metalness,
-    this.metallic = 0.05,
+    this.packedFrom,
   });
 
   /// Base colour. sRGB.
   final String colour;
 
-  /// Greyscale roughness, repacked on load — see [SurfaceMaps.load].
-  final String roughness;
+  /// Roughness in green and metalness in blue, the channels the shader
+  /// reads, loaded as it is (PORTFOLIO-8: nothing is repacked in the
+  /// browser any more).
+  ///
+  /// Either the set's own grey roughness map, for a dielectric: every
+  /// channel holds roughness, and a [metallic] of 0 zeroes whatever blue
+  /// carries. Or a map packed ahead of time by `tool/pack_rough_metal.py`
+  /// from [packedFrom], for anything with metal in it.
+  final String roughMetal;
 
   /// Tangent-space normals in **OpenGL** convention (green up).
   ///
@@ -46,25 +53,40 @@ class TextureSet {
   /// runtime light in this scene is going to produce.
   final String? occlusion;
 
-  /// A map of where the surface is metal and where it is not.
+  /// What [roughMetal] was packed from, when it was packed: the grey
+  /// roughness map, the metalness map if the set has one, and the metallic
+  /// written into every texel where it does not.
   ///
-  /// Usually absent, and rightly: most of these downloads ship a uniform one
-  /// as a placeholder, which says in a megabyte what [metallic] says in a
-  /// number. Worth binding only when it is measured to vary — the keycap
-  /// metals average 0.51, 0.57 and 0.86 across their faces rather than
-  /// sitting at one value, and a scalar would flatten exactly the patina
-  /// that makes them look like three different alloys.
-  final String? metalness;
+  /// A metalness map is usually absent, and rightly: most of these downloads
+  /// ship a uniform one as a placeholder, which says in a megabyte what a
+  /// number says. Worth packing only when it is measured to vary — the
+  /// keycap metals average 0.51, 0.57 and 0.86 across their faces rather
+  /// than sitting at one value, and a scalar would flatten exactly the
+  /// patina that makes them look like three different alloys.
+  ///
+  /// Not read at runtime. The packing test checks the packed file against
+  /// these sources, so the two cannot drift.
+  final PackedFrom? packedFrom;
 
   /// World units spanned by one repeat.
   final double unitsPerRepeat;
 
-  /// Metallic written into every texel, when there is no [metalness] map.
+  /// The material's metallic factor, which scales [roughMetal]'s blue: 0
+  /// for a dielectric loaded from its grey roughness map, 1 for a packed map
+  /// whose blue is the metalness itself.
   final double metallic;
 
   /// How many files this set is made of.
   int get mapCount =>
       2 + (normal == null ? 0 : 1) + (occlusion == null ? 0 : 1);
+
+  /// The files [SurfaceMaps.load] reads, in the order it reads them.
+  List<String> get files => <String>[
+    colour,
+    roughMetal,
+    ?normal,
+    ?occlusion,
+  ];
 
   /// Units of work loading this set reports.
   ///
@@ -73,12 +95,26 @@ class TextureSet {
   /// Counting only the decodes left the bar silent through every upload,
   /// which is what made it stall with the work still running.
   ///
-  /// A metalness map adds one and not two: it is decoded and then folded into
-  /// the roughness map's blue channel, so it never becomes a texture of its
-  /// own.
-  ///
   /// The bar needs this *before* the work starts, to have a denominator.
-  int get stepCount => mapCount * 2 + (metalness == null ? 0 : 1);
+  int get stepCount => mapCount * 2;
+}
+
+/// The sources a [TextureSet.roughMetal] map was packed from.
+class PackedFrom {
+  const PackedFrom({
+    required this.roughness,
+    required this.metallic,
+    this.metalness,
+  });
+
+  /// Greyscale roughness, written to green.
+  final String roughness;
+
+  /// Where the surface is metal, written to blue; null for [metallic].
+  final String? metalness;
+
+  /// Written to blue in every texel when there is no [metalness] map.
+  final double metallic;
 }
 
 /// The photographed sets the gallery is surfaced with.
@@ -94,9 +130,9 @@ abstract final class GallerySurfaces {
   /// wash of the constant environment, so it reads as glare rather than as
   /// polish. Semi-matte is the range where a floor still looks like stone.
   static const TextureSet floor = TextureSet(
-    colour: 'assets/textures/floor/Tiles013_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/floor/Tiles013_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/floor/Tiles013_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/floor/Tiles013_1K-JPG_Color.webp',
+    roughMetal: 'assets/textures/floor/Tiles013_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/floor/Tiles013_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 4,
     metallic: 0,
   );
@@ -109,9 +145,9 @@ abstract final class GallerySurfaces {
   /// recognises. Tiled as tightly as brick, the same vein reappears every two
   /// units and the wall reads as wallpaper.
   static const TextureSet wall = TextureSet(
-    colour: 'assets/textures/wall/Marble004_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/wall/Marble004_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/wall/Marble004_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/wall/Marble004_1K-JPG_Color.webp',
+    roughMetal: 'assets/textures/wall/Marble004_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/wall/Marble004_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 4,
     // Stone is dielectric. The polish comes from the roughness map, not from
     // metallic, which would tint the highlight with the marble's own colour.
@@ -125,9 +161,9 @@ abstract final class GallerySurfaces {
   /// board over the whole frame and read as a photograph of wood rather than
   /// as wood.
   static const TextureSet frame = TextureSet(
-    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/frame/Wood066_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.webp',
+    roughMetal: 'assets/textures/frame/Wood066_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 0.6,
     metallic: 0,
   );
@@ -139,10 +175,10 @@ abstract final class GallerySurfaces {
   /// its own timber says so before any label does. Same short repeat, for the
   /// same reason: a moulding is centimetres across.
   static const TextureSet testimonialFrame = TextureSet(
-    colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.jpg',
-    roughness:
-        'assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.webp',
+    roughMetal:
+        'assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/frame_testimonials/Wood020_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 0.6,
     metallic: 0,
   );
@@ -158,9 +194,13 @@ abstract final class GallerySurfaces {
   /// this the most polished thing in the gallery, which is right for the one
   /// manufactured object in a room full of plaster and timber.
   static const TextureSet keyboardBase = TextureSet(
-    colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.webp',
+    roughMetal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_RoughMetal.webp',
+    packedFrom: PackedFrom(
+      roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp',
+      metallic: 1,
+    ),
+    normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.webp',
     unitsPerRepeat: 2.5,
     metallic: 1,
   );
@@ -177,28 +217,40 @@ abstract final class GallerySurfaces {
   /// one value.
   static const List<TextureSet> keyRows = <TextureSet>[
     TextureSet(
-      colour: 'assets/textures/keys/set_1/Metal023_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_1/Metal023_1K-JPG_Color.webp',
+      roughMetal: 'assets/textures/keys/set_1/Metal023_1K-JPG_RoughMetal.webp',
+      normal: 'assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.webp',
+      packedFrom: PackedFrom(
+        roughness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.webp',
+        metalness: 'assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.webp',
+        metallic: 1,
+      ),
       // One repeat across a cap: the cap is the size of the detail, so
       // anything longer shows a single flat patch of it.
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
     TextureSet(
-      colour: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Color.webp',
+      roughMetal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_RoughMetal.webp',
+      normal: 'assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.webp',
+      packedFrom: PackedFrom(
+        roughness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.webp',
+        metalness: 'assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.webp',
+        metallic: 1,
+      ),
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
     TextureSet(
-      colour: 'assets/textures/keys/set_3/Metal022_1K-JPG_Color.jpg',
-      roughness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.jpg',
-      normal: 'assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.jpg',
-      metalness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.jpg',
+      colour: 'assets/textures/keys/set_3/Metal022_1K-JPG_Color.webp',
+      roughMetal: 'assets/textures/keys/set_3/Metal022_1K-JPG_RoughMetal.webp',
+      normal: 'assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.webp',
+      packedFrom: PackedFrom(
+        roughness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.webp',
+        metalness: 'assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.webp',
+        metallic: 1,
+      ),
       unitsPerRepeat: 0.4,
       metallic: 1,
     ),
@@ -213,16 +265,38 @@ abstract final class GallerySurfaces {
   /// nothing, and a metalness map of solid black is what [metallic] already
   /// says — so both would cost a decode and an upload to change nothing.
   static const TextureSet ceiling = TextureSet(
-    colour: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Color.jpg',
-    roughness: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.jpg',
-    normal: 'assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.jpg',
+    colour: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Color.webp',
+    roughMetal: 'assets/textures/roof/OfficeCeiling001_1K-JPG_Roughness.webp',
+    normal: 'assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.webp',
     occlusion:
-        'assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.jpg',
+        'assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.webp',
     // Panels rather than a plaster field, so a shorter repeat: at four units
     // a single panel would be wider than half the corridor.
     unitsPerRepeat: 2,
     metallic: 0,
   );
+}
+
+/// Every texture file the gallery build reads, in the order it reads them,
+/// for [MapPrefetch] (PORTFOLIO-8).
+///
+/// The room's surfaces in the order `GalleryScene` loads them, the side and
+/// hall walls sharing one set, then the keyboard's base and its key rows. A
+/// file missing here only loses its head start; a test checks none is.
+abstract final class GalleryPrefetch {
+  static List<String> get files => <String>[
+    for (final set in <TextureSet>[
+      GallerySurfaces.floor,
+      GallerySurfaces.ceiling,
+      GallerySurfaces.wall,
+      GallerySurfaces.wall,
+      GallerySurfaces.frame,
+      GallerySurfaces.testimonialFrame,
+      GallerySurfaces.keyboardBase,
+      ...GallerySurfaces.keyRows,
+    ])
+      ...set.files,
+  ];
 }
 
 /// One set, decoded and uploaded.
@@ -236,10 +310,10 @@ class SurfaceMaps {
   );
 
   final TextureSet set;
-  final Texture2D colour;
-  final Texture2D roughness;
-  final Texture2D? normal;
-  final Texture2D? occlusion;
+  final TextureSource colour;
+  final TextureSource roughness;
+  final TextureSource? normal;
+  final TextureSource? occlusion;
 
   /// Edge length every map is decoded to, whatever it is stored at.
   ///
@@ -272,12 +346,14 @@ class SurfaceMaps {
   static Future<SurfaceMaps?> load(
     TextureSet set,
     List<ui.Image> images,
-    List<Texture2D> textures, {
+    List<TextureSource> textures, {
     Future<void> Function()? onStep,
   }) async {
     final colour = await decodeMap(set.colour);
+    await BuildYield.frame();
     await onStep?.call();
-    final roughness = await packRoughness(set, onStep: onStep);
+    final roughness = await decodeMap(set.roughMetal);
+    await BuildYield.frame();
     await onStep?.call();
     if (colour == null || roughness == null) {
       colour?.dispose();
@@ -286,6 +362,7 @@ class SurfaceMaps {
     }
 
     final normal = set.normal == null ? null : await decodeMap(set.normal!);
+    await BuildYield.frame();
     if (set.normal != null) await onStep?.call();
     final occlusion = set.occlusion == null
         ? null
@@ -298,23 +375,26 @@ class SurfaceMaps {
     if (normal != null) images.add(normal);
     if (occlusion != null) images.add(occlusion);
 
-    final colourTexture = await Texture2D.fromImage(colour);
+    final colourTexture = await BuildTiming.upload('texture_sets.colour', colour, () => GpuUpload.image(colour));
+    await BuildYield.frame();
     await onStep?.call();
     // Linear data, not colour. Decoded as sRGB these would be averaged in the
     // wrong space down the mip chain, so roughness and occlusion would drift
     // with distance; normals are averaged as vectors and renormalised.
-    final roughnessTexture = await Texture2D.fromImage(
+    final roughnessTexture = await BuildTiming.upload('texture_sets.roughness', roughness, () => GpuUpload.image(
       roughness,
       content: TextureContent.data,
-    );
+    ));
+    await BuildYield.frame();
     await onStep?.call();
     final normalTexture = normal == null
         ? null
-        : await Texture2D.fromImage(normal, content: TextureContent.normal);
+        : await BuildTiming.upload('texture_sets.normal', normal, () => GpuUpload.image(normal, content: TextureContent.normal));
+    await BuildYield.frame();
     if (normalTexture != null) await onStep?.call();
     final occlusionTexture = occlusion == null
         ? null
-        : await Texture2D.fromImage(occlusion, content: TextureContent.data);
+        : await BuildTiming.upload('texture_sets.occlusion', occlusion, () => GpuUpload.image(occlusion, content: TextureContent.data));
     if (occlusionTexture != null) await onStep?.call();
 
     textures
@@ -348,7 +428,7 @@ class SurfaceMaps {
       ..metallicRoughnessTexture = roughness
       ..metallicRoughnessTextureTransform = tiling
       ..roughnessFactor = 1
-      ..metallicFactor = 1;
+      ..metallicFactor = set.metallic;
 
     final normalMap = normal;
     if (normalMap != null) {
@@ -370,63 +450,6 @@ class SurfaceMaps {
   double _repeats(double extent) =>
       (extent.abs() / set.unitsPerRepeat).clamp(1.0, 512.0);
 
-  /// Repacks a greyscale roughness map the way the shader reads it.
-  ///
-  /// These sets store roughness as a grey image; the material wants a
-  /// *metallic-roughness* map, where green carries roughness and blue carries
-  /// metallic. Handing the grey image over unchanged writes **red**, which
-  /// the shader ignores — leaving the surface uniformly glossy while looking
-  /// entirely correct in an image viewer.
-  @visibleForTesting
-  static Future<ui.Image?> packRoughness(
-    TextureSet set, {
-    Future<void> Function()? onStep,
-  }) async {
-    final source = await decodeMap(set.roughness);
-    if (source == null) return null;
-
-    // Read alongside the roughness so the two can be packed into one texture.
-    // Both are single-channel data; keeping them apart would cost a second
-    // sampler and a second upload to carry no more information.
-    ui.Image? metalMap;
-    if (set.metalness != null) {
-      metalMap = await decodeMap(set.metalness!);
-      await onStep?.call();
-    }
-
-    try {
-      final grey = await source.toByteData(
-        format: ui.ImageByteFormat.rawStraightRgba,
-      );
-      if (grey == null) return null;
-
-      final metal = await metalMap?.toByteData(
-        format: ui.ImageByteFormat.rawStraightRgba,
-      );
-
-      final src = grey.buffer.asUint8List();
-      final metalSrc = metal?.buffer.asUint8List();
-      final packed = Uint8List(src.length);
-      final metallicByte = (set.metallic * 255).round().clamp(0, 255);
-
-      for (var i = 0; i < src.length; i += 4) {
-        packed[i] = 0;
-        packed[i + 1] = src[i]; // grey, so any channel is the roughness
-        packed[i + 2] = metalSrc != null && i < metalSrc.length
-            ? metalSrc[i]
-            : metallicByte;
-        packed[i + 3] = 255;
-      }
-
-      // Awaited inside the `try`, so the source is not disposed out from
-      // under a decode still in flight.
-      return await _fromPixels(packed, source.width, source.height);
-    } finally {
-      source.dispose();
-      metalMap?.dispose();
-    }
-  }
-
   /// Decodes one map, or null if it is undeclared or unreadable.
   ///
   /// Public, and no longer only for tests: the room's lettering is painted
@@ -437,29 +460,22 @@ class SurfaceMaps {
   /// and none of them is worth failing a whole room over.
   static Future<ui.Image?> decodeMap(String asset) async {
     try {
-      final data = await rootBundle.load(asset);
-      final codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(),
-        targetWidth: resolution,
-        targetHeight: resolution,
+      final data = await BuildTiming.span(
+        BuildPhase.fetch,
+        () => MapPrefetch.shared.load(asset),
       );
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
+      return await BuildTiming.span(BuildPhase.decode, () async {
+        final codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(),
+          targetWidth: resolution,
+          targetHeight: resolution,
+        );
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        return frame.image;
+      });
     } catch (_) {
       return null;
     }
-  }
-
-  static Future<ui.Image> _fromPixels(Uint8List pixels, int width, int height) {
-    final completer = Completer<ui.Image>();
-    ui.decodeImageFromPixels(
-      pixels,
-      width,
-      height,
-      ui.PixelFormat.rgba8888,
-      completer.complete,
-    );
-    return completer.future;
   }
 }

@@ -26,6 +26,40 @@ abstract class AppStrings {
 
   /// The two signs painted on the gallery's marble.
   String get galleryBack;
+
+  /// On a frame whose work is not ready yet, under its title.
+  String get frameComingSoon;
+
+  /// The testimonial wall: its first frame's title and invitation, the quiet
+  /// line on the frames still empty, and the mark on a visitor's own words.
+  String get testimonialsTitle;
+  String get testimonialsInvite;
+  String get testimonialsReserved;
+  String get testimonialPending;
+
+  /// The control that opens the recommendation form, and the form itself.
+  String get recommendAddYours;
+  String get recommendFormTitle;
+  String get recommendName;
+  String get recommendRole;
+  String get recommendRelationship;
+  String get recommendWords;
+  String get recommendRequired;
+  String get recommendSubmit;
+  String get recommendCancel;
+  String get recommendDone;
+  String get recommendClose;
+
+  /// The control that opens the focused work's link, and what it is called
+  /// to someone who cannot see it.
+  String get galleryOpen;
+  String galleryOpenLabel(String title);
+
+  /// The link drawn on a card, naming where it goes.
+  String frameLink(String host);
+
+  /// A button drawn on a card: its word and the arrow that says it acts.
+  String cardButton(String word);
   String get letsConnect;
 
   /// How to handle the skills board, painted on the wall behind it.
@@ -37,7 +71,8 @@ abstract class AppStrings {
   String get contactGithub;
   String get contactLinkedIn;
 
-  /// The drawer opened from the title screen.
+  /// The title screen's controls, and the drawer one of them opens.
+  String get menuOpen;
   String get menuClose;
   String get menuSoundOn;
   String get menuSoundOff;
@@ -99,6 +134,69 @@ class DefaultAppStrings implements AppStrings {
   String get galleryBack => 'BACK';
 
   @override
+  String get frameComingSoon => 'coming soon';
+
+  @override
+  String get testimonialsTitle => 'Testimonials';
+
+  @override
+  String get testimonialsInvite =>
+      'Worked with Vishal? Leave a recommendation.';
+
+  @override
+  String get testimonialsReserved => 'Reserved for the first words';
+
+  @override
+  String get testimonialPending => 'pending';
+
+  @override
+  String get recommendAddYours => 'add yours';
+
+  @override
+  String get recommendFormTitle => 'Recommend Vishal';
+
+  @override
+  String get recommendName => 'Your name';
+
+  @override
+  String get recommendRole => 'Role and company';
+
+  @override
+  String get recommendRelationship => 'How you worked together';
+
+  @override
+  String get recommendWords => 'Your words';
+
+  @override
+  String get recommendRequired => 'Needed';
+
+  @override
+  String get recommendSubmit => 'Copy and open LinkedIn';
+
+  @override
+  String get recommendCancel => 'Cancel';
+
+  /// Shown once the words are copied and LinkedIn is open in a new tab.
+  @override
+  String get recommendDone =>
+      "Copied. On Vishal's LinkedIn, choose More > Recommend and paste.";
+
+  @override
+  String get recommendClose => 'Done';
+
+  @override
+  String get galleryOpen => 'open';
+
+  @override
+  String galleryOpenLabel(String title) => 'Open $title';
+
+  @override
+  String frameLink(String host) => '$host  ↗';
+
+  @override
+  String cardButton(String word) => '$word  →';
+
+  @override
   String get letsConnect => "LET'S CONNECT";
 
   @override
@@ -123,6 +221,11 @@ class DefaultAppStrings implements AppStrings {
   /// Its own string rather than the credits dialog's, though both are the
   /// same word: they are two panels that happen to agree, not one phrase
   /// used twice, and either could be reworded without the other following.
+  /// Never drawn: the hamburger is a glyph. This is what it is called to
+  /// anyone who cannot see it.
+  @override
+  String get menuOpen => 'Open menu';
+
   @override
   String get menuClose => 'close';
 

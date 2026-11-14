@@ -50,9 +50,7 @@ void main() {
     expect(taps, <String>['back', 'exit', 'forward']);
   });
 
-  testWidgets('an unavailable control is hidden, not disabled', (
-    tester,
-  ) async {
+  testWidgets('an unavailable control is hidden, not disabled', (tester) async {
     await tester.pumpWidget(
       host(focused: order.frames.first, canGoBack: false),
     );
@@ -101,5 +99,18 @@ void main() {
       expect(find.text('‹'), findsOneWidget);
       expect(find.text('›'), findsNothing);
     });
+  });
+
+  testWidgets('no floating open control: the link is on the card', (
+    tester,
+  ) async {
+    final linked = order.frames.firstWhere((f) => f.project?.hasLink ?? false);
+    await tester.pumpWidget(host(focused: linked));
+    expect(find.textContaining('open'), findsNothing);
+  });
+
+  testWidgets('no floating add yours: frame 1 carries it', (tester) async {
+    await tester.pumpWidget(host());
+    expect(find.textContaining('add yours'), findsNothing);
   });
 }

@@ -103,4 +103,46 @@ void main() {
 
     expect(pick(inside)?.project?.id, frame.project!.id);
   });
+
+  group('where a press lands on a frame', () {
+    final frame = frames.first;
+    final corners = [
+      for (final c in FramePicker.cornersOf(frame))
+        project(SceneAxes.position(c))!,
+    ];
+    final left = corners.map((c) => c.dx).reduce((a, b) => a < b ? a : b);
+    final right = corners.map((c) => c.dx).reduce((a, b) => a > b ? a : b);
+    final top = corners.map((c) => c.dy).reduce((a, b) => a < b ? a : b);
+    final bottom = corners.map((c) => c.dy).reduce((a, b) => a > b ? a : b);
+
+    test('as a share of the frame, from its top left', () {
+      final at = Offset(
+        left + (right - left) * 0.8,
+        top + (bottom - top) * 0.25,
+      );
+      final share = FramePicker.fractionWithin(at, frame, project)!;
+      expect(share.dx, closeTo(0.8, 1e-9));
+      expect(share.dy, closeTo(0.25, 1e-9));
+    });
+
+    test('nothing when it misses the frame', () {
+      expect(
+        FramePicker.fractionWithin(Offset(right + 5, top), frame, project),
+        isNull,
+      );
+    });
+  });
+
+  test('a far-wall frame spans x, the way it hangs', () {
+    final wall = pieces.firstWhere(
+      (p) => p.kind == SurfaceKind.testimonialFrame,
+    );
+    final xs = FramePicker.cornersOf(wall).map((c) => c.x).toSet();
+    final zs = FramePicker.cornersOf(wall).map((c) => c.z).toSet();
+    expect(zs, hasLength(1), reason: 'the frame is flat on the far wall');
+    expect(
+      xs.reduce((a, b) => a > b ? a : b) - xs.reduce((a, b) => a < b ? a : b),
+      closeTo(wall.extents.x, 1e-9),
+    );
+  });
 }

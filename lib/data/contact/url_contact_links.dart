@@ -49,6 +49,9 @@ class UrlContactLinks implements ContactLinks {
     await _open(cv);
   }
 
+  @override
+  Future<void> open(Uri url) => _open(url);
+
   Future<void> _open(Uri url) async {
     final opened = await launchUrl(url, mode: mode);
 

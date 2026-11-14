@@ -44,7 +44,6 @@ abstract class AppTypography {
   /// The message shown when the gallery cannot be built.
   TextStyle get galleryFailure;
 
-
   /// The contact menu's destinations.
   ///
   /// Larger than [enter], and tracked far tighter. "TAP TO ENTER" is three
@@ -65,6 +64,22 @@ abstract class AppTypography {
   TextStyle get creditsHeading;
   TextStyle get creditsBody;
   TextStyle get creditsAction;
+
+  /// A project's card, baked onto its frame at 1024 pixels across: the title,
+  /// read from down the corridor; the line under it; the three stats; the
+  /// summary, read once the frame is focused; and the stack's small tags.
+  TextStyle get frameTitle;
+  TextStyle get frameDescription;
+  TextStyle get frameStat;
+  TextStyle get frameSummary;
+  TextStyle get frameTag;
+
+  /// The link at the foot of a card: the one pressable thing on it.
+  TextStyle get frameLink;
+
+  /// The word on the "open" pill over a focused frame: the stat pills' face
+  /// and scale, so it reads as part of the card's set rather than the system.
+  TextStyle get galleryOpen;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -112,11 +127,8 @@ class DefaultAppTypography implements AppTypography {
   /// The word that closes the panel. Quieter than a row, because it is the
   /// way out rather than somewhere to go.
   @override
-  TextStyle get menuAction => const TextStyle(
-    fontSize: 16,
-    letterSpacing: 1.2,
-    fontFamily: 'Margot',
-  );
+  TextStyle get menuAction =>
+      const TextStyle(fontSize: 16, letterSpacing: 1.2, fontFamily: 'Margot');
 
   @override
   TextStyle get creditsTitle => const TextStyle(
@@ -207,6 +219,69 @@ class DefaultAppTypography implements AppTypography {
     // the same face the one loud line is set in, which ties the wall's two
     // halves together where a second family would only add a voice.
     fontFamily: 'Margot',
+  );
+
+  /// The face the far wall's name is cut in, so a card reads as part of
+  /// the same room. Large enough to be read from a frame or two away, which
+  /// is how far the title has to carry.
+  @override
+  TextStyle get galleryOpen => const TextStyle(
+    fontSize: 15,
+    height: 1.2,
+    letterSpacing: 1.2,
+    color: Color(0xFFF0E4CC),
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get frameTitle => const TextStyle(
+    fontSize: 104,
+    height: 1.1,
+    letterSpacing: 2,
+    fontFamily: 'Marcellus',
+  );
+
+  @override
+  TextStyle get frameDescription => const TextStyle(
+    fontSize: 34,
+    height: 1.3,
+    letterSpacing: 0.6,
+    fontFamily: 'Margot',
+  );
+
+  /// Mono, because they are numbers set side by side and a proportional face
+  /// lets their widths wander.
+  @override
+  TextStyle get frameStat => const TextStyle(
+    fontSize: 26,
+    height: 1.2,
+    letterSpacing: 1,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get frameSummary => const TextStyle(
+    fontSize: 30,
+    height: 1.45,
+    letterSpacing: 0.3,
+    fontFamily: 'Margot',
+  );
+
+  @override
+  TextStyle get frameTag => const TextStyle(
+    fontSize: 20,
+    height: 1.2,
+    letterSpacing: 1,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get frameLink => const TextStyle(
+    fontSize: 26,
+    height: 1.2,
+    letterSpacing: 1,
+    fontWeight: FontWeight.w600,
+    fontFamily: 'AzeretMono',
   );
 
   @override

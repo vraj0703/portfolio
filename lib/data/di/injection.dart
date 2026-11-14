@@ -1,6 +1,8 @@
 import 'package:portfolio/data/audio/flame_app_audio.dart';
 import 'package:portfolio/data/config/durations.dart';
 import 'package:portfolio/data/contact/url_contact_links.dart';
+import 'package:portfolio/data/recommendations/local_recommendation_store.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/radio/streaming_radio.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -9,6 +11,7 @@ import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 
 Future<void> initDependencies() async {
   final di = DependencyManager.instance;
@@ -31,6 +34,12 @@ Future<void> initDependencies() async {
   // outside it.
   di.registerFactory<MenuDrawerCubit>(MenuDrawerCubit.new);
 
+  // A factory for the same reason, and seeded from the shared audio backend
+  // so a remounted scene shows the mute the visit already chose.
+  di.registerFactory<SoundCubit>(
+    () => SoundCubit(audio: di.get<AppAudio>(), radio: di.get<RadioPlayer>()),
+  );
+
   di.registerFactory<SceneBloc>(() => SceneBloc(radio: di.get<RadioPlayer>()));
 
   // One shared audio backend: it owns a cache and a pool of players, so a
@@ -46,6 +55,9 @@ Future<void> initDependencies() async {
   // Everything the contact menu reaches for outside the scene. Stateless, and
   // behind an interface so the menu can be exercised without a platform
   // channel underneath it.
+  // A visitor's own pending recommendation, in their browser only.
+  di.registerLazySingleton<RecommendationStore>(LocalRecommendationStore.new);
+
   di.registerLazySingleton<ContactLinks>(
     () => UrlContactLinks(profile: ContactProfile.vishal),
   );

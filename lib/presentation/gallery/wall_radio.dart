@@ -1,3 +1,4 @@
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
@@ -5,6 +6,7 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/gallery/radio_face.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
 import 'package:vector_math/vector_math.dart';
 
 /// Every radio in the building, lettered together.
@@ -36,7 +38,7 @@ class WallRadios {
   /// Small and bounded: a status and a station, so four stations across three
   /// statuses is the whole space. Never evicted — a texture already on the
   /// GPU costs nothing to keep and most of a second to rebuild.
-  final Map<String, Texture2D> _faces;
+  final Map<String, TextureSource> _faces;
 
   /// What makes two states the same face.
   ///
@@ -57,7 +59,7 @@ class WallRadios {
         .where((piece) => piece.kind == SurfaceKind.radio)
         .toList();
 
-    final faces = <String, Texture2D>{};
+    final faces = <String, TextureSource>{};
 
     // Every face the radio can show *without the visitor touching the dial*,
     // drawn here where the loading screen is already asking them to wait.
@@ -83,12 +85,12 @@ class WallRadios {
 
   /// Draws one face and uploads it.
   ///
-  /// The image is released as soon as it is uploaded: `Texture2D.fromImage`
+  /// The image is released as soon as it is uploaded: `GpuUpload.image`
   /// reads its bytes and keeps its own copy, so holding the original past
   /// this point is a megabyte of nothing.
-  static Future<Texture2D> _bake(RadioState state, AppTypography type) async {
-    final image = await RadioFace.render(state: state, type: type);
-    final texture = await Texture2D.fromImage(image);
+  static Future<TextureSource> _bake(RadioState state, AppTypography type) async {
+    final image = await BuildTiming.span(BuildPhase.bake, () => RadioFace.render(state: state, type: type));
+    final texture = await BuildTiming.upload('wall_radio.image', image, () => GpuUpload.image(image));
     image.dispose();
     return texture;
   }
@@ -127,7 +129,7 @@ class WallRadios {
   }
 
   void dispose() {
-    // Nothing to release. The images were freed at upload, and `Texture2D`
+    // Nothing to release. The images were freed at upload, and `TextureSource`
     // offers no way to free a texture — they go with the GPU context.
   }
 }
@@ -144,7 +146,7 @@ class WallRadio {
 
   static WallRadio _build({
     required Placement panel,
-    required Texture2D face,
+    required TextureSource face,
   }) {
     final material = UnlitMaterial()..alphaMode = AlphaMode.blend;
 
@@ -164,7 +166,7 @@ class WallRadio {
   /// Puts [face] on the wall.
   ///
   /// A pointer swap and nothing else — the drawing happened elsewhere, once.
-  void wear(Texture2D face) => _material.baseColorTexture = face;
+  void wear(TextureSource face) => _material.baseColorTexture = face;
 
   /// How wide the face is, for anything that needs to reason about it.
   Vector3 get extents => _panel.extents;

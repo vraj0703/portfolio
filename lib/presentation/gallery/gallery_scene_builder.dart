@@ -1,10 +1,14 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/presentation/gallery/build_yield.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
+import 'package:portfolio/presentation/gallery/frame_card.dart';
+import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
-import 'package:portfolio/data/platform/page_visibility.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_lighting.dart';
@@ -19,6 +23,8 @@ import 'package:portfolio/presentation/gallery/surface_textures.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:portfolio/presentation/gallery/wall_radio.dart';
 import 'package:portfolio/presentation/gallery/wall_text.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
+import 'package:portfolio/presentation/gallery/map_prefetch.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
 // in 32-bit vectors throughout, and the two Matrix4 types are unrelated as far
 // as the analyser is concerned.
@@ -37,11 +43,18 @@ class GalleryScene {
     this.controls,
     this.keyboard,
     this.radio,
+    this.testimonials,
     this._artwork,
-    this._textures,
-  );
+    this._textures, {
+    required this.artworkSize,
+  });
 
   final Scene scene;
+
+  /// How wide each card was baked, in pixels. The card's type is set in
+  /// those pixels, so anything that finds a spot on a card (the link on a
+  /// focused frame) measures it at this size.
+  final int artworkSize;
 
   /// The entrance cue, exposed so the view can advance its bob and retire it.
   /// Null when the model could not be read — see [ScrollArrow.load].
@@ -54,6 +67,10 @@ class GalleryScene {
   /// The skills board in its hall, exposed so the view can turn it.
   final SkillKeyboard keyboard;
 
+  /// The testimonial wall's cards, exposed so the view can put a visitor's
+  /// own words on frame 2 the moment they write them.
+  final TestimonialCards testimonials;
+
   /// The radios — one by the entrance, one in the hall — exposed so the view
   /// can re-letter them when the station or the status changes.
   final WallRadios radio;
@@ -62,7 +79,7 @@ class GalleryScene {
   /// a material holding the only reference to an image has no moment at which
   /// it can be told to let go.
   final List<ui.Image> _artwork;
-  final List<Texture2D> _textures;
+  final List<TextureSource> _textures;
 
   bool _disposed = false;
 
@@ -107,7 +124,11 @@ class GalleryScene {
   }) async {
     // Geometry and materials touch the shader bundle, so nothing can be
     // constructed before the engine's static resources exist.
-    await Scene.initializeStaticResources();
+    BuildTiming.start();
+    // Texture files start downloading now, behind the shader bundle, rather
+    // than each when its decode asks (PORTFOLIO-8).
+    MapPrefetch.shared.start(GalleryPrefetch.files);
+    await BuildTiming.span(BuildPhase.shaders, Scene.initializeStaticResources);
     await _report(onProgress, _shaderShare);
 
     final scene = Scene()
@@ -117,9 +138,17 @@ class GalleryScene {
       // not a photographic key and rim.
       ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient);
     final artwork = <ui.Image>[];
-    final textures = <Texture2D>[];
+    final textures = <TextureSource>[];
+    final testimonials = TestimonialCards();
 
-    await _populate(scene, artwork, textures, artworkSize, onProgress);
+    await _populate(
+      scene,
+      artwork,
+      textures,
+      artworkSize,
+      onProgress,
+      testimonials,
+    );
     _light(scene);
 
     var tail = 0;
@@ -180,8 +209,10 @@ class GalleryScene {
       controls,
       keyboard,
       radio,
+      testimonials,
       artwork,
       textures,
+      artworkSize: artworkSize,
     );
 
     await _report(onProgress, 1);
@@ -214,40 +245,18 @@ class GalleryScene {
   ///
   /// **And a bar cannot usefully move faster than it can be read.** There are
   /// something over a hundred steps in this build, and giving a frame back to
-  /// each one buys nothing after the first: two reports a hundredth of a
-  /// second apart are one report as far as an eye is concerned, and the
-  /// second frame is pure delay. [_paintInterval] is how often the bar is
-  /// worth repainting; between those moments the steps run back to back.
+  /// each one buys nothing after the first. [BuildYield] paces it: the steps
+  /// run back to back until about [BuildYield.budget] of work has piled up,
+  /// and only then is a frame let through. The same pacing runs inside the
+  /// steps (a texture decode, a slice of a repack, a card bake), so the
+  /// loading screen keeps animating through the long ones too.
   static Future<void> _report(
     void Function(double)? onProgress,
     double value,
   ) async {
     onProgress?.call(value);
-    if (onProgress == null) return;
-
-    // Nothing to paint into.
-    if (!PageVisibility.isVisible) return;
-
-    if (!_sincePaint.isRunning) _sincePaint.start();
-    if (_sincePaint.elapsed < _paintInterval) return;
-
-    await SchedulerBinding.instance.endOfFrame;
-    _sincePaint.reset();
+    await BuildYield.frame();
   }
-
-  /// How often the loading bar is worth handing a frame to.
-  ///
-  /// Twenty a second. Fast enough that the bar reads as continuous motion,
-  /// and slow enough that a run of cheap steps is not spending a frame each
-  /// to say the same thing.
-  static const Duration _paintInterval = Duration(milliseconds: 50);
-
-  /// Time since the bar was last given a frame to draw in.
-  ///
-  /// Static because the build is: [warmUp] memoises one build for the life of
-  /// the app, so there is never a second one running alongside it to confuse
-  /// this with.
-  static final Stopwatch _sincePaint = Stopwatch();
 
   /// Share of the build spent bringing the shader bundle up, before any
   /// artwork exists to report against.
@@ -288,7 +297,8 @@ class GalleryScene {
   ///
   /// The baked statement, the entrance arrow, three control models, the
   /// board's case — six, being three files decoded and uploaded — the three
-  /// keycap metals at seven apiece, the board itself, and the two radios.
+  /// keycap metals at six apiece (their metalness is packed ahead of time,
+  /// so no longer a decode of its own), the board itself, and the radios.
   ///
   /// Counted rather than guessed, and it has to be recounted whenever
   /// something joins the tail. Adding the radios without this said the room
@@ -296,7 +306,7 @@ class GalleryScene {
   /// holds the main isolate, the curtain's first frames never drew. The
   /// flash on the way out is in those frames, which is how a miscounted
   /// denominator turns into a missing animation.
-  static const int _tailSteps = 34;
+  static const int _tailSteps = 31;
 
   /// Where the bar stands once the photographed surfaces are in.
   ///
@@ -314,9 +324,10 @@ class GalleryScene {
   static Future<void> _populate(
     Scene scene,
     List<ui.Image> artwork,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
     int artworkSize,
     void Function(double)? onProgress,
+    TestimonialCards testimonials,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -326,14 +337,14 @@ class GalleryScene {
       ..add(normal)
       ..add(rough);
 
-    final normalTexture = await Texture2D.fromImage(
+    final normalTexture = await BuildTiming.upload('gallery_scene_builder.normal', normal, () => GpuUpload.image(
       normal,
       content: TextureContent.normal,
-    );
-    final roughTexture = await Texture2D.fromImage(
+    ));
+    final roughTexture = await BuildTiming.upload('gallery_scene_builder.rough', rough, () => GpuUpload.image(
       rough,
       content: TextureContent.data,
-    );
+    ));
     textures
       ..add(normalTexture)
       ..add(roughTexture);
@@ -440,7 +451,16 @@ class GalleryScene {
           piece.kind == SurfaceKind.testimonialFrame) {
         // The same shell either way — a moulding with a blank card inside it
         // — differing only in which timber it is cut from.
-        _hangFrame(scene, piece, surfaces[piece.kind], transform);
+        await _hangFrame(
+          scene,
+          piece,
+          surfaces[piece.kind],
+          transform,
+          artwork,
+          textures,
+          artworkSize,
+          testimonials,
+        );
         continue;
       }
 
@@ -515,14 +535,14 @@ class GalleryScene {
   static Future<void> _hangStatement(
     Scene scene,
     List<ui.Image> images,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
   ) async {
     const type = DefaultAppTypography();
     const strings = DefaultAppStrings();
     const width = 1600;
     const height = 640;
 
-    final image = await WallText.render(
+    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
       width: width,
       height: height,
       lines: <EngravedLine>[
@@ -536,10 +556,10 @@ class GalleryScene {
       // string it is invisible to whoever rewrites the sentence, and the
       // first thing they do is lose it.
       gap: statementGap,
-    );
+    ));
     images.add(image);
 
-    final texture = await Texture2D.fromImage(image);
+    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
     textures.add(texture);
 
     // Sized from the image's own proportions, so retyping the statement
@@ -578,7 +598,7 @@ class GalleryScene {
   /// and an opaque material ignores alpha: the cleared background rasterises
   /// as solid black and the sign arrives as a black slab. That is exactly
   /// what was on the wall.
-  static UnlitMaterial _neon(Texture2D texture) =>
+  static UnlitMaterial _neon(TextureSource texture) =>
       UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend;
 
   /// Paints the way out onto the wall it belongs to.
@@ -598,7 +618,7 @@ class GalleryScene {
     String text,
     TextStyle style,
     List<ui.Image> images,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
     Matrix4 transform,
   ) async {
     // Shaped to the sign it is going on rather than to a fixed rectangle.
@@ -609,14 +629,14 @@ class GalleryScene {
     final width = (piece.extents.x * signPixelsPerUnit).round();
     final height = (piece.extents.y * signPixelsPerUnit).round();
 
-    final image = await WallText.render(
+    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
       width: width,
       height: height,
       lines: <EngravedLine>[EngravedLine(TextSpan(text: text, style: style))],
-    );
+    ));
     images.add(image);
 
-    final texture = await Texture2D.fromImage(image);
+    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
     textures.add(texture);
 
     scene.add(
@@ -633,12 +653,16 @@ class GalleryScene {
   /// material and the card is a flat surface with another, and a single box
   /// carrying one texture cannot be both — which is what made the old frames
   /// read as printed panels rather than as work in a frame.
-  static void _hangFrame(
+  static Future<void> _hangFrame(
     Scene scene,
     Placement piece,
     SurfaceMaps? wood,
     Matrix4 transform,
-  ) {
+    List<ui.Image> images,
+    List<TextureSource> textures,
+    int artworkSize,
+    TestimonialCards testimonials,
+  ) async {
     final width = GalleryLayout.frameWidth;
     final height = piece.extents.y;
     final depth = piece.extents.z;
@@ -654,22 +678,72 @@ class GalleryScene {
       ),
     );
 
+    final card = Matrix4.copy(transform)
+      ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
+    final cardWidth = width - GalleryLayout.frameBorder * 2;
+    final cardHeight = height - GalleryLayout.frameBorder * 2;
+    final cardShape = CuboidGeometry(
+      Vector3(cardWidth, cardHeight, GalleryLayout.cardRelief * 2),
+    );
+
+    // A project with a designed card gets it baked once and bound to the
+    // card's face — shaped to the card, so the type is not stretched. Unlit,
+    // like the lettering on the walls: it is a printed surface, and lit by a
+    // picture light this dim its smaller type sinks into the gradient.
+    // A testimonial frame's card: the invitation, a reserved card, or a
+    // visitor's own pending words, from their browser only.
+    if (piece.kind == SurfaceKind.testimonialFrame) {
+      final slot = testimonials.nextSlot();
+      final pending = locate<RecommendationStore>().load();
+      final width = artworkSize;
+      final height = (artworkSize * cardHeight / cardWidth).round();
+      final image = await BuildTiming.span(BuildPhase.bake, () => TestimonialCard.render(
+        slot: TestimonialWall.slotFor(slot, pending: pending),
+        pending: pending,
+        width: width,
+        height: height,
+      ));
+      images.add(image);
+      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+      textures.add(texture);
+
+      final material = UnlitMaterial(colorTexture: texture);
+      final node = Node(mesh: Mesh(cardShape, material), localTransform: card);
+      scene.add(node);
+      if (slot == TestimonialWall.pendingSlot) {
+        testimonials.attach(node, material, card, width: width, height: height);
+      }
+      await BuildYield.frame();
+      return;
+    }
+
+    if (FrameCard.paints(piece.project)) {
+      final image = await BuildTiming.span(BuildPhase.bake, () => FrameCard.render(
+        project: piece.project!,
+        width: artworkSize,
+        height: (artworkSize * cardHeight / cardWidth).round(),
+      ));
+      images.add(image);
+      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+      textures.add(texture);
+
+      scene.add(
+        Node(
+          mesh: Mesh(cardShape, UnlitMaterial(colorTexture: texture)),
+          localTransform: card,
+        ),
+      );
+      await BuildYield.frame();
+      return;
+    }
+
     // Blank on purpose, for now — the card is the surface the work will be
     // presented on, and an empty one states the shape of the room without
     // pretending to content it does not have yet.
-    final card = Matrix4.copy(transform)
-      ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
-
     scene.add(
       Node(
         mesh: Mesh(
-          CuboidGeometry(
-            Vector3(
-              width - GalleryLayout.frameBorder * 2,
-              height - GalleryLayout.frameBorder * 2,
-              GalleryLayout.cardRelief * 2,
-            ),
-          ),
+          cardShape,
           // Lifted slightly by its own emission. A matte white card under a
           // picture light this dim otherwise settles to grey, and a gallery
           // card that reads as grey reads as unlit rather than as blank.
@@ -683,8 +757,8 @@ class GalleryScene {
 
   static PhysicallyBasedMaterial _surfaceOf(
     Placement piece,
-    Texture2D normal,
-    Texture2D rough,
+    TextureSource normal,
+    TextureSource rough,
     Map<SurfaceKind, SurfaceMaps?> surfaces,
   ) {
     // Every wall draws on the one set, whichever wall it is — a room whose
@@ -764,7 +838,12 @@ class GalleryScene {
     for (final image in _artwork) {
       image.dispose();
     }
+    for (final image in testimonials.images) {
+      image.dispose();
+    }
     _artwork.clear();
     _textures.clear();
+    testimonials.images.clear();
+    testimonials.textures.clear();
   }
 }

@@ -51,4 +51,7 @@ abstract class ContactLinks {
 
   /// Fetches the résumé. A no-op while [ContactProfile.cv] is unset.
   Future<void> downloadCv();
+
+  /// Opens a work's own link, from its frame in the corridor.
+  Future<void> open(Uri url);
 }
