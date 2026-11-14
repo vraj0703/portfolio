@@ -133,19 +133,16 @@ flutter:
     - assets/textures/roof/OfficeCeiling001_1K-JPG_NormalGL.webp
     - assets/textures/roof/OfficeCeiling001_1K-JPG_AmbientOcclusion.webp
     - assets/textures/keys/set_1/Metal023_1K-JPG_Color.webp
-    - assets/textures/keys/set_1/Metal023_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_1/Metal023_1K-JPG_RoughMetal.webp
     - assets/textures/keys/set_1/Metal023_1K-JPG_NormalGL.webp
-    - assets/textures/keys/set_1/Metal023_1K-JPG_Metalness.webp
     - assets/textures/keys/set_2/Metal056B_1K-JPG_Color.webp
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_2/Metal056B_1K-JPG_RoughMetal.webp
     - assets/textures/keys/set_2/Metal056B_1K-JPG_NormalGL.webp
-    - assets/textures/keys/set_2/Metal056B_1K-JPG_Metalness.webp
     - assets/textures/keys/set_3/Metal022_1K-JPG_Color.webp
-    - assets/textures/keys/set_3/Metal022_1K-JPG_Roughness.webp
+    - assets/textures/keys/set_3/Metal022_1K-JPG_RoughMetal.webp
     - assets/textures/keys/set_3/Metal022_1K-JPG_NormalGL.webp
-    - assets/textures/keys/set_3/Metal022_1K-JPG_Metalness.webp
     - assets/textures/keyboard_base/Metal048B_1K-JPG_Color.webp
-    - assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp
+    - assets/textures/keyboard_base/Metal048B_1K-JPG_RoughMetal.webp
     - assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.webp
     - assets/textures/frame_testimonials/Wood020_1K-JPG_Color.webp
     - assets/textures/frame_testimonials/Wood020_1K-JPG_Roughness.webp

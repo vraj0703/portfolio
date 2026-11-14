@@ -292,7 +292,8 @@ class GalleryScene {
   ///
   /// The baked statement, the entrance arrow, three control models, the
   /// board's case — six, being three files decoded and uploaded — the three
-  /// keycap metals at seven apiece, the board itself, and the two radios.
+  /// keycap metals at six apiece (their metalness is packed ahead of time,
+  /// so no longer a decode of its own), the board itself, and the radios.
   ///
   /// Counted rather than guessed, and it has to be recounted whenever
   /// something joins the tail. Adding the radios without this said the room
@@ -300,7 +301,7 @@ class GalleryScene {
   /// holds the main isolate, the curtain's first frames never drew. The
   /// flash on the way out is in those frames, which is how a miscounted
   /// denominator turns into a missing animation.
-  static const int _tailSteps = 34;
+  static const int _tailSteps = 31;
 
   /// Where the bar stands once the photographed surfaces are in.
   ///
