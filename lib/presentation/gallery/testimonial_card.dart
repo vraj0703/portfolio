@@ -8,6 +8,7 @@ import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
 import 'package:vector_math/vector_math.dart';
 
 /// A testimonial frame's card, baked once like a project's [FrameCard].
@@ -299,7 +300,7 @@ class TestimonialCards {
 
   /// Images and textures this made after the build, released with the room.
   final List<ui.Image> images = <ui.Image>[];
-  final List<Texture2D> textures = <Texture2D>[];
+  final List<TextureSource> textures = <TextureSource>[];
 
   /// The slot of the next testimonial frame the builder hangs.
   int nextSlot() => _next++;
@@ -331,7 +332,7 @@ class TestimonialCards {
       height: _height,
     ));
     images.add(image);
-    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
+    final texture = await BuildTiming.upload('testimonial_card.image', image, () => GpuUpload.image(image));
     textures.add(texture);
     material.baseColorTexture = texture;
     _reveal = 0;

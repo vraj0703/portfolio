@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/presentation/gallery/build_yield.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
 
 /// A photographed material: which files it is made of, and how big it is.
 ///
@@ -279,10 +280,10 @@ class SurfaceMaps {
   );
 
   final TextureSet set;
-  final Texture2D colour;
-  final Texture2D roughness;
-  final Texture2D? normal;
-  final Texture2D? occlusion;
+  final TextureSource colour;
+  final TextureSource roughness;
+  final TextureSource? normal;
+  final TextureSource? occlusion;
 
   /// Edge length every map is decoded to, whatever it is stored at.
   ///
@@ -315,7 +316,7 @@ class SurfaceMaps {
   static Future<SurfaceMaps?> load(
     TextureSet set,
     List<ui.Image> images,
-    List<Texture2D> textures, {
+    List<TextureSource> textures, {
     Future<void> Function()? onStep,
   }) async {
     final colour = await decodeMap(set.colour);
@@ -344,13 +345,13 @@ class SurfaceMaps {
     if (normal != null) images.add(normal);
     if (occlusion != null) images.add(occlusion);
 
-    final colourTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(colour));
+    final colourTexture = await BuildTiming.upload('texture_sets.colour', colour, () => GpuUpload.image(colour));
     await BuildYield.frame();
     await onStep?.call();
     // Linear data, not colour. Decoded as sRGB these would be averaged in the
     // wrong space down the mip chain, so roughness and occlusion would drift
     // with distance; normals are averaged as vectors and renormalised.
-    final roughnessTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
+    final roughnessTexture = await BuildTiming.upload('texture_sets.roughness', roughness, () => GpuUpload.image(
       roughness,
       content: TextureContent.data,
     ));
@@ -358,12 +359,12 @@ class SurfaceMaps {
     await onStep?.call();
     final normalTexture = normal == null
         ? null
-        : await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(normal, content: TextureContent.normal));
+        : await BuildTiming.upload('texture_sets.normal', normal, () => GpuUpload.image(normal, content: TextureContent.normal));
     await BuildYield.frame();
     if (normalTexture != null) await onStep?.call();
     final occlusionTexture = occlusion == null
         ? null
-        : await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(occlusion, content: TextureContent.data));
+        : await BuildTiming.upload('texture_sets.occlusion', occlusion, () => GpuUpload.image(occlusion, content: TextureContent.data));
     if (occlusionTexture != null) await onStep?.call();
 
     textures

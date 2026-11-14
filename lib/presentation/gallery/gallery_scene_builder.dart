@@ -23,6 +23,7 @@ import 'package:portfolio/presentation/gallery/surface_textures.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:portfolio/presentation/gallery/wall_radio.dart';
 import 'package:portfolio/presentation/gallery/wall_text.dart';
+import 'package:portfolio/presentation/gallery/gpu_upload.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
 // in 32-bit vectors throughout, and the two Matrix4 types are unrelated as far
 // as the analyser is concerned.
@@ -77,7 +78,7 @@ class GalleryScene {
   /// a material holding the only reference to an image has no moment at which
   /// it can be told to let go.
   final List<ui.Image> _artwork;
-  final List<Texture2D> _textures;
+  final List<TextureSource> _textures;
 
   bool _disposed = false;
 
@@ -133,7 +134,7 @@ class GalleryScene {
       // not a photographic key and rim.
       ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient);
     final artwork = <ui.Image>[];
-    final textures = <Texture2D>[];
+    final textures = <TextureSource>[];
     final testimonials = TestimonialCards();
 
     await _populate(
@@ -319,7 +320,7 @@ class GalleryScene {
   static Future<void> _populate(
     Scene scene,
     List<ui.Image> artwork,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
     int artworkSize,
     void Function(double)? onProgress,
     TestimonialCards testimonials,
@@ -332,11 +333,11 @@ class GalleryScene {
       ..add(normal)
       ..add(rough);
 
-    final normalTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
+    final normalTexture = await BuildTiming.upload('gallery_scene_builder.normal', normal, () => GpuUpload.image(
       normal,
       content: TextureContent.normal,
     ));
-    final roughTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
+    final roughTexture = await BuildTiming.upload('gallery_scene_builder.rough', rough, () => GpuUpload.image(
       rough,
       content: TextureContent.data,
     ));
@@ -530,7 +531,7 @@ class GalleryScene {
   static Future<void> _hangStatement(
     Scene scene,
     List<ui.Image> images,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
   ) async {
     const type = DefaultAppTypography();
     const strings = DefaultAppStrings();
@@ -554,7 +555,7 @@ class GalleryScene {
     ));
     images.add(image);
 
-    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
+    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
     textures.add(texture);
 
     // Sized from the image's own proportions, so retyping the statement
@@ -593,7 +594,7 @@ class GalleryScene {
   /// and an opaque material ignores alpha: the cleared background rasterises
   /// as solid black and the sign arrives as a black slab. That is exactly
   /// what was on the wall.
-  static UnlitMaterial _neon(Texture2D texture) =>
+  static UnlitMaterial _neon(TextureSource texture) =>
       UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend;
 
   /// Paints the way out onto the wall it belongs to.
@@ -613,7 +614,7 @@ class GalleryScene {
     String text,
     TextStyle style,
     List<ui.Image> images,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
     Matrix4 transform,
   ) async {
     // Shaped to the sign it is going on rather than to a fixed rectangle.
@@ -631,7 +632,7 @@ class GalleryScene {
     ));
     images.add(image);
 
-    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
+    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
     textures.add(texture);
 
     scene.add(
@@ -654,7 +655,7 @@ class GalleryScene {
     SurfaceMaps? wood,
     Matrix4 transform,
     List<ui.Image> images,
-    List<Texture2D> textures,
+    List<TextureSource> textures,
     int artworkSize,
     TestimonialCards testimonials,
   ) async {
@@ -699,7 +700,7 @@ class GalleryScene {
         height: height,
       ));
       images.add(image);
-      final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
+      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
       textures.add(texture);
 
       final material = UnlitMaterial(colorTexture: texture);
@@ -719,7 +720,7 @@ class GalleryScene {
         height: (artworkSize * cardHeight / cardWidth).round(),
       ));
       images.add(image);
-      final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
+      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
       textures.add(texture);
 
       scene.add(
@@ -752,8 +753,8 @@ class GalleryScene {
 
   static PhysicallyBasedMaterial _surfaceOf(
     Placement piece,
-    Texture2D normal,
-    Texture2D rough,
+    TextureSource normal,
+    TextureSource rough,
     Map<SurfaceKind, SurfaceMaps?> surfaces,
   ) {
     // Every wall draws on the one set, whichever wall it is — a room whose

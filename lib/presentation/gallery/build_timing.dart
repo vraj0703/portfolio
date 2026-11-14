@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/foundation.dart' show debugPrint;
 
 /// Where the gallery's build spends its time, phase by phase (PORTFOLIO-8).
@@ -21,6 +23,7 @@ abstract final class BuildTiming {
   static BuildPhase _current = BuildPhase.other;
   static Duration _mark = Duration.zero;
   static bool _printed = false;
+  static final List<String> _uploads = <String>[];
 
   /// Starts the clock: the build has begun.
   static void start() {
@@ -40,6 +43,24 @@ abstract final class BuildTiming {
       return await body();
     } finally {
       _switchTo(outer);
+    }
+  }
+
+  /// Runs [body] as [BuildPhase.upload] and notes [what], [image]'s size and
+  /// the time it took, listed under the table: the upload row alone does not
+  /// say which textures it is made of.
+  static Future<T> upload<T>(
+    String what,
+    ui.Image image,
+    Future<T> Function() body,
+  ) async {
+    if (!enabled || !_clock.isRunning) return body();
+    final size = '${image.width}x${image.height}';
+    final watch = Stopwatch()..start();
+    try {
+      return await span(BuildPhase.upload, body);
+    } finally {
+      _uploads.add('[build] upload $what $size ${watch.elapsedMilliseconds} ms');
     }
   }
 
@@ -75,6 +96,9 @@ abstract final class BuildTiming {
       );
     }
     rows.write('[build] total | ${total.toStringAsFixed(0)} | 100% |');
+    for (final line in _uploads) {
+      rows.write('\n$line');
+    }
     debugPrint(rows.toString());
   }
 }
