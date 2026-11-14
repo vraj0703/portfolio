@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_scene/scene.dart';
@@ -304,26 +305,26 @@ class SurfaceMaps {
     if (normal != null) images.add(normal);
     if (occlusion != null) images.add(occlusion);
 
-    final colourTexture = await Texture2D.fromImage(colour);
+    final colourTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(colour));
     await BuildYield.frame();
     await onStep?.call();
     // Linear data, not colour. Decoded as sRGB these would be averaged in the
     // wrong space down the mip chain, so roughness and occlusion would drift
     // with distance; normals are averaged as vectors and renormalised.
-    final roughnessTexture = await Texture2D.fromImage(
+    final roughnessTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
       roughness,
       content: TextureContent.data,
-    );
+    ));
     await BuildYield.frame();
     await onStep?.call();
     final normalTexture = normal == null
         ? null
-        : await Texture2D.fromImage(normal, content: TextureContent.normal);
+        : await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(normal, content: TextureContent.normal));
     await BuildYield.frame();
     if (normalTexture != null) await onStep?.call();
     final occlusionTexture = occlusion == null
         ? null
-        : await Texture2D.fromImage(occlusion, content: TextureContent.data);
+        : await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(occlusion, content: TextureContent.data));
     if (occlusionTexture != null) await onStep?.call();
 
     textures
@@ -404,40 +405,46 @@ class SurfaceMaps {
     }
 
     try {
-      final grey = await source.toByteData(
-        format: ui.ImageByteFormat.rawStraightRgba,
+      final grey = await BuildTiming.span(
+        BuildPhase.readback,
+        () => source.toByteData(format: ui.ImageByteFormat.rawStraightRgba),
       );
       if (grey == null) return null;
       await BuildYield.frame();
 
-      final metal = await metalMap?.toByteData(
-        format: ui.ImageByteFormat.rawStraightRgba,
+      final metal = await BuildTiming.span(
+        BuildPhase.readback,
+        () async => metalMap?.toByteData(
+          format: ui.ImageByteFormat.rawStraightRgba,
+        ),
       );
 
-      final src = grey.buffer.asUint8List();
-      final metalSrc = metal?.buffer.asUint8List();
-      final packed = Uint8List(src.length);
-      final metallicByte = (set.metallic * 255).round().clamp(0, 255);
+      return await BuildTiming.span(BuildPhase.repack, () async {
+        final src = grey.buffer.asUint8List();
+        final metalSrc = metal?.buffer.asUint8List();
+        final packed = Uint8List(src.length);
+        final metallicByte = (set.metallic * 255).round().clamp(0, 255);
 
-      // In slices, a frame between each: a million pixels in one pass was
-      // one of the longest tasks behind the title on a slow CPU.
-      final slice = source.width * 4 * repackRows;
-      for (var start = 0; start < src.length; start += slice) {
-        final end = start + slice < src.length ? start + slice : src.length;
-        for (var i = start; i < end; i += 4) {
-          packed[i] = 0;
-          packed[i + 1] = src[i]; // grey, so any channel is the roughness
-          packed[i + 2] = metalSrc != null && i < metalSrc.length
-              ? metalSrc[i]
-              : metallicByte;
-          packed[i + 3] = 255;
+        // In slices, a frame between each: a million pixels in one pass was
+        // one of the longest tasks behind the title on a slow CPU.
+        final slice = source.width * 4 * repackRows;
+        for (var start = 0; start < src.length; start += slice) {
+          final end = start + slice < src.length ? start + slice : src.length;
+          for (var i = start; i < end; i += 4) {
+            packed[i] = 0;
+            packed[i + 1] = src[i]; // grey, so any channel is the roughness
+            packed[i + 2] = metalSrc != null && i < metalSrc.length
+                ? metalSrc[i]
+                : metallicByte;
+            packed[i + 3] = 255;
+          }
+          await BuildYield.frame();
         }
-        await BuildYield.frame();
-      }
 
-      // Awaited inside the `try`, so the source is not disposed out from
-      // under a decode still in flight.
-      return await _fromPixels(packed, source.width, source.height);
+        // Awaited inside the `try`, so the source is not disposed out from
+        // under a decode still in flight.
+        return await _fromPixels(packed, source.width, source.height);
+      });
     } finally {
       source.dispose();
       metalMap?.dispose();
@@ -454,15 +461,20 @@ class SurfaceMaps {
   /// and none of them is worth failing a whole room over.
   static Future<ui.Image?> decodeMap(String asset) async {
     try {
-      final data = await rootBundle.load(asset);
-      final codec = await ui.instantiateImageCodec(
-        data.buffer.asUint8List(),
-        targetWidth: resolution,
-        targetHeight: resolution,
+      final data = await BuildTiming.span(
+        BuildPhase.fetch,
+        () => rootBundle.load(asset),
       );
-      final frame = await codec.getNextFrame();
-      codec.dispose();
-      return frame.image;
+      return await BuildTiming.span(BuildPhase.decode, () async {
+        final codec = await ui.instantiateImageCodec(
+          data.buffer.asUint8List(),
+          targetWidth: resolution,
+          targetHeight: resolution,
+        );
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        return frame.image;
+      });
     } catch (_) {
       return null;
     }

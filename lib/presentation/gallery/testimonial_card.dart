@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/painting.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
@@ -323,14 +324,14 @@ class TestimonialCards {
     final material = _material;
     if (material == null) return;
 
-    final image = await TestimonialCard.render(
+    final image = await BuildTiming.span(BuildPhase.bake, () => TestimonialCard.render(
       slot: TestimonialSlot.pending,
       pending: pending,
       width: _width,
       height: _height,
-    );
+    ));
     images.add(image);
-    final texture = await Texture2D.fromImage(image);
+    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
     textures.add(texture);
     material.baseColorTexture = texture;
     _reveal = 0;

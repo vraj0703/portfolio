@@ -1,3 +1,4 @@
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:portfolio/data/platform/page_visibility.dart';
 
@@ -39,7 +40,10 @@ abstract final class BuildYield {
     if (!_sinceFrame.isRunning) _sinceFrame.start();
     if (_sinceFrame.elapsed < budget) return;
 
-    await SchedulerBinding.instance.endOfFrame;
+    await BuildTiming.span(
+      BuildPhase.frames,
+      () => SchedulerBinding.instance.endOfFrame,
+    );
     _sinceFrame.reset();
   }
 }

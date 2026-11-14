@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
@@ -121,7 +122,8 @@ class GalleryScene {
   }) async {
     // Geometry and materials touch the shader bundle, so nothing can be
     // constructed before the engine's static resources exist.
-    await Scene.initializeStaticResources();
+    BuildTiming.start();
+    await BuildTiming.span(BuildPhase.shaders, Scene.initializeStaticResources);
     await _report(onProgress, _shaderShare);
 
     final scene = Scene()
@@ -329,14 +331,14 @@ class GalleryScene {
       ..add(normal)
       ..add(rough);
 
-    final normalTexture = await Texture2D.fromImage(
+    final normalTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
       normal,
       content: TextureContent.normal,
-    );
-    final roughTexture = await Texture2D.fromImage(
+    ));
+    final roughTexture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(
       rough,
       content: TextureContent.data,
-    );
+    ));
     textures
       ..add(normalTexture)
       ..add(roughTexture);
@@ -534,7 +536,7 @@ class GalleryScene {
     const width = 1600;
     const height = 640;
 
-    final image = await WallText.render(
+    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
       width: width,
       height: height,
       lines: <EngravedLine>[
@@ -548,10 +550,10 @@ class GalleryScene {
       // string it is invisible to whoever rewrites the sentence, and the
       // first thing they do is lose it.
       gap: statementGap,
-    );
+    ));
     images.add(image);
 
-    final texture = await Texture2D.fromImage(image);
+    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
     textures.add(texture);
 
     // Sized from the image's own proportions, so retyping the statement
@@ -621,14 +623,14 @@ class GalleryScene {
     final width = (piece.extents.x * signPixelsPerUnit).round();
     final height = (piece.extents.y * signPixelsPerUnit).round();
 
-    final image = await WallText.render(
+    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
       width: width,
       height: height,
       lines: <EngravedLine>[EngravedLine(TextSpan(text: text, style: style))],
-    );
+    ));
     images.add(image);
 
-    final texture = await Texture2D.fromImage(image);
+    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
     textures.add(texture);
 
     scene.add(
@@ -689,14 +691,14 @@ class GalleryScene {
       final pending = locate<RecommendationStore>().load();
       final width = artworkSize;
       final height = (artworkSize * cardHeight / cardWidth).round();
-      final image = await TestimonialCard.render(
+      final image = await BuildTiming.span(BuildPhase.bake, () => TestimonialCard.render(
         slot: TestimonialWall.slotFor(slot, pending: pending),
         pending: pending,
         width: width,
         height: height,
-      );
+      ));
       images.add(image);
-      final texture = await Texture2D.fromImage(image);
+      final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
       textures.add(texture);
 
       final material = UnlitMaterial(colorTexture: texture);
@@ -710,13 +712,13 @@ class GalleryScene {
     }
 
     if (FrameCard.paints(piece.project)) {
-      final image = await FrameCard.render(
+      final image = await BuildTiming.span(BuildPhase.bake, () => FrameCard.render(
         project: piece.project!,
         width: artworkSize,
         height: (artworkSize * cardHeight / cardWidth).round(),
-      );
+      ));
       images.add(image);
-      final texture = await Texture2D.fromImage(image);
+      final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
       textures.add(texture);
 
       scene.add(

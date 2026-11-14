@@ -1,3 +1,4 @@
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
@@ -87,8 +88,8 @@ class WallRadios {
   /// reads its bytes and keeps its own copy, so holding the original past
   /// this point is a megabyte of nothing.
   static Future<Texture2D> _bake(RadioState state, AppTypography type) async {
-    final image = await RadioFace.render(state: state, type: type);
-    final texture = await Texture2D.fromImage(image);
+    final image = await BuildTiming.span(BuildPhase.bake, () => RadioFace.render(state: state, type: type));
+    final texture = await BuildTiming.span(BuildPhase.upload, () => Texture2D.fromImage(image));
     image.dispose();
     return texture;
   }
