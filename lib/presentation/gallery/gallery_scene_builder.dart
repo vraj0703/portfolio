@@ -24,6 +24,7 @@ import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:portfolio/presentation/gallery/wall_radio.dart';
 import 'package:portfolio/presentation/gallery/wall_text.dart';
 import 'package:portfolio/presentation/gallery/gpu_upload.dart';
+import 'package:portfolio/presentation/gallery/map_prefetch.dart';
 // vector_math, not Flutter's re-export of vector_math_64: flutter_scene works
 // in 32-bit vectors throughout, and the two Matrix4 types are unrelated as far
 // as the analyser is concerned.
@@ -124,6 +125,9 @@ class GalleryScene {
     // Geometry and materials touch the shader bundle, so nothing can be
     // constructed before the engine's static resources exist.
     BuildTiming.start();
+    // Texture files start downloading now, behind the shader bundle, rather
+    // than each when its decode asks (PORTFOLIO-8).
+    MapPrefetch.shared.start(GalleryPrefetch.files);
     await BuildTiming.span(BuildPhase.shaders, Scene.initializeStaticResources);
     await _report(onProgress, _shaderShare);
 

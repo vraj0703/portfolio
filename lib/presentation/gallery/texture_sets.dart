@@ -1,11 +1,11 @@
 import 'dart:ui' as ui;
 
 import 'package:portfolio/presentation/gallery/build_timing.dart';
-import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
 import 'package:portfolio/presentation/gallery/build_yield.dart';
 import 'package:portfolio/presentation/gallery/gpu_upload.dart';
+import 'package:portfolio/presentation/gallery/map_prefetch.dart';
 
 /// A photographed material: which files it is made of, and how big it is.
 ///
@@ -79,6 +79,14 @@ class TextureSet {
   /// How many files this set is made of.
   int get mapCount =>
       2 + (normal == null ? 0 : 1) + (occlusion == null ? 0 : 1);
+
+  /// The files [SurfaceMaps.load] reads, in the order it reads them.
+  List<String> get files => <String>[
+    colour,
+    roughMetal,
+    ?normal,
+    ?occlusion,
+  ];
 
   /// Units of work loading this set reports.
   ///
@@ -269,6 +277,28 @@ abstract final class GallerySurfaces {
   );
 }
 
+/// Every texture file the gallery build reads, in the order it reads them,
+/// for [MapPrefetch] (PORTFOLIO-8).
+///
+/// The room's surfaces in the order `GalleryScene` loads them, the side and
+/// hall walls sharing one set, then the keyboard's base and its key rows. A
+/// file missing here only loses its head start; a test checks none is.
+abstract final class GalleryPrefetch {
+  static List<String> get files => <String>[
+    for (final set in <TextureSet>[
+      GallerySurfaces.floor,
+      GallerySurfaces.ceiling,
+      GallerySurfaces.wall,
+      GallerySurfaces.wall,
+      GallerySurfaces.frame,
+      GallerySurfaces.testimonialFrame,
+      GallerySurfaces.keyboardBase,
+      ...GallerySurfaces.keyRows,
+    ])
+      ...set.files,
+  ];
+}
+
 /// One set, decoded and uploaded.
 class SurfaceMaps {
   const SurfaceMaps._(
@@ -432,7 +462,7 @@ class SurfaceMaps {
     try {
       final data = await BuildTiming.span(
         BuildPhase.fetch,
-        () => rootBundle.load(asset),
+        () => MapPrefetch.shared.load(asset),
       );
       return await BuildTiming.span(BuildPhase.decode, () async {
         final codec = await ui.instantiateImageCodec(
