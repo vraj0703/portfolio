@@ -118,18 +118,8 @@ abstract class AppColors {
   Color get frameCardWarmTop;
   Color get frameCardWarmBottom;
 
-  /// The dark edge around a keycap's legend, so a pale accent still reads on
-  /// a pale metal cap.
-  Color get keycapLegendEdge;
-
   /// The empty part of the crossing's progress bar, under the accent fill.
   Color get galleryProgressTrack;
-
-  /// A keycap legend's ink: near-black on a light cap, near-white on a dark
-  /// one. Not the cap's own accent, which on a cap of the same colour read
-  /// as blue on blue.
-  Color get keycapInkDark;
-  Color get keycapInkLight;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -303,16 +293,7 @@ class DefaultAppColors implements AppColors {
   Color get frameCardWarmBottom => const Color(0xFF2E1D12);
 
   @override
-  Color get keycapLegendEdge => const Color(0xD9140C06);
-
-  @override
   Color get galleryProgressTrack => loadingAccent.withValues(alpha: 0.2);
-
-  @override
-  Color get keycapInkDark => const Color(0xFF14100C);
-
-  @override
-  Color get keycapInkLight => const Color(0xFFFFF8EE);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

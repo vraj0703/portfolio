@@ -77,13 +77,6 @@ abstract class AppTypography {
   /// The word on the "open" pill over a focused frame: the stat pills' face
   /// and scale, so it reads as part of the card's set rather than the system.
   TextStyle get galleryOpen;
-
-  /// The caption under the skills board: the key's full name, then its kind.
-  TextStyle get skillCaptionName;
-  TextStyle get skillCaptionKind;
-
-  /// A keycap's legend, baked onto the cap at a size fitted per row.
-  TextStyle get keycapLegend;
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -228,34 +221,6 @@ class DefaultAppTypography implements AppTypography {
   /// The face the far wall's name is cut in, so a card reads as part of
   /// the same room. Large enough to be read from a frame or two away, which
   /// is how far the title has to carry.
-  /// Mono and heavy: a legend is read at an angle and from an arm's length
-  /// off, and a thin proportional face goes to a smear on a cap this small.
-  @override
-  TextStyle get keycapLegend => const TextStyle(
-    fontSize: 100,
-    height: 1,
-    fontWeight: FontWeight.w800,
-    fontFamily: 'AzeretMono',
-  );
-
-  @override
-  TextStyle get skillCaptionName => const TextStyle(
-    fontSize: 22,
-    height: 1.2,
-    letterSpacing: 1,
-    color: Color(0xFFF0E4CC),
-    fontFamily: 'Marcellus',
-  );
-
-  @override
-  TextStyle get skillCaptionKind => const TextStyle(
-    fontSize: 13,
-    height: 1.2,
-    letterSpacing: 1.6,
-    color: Color(0xB3F0E4CC),
-    fontFamily: 'AzeretMono',
-  );
-
   @override
   TextStyle get galleryOpen => const TextStyle(
     fontSize: 15,

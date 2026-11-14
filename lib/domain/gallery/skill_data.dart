@@ -15,18 +15,12 @@ class Skill {
     required this.label,
     required this.category,
     required this.color,
-    this._name,
   });
 
   final String id;
 
   /// Printed on the keycap. Abbreviated where the full name would not fit.
   final String label;
-
-  /// The skill's full name, for the caption under the board. Defaults to
-  /// [label]; given only where the label is shortened to fit a key.
-  String get name => _name ?? label;
-  final String? _name;
 
   final SkillCategory category;
 
@@ -37,188 +31,48 @@ class Skill {
 abstract final class GallerySkills {
   /// Row 0 (top) → row 3 (bottom), matching the keyboard's near-to-far order.
   static const List<List<Skill>> rows = <List<Skill>>[
-    // Row 0 — the languages, and the tool every one of them lives in
+    // Row 0 — Languages
     <Skill>[
-      Skill(
-        id: 'dart',
-        label: 'Dart',
-        category: SkillCategory.language,
-        color: Color(0xFF0175C2),
-      ),
-      Skill(
-        id: 'kotlin',
-        label: 'Kotlin',
-        category: SkillCategory.language,
-        color: Color(0xFF7F52FF),
-      ),
-      Skill(
-        id: 'python',
-        label: 'Python',
-        category: SkillCategory.language,
-        color: Color(0xFF3776AB),
-      ),
-      Skill(
-        id: 'typescript',
-        label: 'TS',
-        name: 'TypeScript',
-        category: SkillCategory.language,
-        color: Color(0xFF3178C6),
-      ),
-      Skill(
-        id: 'sql',
-        label: 'SQL',
-        category: SkillCategory.language,
-        color: Color(0xFF336791),
-      ),
-      Skill(
-        id: 'glsl',
-        label: 'GLSL',
-        category: SkillCategory.language,
-        color: Color(0xFF5586A4),
-      ),
-      Skill(
-        id: 'bash',
-        label: 'Bash',
-        category: SkillCategory.language,
-        color: Color(0xFF4EAA25),
-      ),
-      Skill(
-        id: 'git',
-        label: 'Git',
-        category: SkillCategory.tool,
-        color: Color(0xFFF05032),
-      ),
+      Skill(id: 'dart', label: 'Dart', category: SkillCategory.language, color: Color(0xFF0175C2)),
+      Skill(id: 'typescript', label: 'TS', category: SkillCategory.language, color: Color(0xFF3178C6)),
+      Skill(id: 'javascript', label: 'JS', category: SkillCategory.language, color: Color(0xFFF7DF1E)),
+      Skill(id: 'python', label: 'Py', category: SkillCategory.language, color: Color(0xFF3776AB)),
+      Skill(id: 'glsl', label: 'GLSL', category: SkillCategory.language, color: Color(0xFF5586A4)),
+      Skill(id: 'sql', label: 'SQL', category: SkillCategory.language, color: Color(0xFF336791)),
+      Skill(id: 'html', label: 'HTML', category: SkillCategory.language, color: Color(0xFFE34F26)),
+      Skill(id: 'css', label: 'CSS', category: SkillCategory.language, color: Color(0xFF1572B6)),
     ],
-    // Row 1 — frameworks
+    // Row 1 — Frameworks
     <Skill>[
-      Skill(
-        id: 'flutter',
-        label: 'Flutter',
-        category: SkillCategory.framework,
-        color: Color(0xFF02569B),
-      ),
-      Skill(
-        id: 'flame',
-        label: 'Flame',
-        category: SkillCategory.framework,
-        color: Color(0xFFFF7A1A),
-      ),
-      Skill(
-        id: 'bloc',
-        label: 'BLoC',
-        category: SkillCategory.framework,
-        color: Color(0xFF8A5CF5),
-      ),
-      Skill(
-        id: 'compose',
-        label: 'Compose',
-        name: 'Jetpack Compose',
-        category: SkillCategory.framework,
-        color: Color(0xFF4285F4),
-      ),
-      Skill(
-        id: 'flutter_scene',
-        label: 'Scene',
-        name: 'flutter_scene',
-        category: SkillCategory.framework,
-        color: Color(0xFF13B9FD),
-      ),
-      Skill(
-        id: 'shelf',
-        label: 'Shelf',
-        category: SkillCategory.framework,
-        color: Color(0xFF00B4AB),
-      ),
-      Skill(
-        id: 'react',
-        label: 'React',
-        category: SkillCategory.framework,
-        color: Color(0xFF61DAFB),
-      ),
+      Skill(id: 'flutter', label: 'Flutter', category: SkillCategory.framework, color: Color(0xFF02569B)),
+      Skill(id: 'react', label: 'React', category: SkillCategory.framework, color: Color(0xFF61DAFB)),
+      Skill(id: 'threejs', label: 'Three', category: SkillCategory.framework, color: Color(0xFF049EF4)),
+      Skill(id: 'nodejs', label: 'Node', category: SkillCategory.framework, color: Color(0xFF339933)),
+      Skill(id: 'gsap', label: 'GSAP', category: SkillCategory.framework, color: Color(0xFF88CE02)),
+      Skill(id: 'tailwind', label: 'TW', category: SkillCategory.framework, color: Color(0xFF06B6D4)),
+      Skill(id: 'vite', label: 'Vite', category: SkillCategory.framework, color: Color(0xFF646CFF)),
     ],
-    // Row 2 — where it runs
+    // Row 2 — Tools
     <Skill>[
-      Skill(
-        id: 'docker',
-        label: 'Docker',
-        category: SkillCategory.tool,
-        color: Color(0xFF2496ED),
-      ),
-      Skill(
-        id: 'firebase',
-        label: 'Fire',
-        name: 'Firebase',
-        category: SkillCategory.platform,
-        color: Color(0xFFFFCA28),
-      ),
-      Skill(
-        id: 'gcp',
-        label: 'GCP',
-        name: 'Google Cloud',
-        category: SkillCategory.platform,
-        color: Color(0xFF4285F4),
-      ),
-      Skill(
-        id: 'cloudflare',
-        label: 'CF',
-        name: 'Cloudflare',
-        category: SkillCategory.platform,
-        color: Color(0xFFF38020),
-      ),
-      Skill(
-        id: 'tailscale',
-        label: 'Tail',
-        name: 'Tailscale',
-        category: SkillCategory.platform,
-        color: Color(0xFF4A4A4A),
-      ),
-      Skill(
-        id: 'posthog',
-        label: 'PostHog',
-        category: SkillCategory.tool,
-        color: Color(0xFFF54E00),
-      ),
+      Skill(id: 'git', label: 'Git', category: SkillCategory.tool, color: Color(0xFFF05032)),
+      Skill(id: 'docker', label: 'Docker', category: SkillCategory.tool, color: Color(0xFF2496ED)),
+      Skill(id: 'postgres', label: 'PG', category: SkillCategory.tool, color: Color(0xFF4169E1)),
+      Skill(id: 'firebase', label: 'Fire', category: SkillCategory.tool, color: Color(0xFFFFCA28)),
+      Skill(id: 'linux', label: 'Linux', category: SkillCategory.tool, color: Color(0xFFFCC624)),
+      Skill(id: 'figma', label: 'Figma', category: SkillCategory.tool, color: Color(0xFFF24E1E)),
     ],
-    // Row 3 — the AI it is built with, and how it ships
+    // Row 3 — Platforms & AI
     <Skill>[
-      Skill(
-        id: 'claude_code',
-        label: 'Claude',
-        name: 'Claude Code',
-        category: SkillCategory.ai,
-        color: Color(0xFFD4A45C),
-      ),
-      Skill(
-        id: 'mcp',
-        label: 'MCP',
-        name: 'Model Context Protocol',
-        category: SkillCategory.ai,
-        color: Color(0xFFB0B0B0),
-      ),
-      Skill(
-        id: 'ollama',
-        label: 'Ollama',
-        category: SkillCategory.ai,
-        color: Color(0xFFFFFFFF),
-      ),
-      Skill(
-        id: 'rag',
-        label: 'RAG',
-        name: 'Retrieval-augmented generation',
-        category: SkillCategory.ai,
-        color: Color(0xFF9C6ADE),
-      ),
-      Skill(
-        id: 'github_actions',
-        label: 'CI',
-        name: 'GitHub Actions',
-        category: SkillCategory.tool,
-        color: Color(0xFF2088FF),
-      ),
+      Skill(id: 'claude', label: 'Claude', category: SkillCategory.ai, color: Color(0xFFD4A45C)),
+      Skill(id: 'ollama', label: 'Ollama', category: SkillCategory.ai, color: Color(0xFFFFFFFF)),
+      Skill(id: 'tailscale', label: 'Tail', category: SkillCategory.platform, color: Color(0xFF242424)),
+      Skill(id: 'cloudflare', label: 'CF', category: SkillCategory.platform, color: Color(0xFFF38020)),
+      Skill(id: 'rpi', label: 'RPi', category: SkillCategory.platform, color: Color(0xFFA22846)),
     ],
   ];
 
-  static final List<Skill> all = rows
-      .expand((row) => row)
-      .toList(growable: false);
+  /// Flat keycap list, in row-major order — the order the boot-up sweep
+  /// animation lights them in.
+  static final List<Skill> all =
+      rows.expand((row) => row).toList(growable: false);
 }

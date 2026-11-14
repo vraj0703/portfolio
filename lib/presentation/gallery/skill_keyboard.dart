@@ -1,16 +1,13 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
 
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/keyboard_layout.dart';
 import 'package:portfolio/domain/gallery/skill_data.dart';
-import 'package:portfolio/presentation/gallery/keycap_legend.dart';
 import 'package:portfolio/presentation/gallery/rounded_box.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
 import 'package:vector_math/vector_math.dart';
-import 'package:portfolio/presentation/gallery/build_yield.dart';
 
 /// The skills keyboard, floating in its hall.
 ///
@@ -65,11 +62,6 @@ class SkillKeyboard {
 
   /// How much brighter the chosen cap burns.
   static const double selectedGlow = 1.6;
-
-  /// How much brighter a cap under the pointer burns: between at rest and
-  /// chosen, so the visitor sees which key a press would take before making
-  /// it.
-  static const double hoverGlow = 1.05;
 
   /// How far a chosen cap rises out of the board.
   static const double pressLift = 0.12;
@@ -195,76 +187,9 @@ class SkillKeyboard {
   }
 
   /// Raises and brightens one cap, and returns the rest.
-  Skill? _selected;
-  Skill? _hovered;
-
-  /// Puts each cap's legend on its front face: baked once per cap, every cap on a
-  /// row at that row's size, on an unlit blended quad that is a child of the
-  /// cap so it rises with it when the key is pressed. [images] and
-  /// [textures] collect what was made, for the builder to release.
-  Future<void> letter(List<ui.Image> images, List<Texture2D> textures) async {
-    final scale = KeyboardLayout.scale;
-    final sizes = <int, double>{
-      for (var r = 0; r < GallerySkills.rows.length; r++)
-        r: KeycapLegend.fontSizeFor(GallerySkills.rows[r]),
-    };
-    final face = KeyboardLayout.capSize * scale * legendShare;
-
-    for (final cap in _caps.values) {
-      final image = await KeycapLegend.render(
-        cap.key.skill,
-        fontSize: sizes[cap.key.row] ?? 40,
-      );
-      images.add(image);
-      final texture = await Texture2D.fromImage(image);
-      textures.add(texture);
-      await BuildYield.frame();
-
-      // On the cap's top, now that the board tips toward the visitor and
-      // the tops are what they see.
-      final top = KeyboardLayout.keyHeight / 2 * scale + legendRise;
-      cap.node.add(
-        Node(
-          mesh: Mesh(
-            PlaneGeometry(width: face, depth: face),
-            UnlitMaterial(colorTexture: texture)..alphaMode = AlphaMode.blend,
-          ),
-          localTransform: Matrix4.translation(Vector3(0, top, 0))
-            ..rotateY(legendTurn),
-        ),
-      );
-    }
-  }
-
-  /// How much of a cap's top its legend may cover.
-  static const double legendShare = 0.94;
-
-  /// How far a legend stands off the cap's face, so the two never share a
-  /// depth and flicker between each other.
-  static const double legendRise = 0.004;
-
-  /// Which way a legend is turned on its cap's top, so it reads from where
-  /// the visitor stands at the board.
-  static const double legendTurn = math.pi;
-
   void select(Skill? skill) {
-    _selected = skill;
-    _replace();
-  }
-
-  /// Lights the cap under the pointer, or none.
-  void hover(Skill? skill) {
-    if (skill?.id == _hovered?.id) return;
-    _hovered = skill;
-    _replace();
-  }
-
-  void _replace() {
     for (final cap in _caps.values) {
-      cap.place(
-        lifted: cap.key.skill.id == _selected?.id,
-        hovered: cap.key.skill.id == _hovered?.id,
-      );
+      cap.place(lifted: cap.key.skill.id == skill?.id);
     }
   }
 
@@ -335,26 +260,19 @@ class SkillKeyboard {
       ..visible = _reveal > 0
       ..localTransform =
           (Matrix4.translation(
-              SceneAxes.position(
-                Vector3(
-                  anchor.x,
-                  anchor.y - hiddenDrop * (1 - eased) + _bob,
-                  anchor.z,
-                ),
+            SceneAxes.position(
+              Vector3(
+                anchor.x,
+                anchor.y - hiddenDrop * (1 - eased) + _bob,
+                anchor.z,
               ),
-            )
+            ),
+          )
             ..rotateY(SceneAxes.rotationY(restRotation + _heading))
             // Tips toward the visitor, so they see the tops of the caps
-            // rather than looking along them edge-on.
-            //
-            // Negated in engine space. This turn about x comes *after* the
-            // turn about y, so it is about the board's own x axis, and the
-            // axis mirror reverses that y turn and with it which way the
-            // board's x points. Unnegated, the tilt tipped the board away
-            // from the visitor by as much as the camera looked down on it,
-            // and the board was seen nearly edge-on: five of twenty-six keys
-            // showed. Picking works in design space, where it is unmirrored.
-            ..rotateX(-_tilt));
+            // rather than looking along them edge-on. Unaffected by the axis
+            // mirror: reflecting x leaves a turn about x alone.
+            ..rotateX(_tilt));
   }
 }
 
@@ -369,14 +287,10 @@ class _Cap {
       (KeyboardLayout.boardHeight + key.extents.y) / 2 * KeyboardLayout.scale +
       (lifted ? SkillKeyboard.pressLift : 0);
 
-  void place({required bool lifted, bool hovered = false}) {
+  void place({required bool lifted}) {
     final scale = KeyboardLayout.scale;
     final colour = key.skill.color;
-    final glow = lifted
-        ? SkillKeyboard.selectedGlow
-        : hovered
-        ? SkillKeyboard.hoverGlow
-        : SkillKeyboard.legendGlow;
+    final glow = lifted ? SkillKeyboard.selectedGlow : SkillKeyboard.legendGlow;
 
     // Lit from inside rather than tinted on the surface, so a pressed key
     // reads as the glass itself glowing rather than as a swatch changing

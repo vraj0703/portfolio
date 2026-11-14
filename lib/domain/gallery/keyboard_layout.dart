@@ -193,10 +193,7 @@ abstract final class KeyboardLayout {
             skill: skills[column],
             row: row,
             column: column,
-            // Negated so a row reads left to right from where the visitor
-            // stands: the board is presented turned to face them, and
-            // unnegated its first key sat on their right.
-            position: Vector3(-(startX + column * keyStep), 0, z),
+            position: Vector3(startX + column * keyStep, 0, z),
             extents: Vector3(capSize, keyHeight, capSize),
           ),
         );
