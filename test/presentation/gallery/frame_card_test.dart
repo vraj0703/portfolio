@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/project_data.dart';
 import 'package:portfolio/domain/style/colors.dart';
+import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/gallery/frame_card.dart';
 
 /// The card the corridor's frames carry, baked once to an image.
@@ -163,5 +164,70 @@ void main() {
       visual: ProjectVisual.graph,
     );
     await bake(bare);
+  });
+
+  group('the link on the card', () {
+    const size = ui.Size(1024, 736);
+
+    test('sits at the foot on the right, inside the margin', () {
+      final link = FrameCard.linkRect(size, project: tantr)!;
+      final margin = size.width * FrameCard.margin;
+      expect(link.right, closeTo(size.width - margin, 0.01));
+      expect(
+        link.bottom,
+        closeTo(size.height - size.height * FrameCard.margin, 0.01),
+      );
+      expect(
+        link.left,
+        greaterThan(size.width / 2),
+        reason: 'not on the right',
+      );
+      expect(
+        link.height,
+        greaterThanOrEqualTo(44),
+        reason: 'too small to press',
+      );
+    });
+
+    test('names where it goes', () {
+      expect(
+        FrameCard.linkText(tantr, const DefaultAppStrings()),
+        contains('tantr.app'),
+      );
+    });
+
+    test('is absent on work with nowhere to go, or not ready', () {
+      for (final project in GalleryProjects.all) {
+        final link = FrameCard.linkRect(size, project: project);
+        expect(
+          link == null,
+          !project.isLive || !project.hasLink,
+          reason: project.id,
+        );
+      }
+    });
+
+    test('is drawn where it is picked', () async {
+      final link = FrameCard.linkRect(size, project: tantr)!;
+      final region = FrameCard.linkRegion(size, project: tantr)!;
+      expect(region.left * size.width, closeTo(link.left, 1e-6));
+      expect(region.bottom * size.height, closeTo(link.bottom, 1e-6));
+
+      // Ink inside the link's rows, right of the stack: the label and edge.
+      final bytes = await bake(tantr);
+      var inkRight = 0;
+      final ink = colors.frameCardInk;
+      for (var y = link.top.ceil(); y < link.bottom.floor(); y++) {
+        for (var x = link.left.ceil(); x < link.right.floor(); x++) {
+          final i = (y * width + x) * 4;
+          if ((bytes.getUint8(i) - (ink.r * 255).round()).abs() < 40 &&
+              (bytes.getUint8(i + 1) - (ink.g * 255).round()).abs() < 40 &&
+              (bytes.getUint8(i + 2) - (ink.b * 255).round()).abs() < 40) {
+            inkRight++;
+          }
+        }
+      }
+      expect(inkRight, greaterThan(200), reason: 'nothing painted in the link');
+    });
   });
 }

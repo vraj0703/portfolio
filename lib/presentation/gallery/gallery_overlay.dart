@@ -26,7 +26,6 @@ class GalleryOverlay extends StatelessWidget {
     required this.onForward,
     required this.mirrored,
     required this.asFallback,
-    this.onOpen,
     this.onAddYours,
     super.key,
   });
@@ -55,13 +54,6 @@ class GalleryOverlay extends StatelessWidget {
   /// models cannot be read — a gallery whose navigation depends on a
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
-
-  /// Opens the focused work's link; null when it has none.
-  ///
-  /// Not one of the room's controls. Those move the visitor through the
-  /// corridor and live on the wall; this leaves it, for the work's own page,
-  /// and is drawn over the room whether or not the wall's controls loaded.
-  final VoidCallback? onOpen;
 
   /// Opens the recommendation form; null when the visitor is not at the
   /// testimonial wall. Shown with nothing focused, which is how the wall is
@@ -117,20 +109,6 @@ class GalleryOverlay extends StatelessWidget {
             ),
           ),
 
-        if (isFocused && onOpen != null)
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 24, bottom: 44),
-              child: _OpenControl(
-                label: context.strings.galleryOpenLabel(
-                  focused?.project?.title ?? '',
-                ),
-                text: context.strings.galleryOpen,
-                onTap: onOpen!,
-              ),
-            ),
-          ),
         if (!isFocused && onAddYours != null)
           Align(
             alignment: Alignment.bottomRight,

@@ -74,6 +74,9 @@ abstract class AppTypography {
   TextStyle get frameSummary;
   TextStyle get frameTag;
 
+  /// The link at the foot of a card: the one pressable thing on it.
+  TextStyle get frameLink;
+
   /// The word on the "open" pill over a focused frame: the stat pills' face
   /// and scale, so it reads as part of the card's set rather than the system.
   TextStyle get galleryOpen;
@@ -269,6 +272,15 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 20,
     height: 1.2,
     letterSpacing: 1,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get frameLink => const TextStyle(
+    fontSize: 26,
+    height: 1.2,
+    letterSpacing: 1,
+    fontWeight: FontWeight.w600,
     fontFamily: 'AzeretMono',
   );
 

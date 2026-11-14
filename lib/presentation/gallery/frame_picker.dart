@@ -55,6 +55,28 @@ abstract final class FramePicker {
     return best;
   }
 
+  /// Where [point] falls on [frame], as a share of its screen rectangle,
+  /// `0..1` from the top left; null when it misses or the frame is behind.
+  ///
+  /// For the frame the visitor has focused, which the camera faces square:
+  /// its screen rectangle is the frame itself, and whichever wall it hangs
+  /// on, its left on screen is the left of what is printed on it.
+  static Offset? fractionWithin(
+    Offset point,
+    Placement frame,
+    Projector project,
+  ) {
+    final bounds = _boundsOf(frame, project);
+    if (bounds == null || !bounds.contains(point)) return null;
+    final width = bounds.right - bounds.left;
+    final height = bounds.bottom - bounds.top;
+    if (width <= 0 || height <= 0) return null;
+    return Offset(
+      (point.dx - bounds.left) / width,
+      (point.dy - bounds.top) / height,
+    );
+  }
+
   /// The frame's screen rectangle, or null if any corner is behind the camera.
   ///
   /// All four corners are projected rather than the centre plus a radius: a

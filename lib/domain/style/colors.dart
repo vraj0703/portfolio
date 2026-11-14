@@ -110,6 +110,9 @@ abstract class AppColors {
   Color get frameCardInk;
   Color get frameCardInkSoft;
   Color get frameCardTagFill;
+
+  /// The ground of the link at a card's foot, a step stronger than a tag's.
+  Color get frameCardLinkFill;
   Color get frameCardTagEdge;
 
   /// The room's own warm pair, which a card's gradient can be toned toward
@@ -278,6 +281,9 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get frameCardTagFill => _menuInk.withValues(alpha: 0.12);
+
+  @override
+  Color get frameCardLinkFill => _menuInk.withValues(alpha: 0.22);
 
   @override
   Color get frameCardTagEdge => _menuInk.withValues(alpha: 0.38);

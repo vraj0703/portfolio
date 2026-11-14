@@ -168,13 +168,20 @@ abstract final class FrameCard {
     final tagStyle = type.frameTag.copyWith(color: colors.frameCardInkSoft);
     final tagHeight = _pillHeight(tagStyle);
     final stackTop = size.height - size.height * margin - tagHeight;
+
+    // The way out to the work itself, at the foot on the right, where the
+    // eye finishes reading the card. The stack gives way to it.
+    final link = linkRect(size, project: project, type: type, strings: strings);
+    if (link != null) _link(canvas, link, project, type, strings, colors);
+    final stackWidth = link == null ? measure : link.left - pillGap - left;
+
     if (project.stack.isNotEmpty) {
       _pills(
         canvas,
         project.stack,
         tagStyle,
         Offset(left, stackTop),
-        measure,
+        stackWidth,
         colors,
       );
     }
@@ -194,6 +201,94 @@ abstract final class FrameCard {
         maxLines: lines,
       );
     }
+  }
+
+  /// Where the link sits on a card baked at [size], in that card's pixels;
+  /// null when [project] has nothing to open.
+  ///
+  /// The one place the link's geometry is decided. [paint] draws it here and
+  /// the gallery picks it here (through [linkRegion]), so what is pressed is
+  /// always exactly what is drawn.
+  static Rect? linkRect(
+    Size size, {
+    required Project project,
+    AppTypography type = const DefaultAppTypography(),
+    AppStrings strings = const DefaultAppStrings(),
+  }) {
+    if (!project.isLive || !project.hasLink) return null;
+
+    final painter = TextPainter(
+      text: TextSpan(text: linkText(project, strings), style: type.frameLink),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    final width = painter.width + linkPadX * 2;
+    final height = painter.height + linkPadY * 2;
+    painter.dispose();
+
+    final right = size.width - size.width * margin;
+    final bottom = size.height - size.height * margin;
+    return Rect.fromLTRB(right - width, bottom - height, right, bottom);
+  }
+
+  /// [linkRect] as a share of the card, `0..1` on both axes, which is how
+  /// the gallery asks after a press on the focused frame.
+  static Rect? linkRegion(
+    Size size, {
+    required Project project,
+    AppTypography type = const DefaultAppTypography(),
+    AppStrings strings = const DefaultAppStrings(),
+  }) {
+    final rect = linkRect(size, project: project, type: type, strings: strings);
+    if (rect == null) return null;
+    return Rect.fromLTRB(
+      rect.left / size.width,
+      rect.top / size.height,
+      rect.right / size.width,
+      rect.bottom / size.height,
+    );
+  }
+
+  /// What the link says: where it goes, by its host.
+  static String linkText(Project project, AppStrings strings) =>
+      strings.frameLink(Uri.parse(project.url).host.replaceFirst('www.', ''));
+
+  /// Inner padding of the link, in pixels at the size baked. Roomier than a
+  /// tag: it is the one thing on the card that is pressed.
+  static const double linkPadX = 26;
+  static const double linkPadY = 14;
+
+  static void _link(
+    Canvas canvas,
+    Rect at,
+    Project project,
+    AppTypography type,
+    AppStrings strings,
+    AppColors colors,
+  ) {
+    final box = RRect.fromRectAndRadius(at, Radius.circular(at.height / 2));
+    canvas
+      ..drawRRect(box, Paint()..color = colors.frameCardLinkFill)
+      ..drawRRect(
+        box,
+        Paint()
+          ..color = colors.frameCardInk
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2,
+      );
+    final painter = TextPainter(
+      text: TextSpan(
+        text: linkText(project, strings),
+        style: type.frameLink.copyWith(color: colors.frameCardInk),
+      ),
+      textDirection: TextDirection.ltr,
+      maxLines: 1,
+    )..layout();
+    painter.paint(
+      canvas,
+      Offset(at.left + linkPadX, at.top + (at.height - painter.height) / 2),
+    );
+    painter.dispose();
   }
 
   /// Lays [text] out within [width] at [at] and returns the height it took.

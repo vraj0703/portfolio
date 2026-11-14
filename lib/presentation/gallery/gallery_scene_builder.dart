@@ -42,10 +42,16 @@ class GalleryScene {
     this.radio,
     this.testimonials,
     this._artwork,
-    this._textures,
-  );
+    this._textures, {
+    required this.artworkSize,
+  });
 
   final Scene scene;
+
+  /// How wide each card was baked, in pixels. The card's type is set in
+  /// those pixels, so anything that finds a spot on a card (the link on a
+  /// focused frame) measures it at this size.
+  final int artworkSize;
 
   /// The entrance cue, exposed so the view can advance its bob and retire it.
   /// Null when the model could not be read — see [ScrollArrow.load].
@@ -199,6 +205,7 @@ class GalleryScene {
       testimonials,
       artwork,
       textures,
+      artworkSize: artworkSize,
     );
 
     await _report(onProgress, 1);

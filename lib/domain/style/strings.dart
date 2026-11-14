@@ -54,6 +54,9 @@ abstract class AppStrings {
   /// to someone who cannot see it.
   String get galleryOpen;
   String galleryOpenLabel(String title);
+
+  /// The link drawn on a card, naming where it goes.
+  String frameLink(String host);
   String get letsConnect;
 
   /// How to handle the skills board, painted on the wall behind it.
@@ -183,6 +186,9 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String galleryOpenLabel(String title) => 'Open $title';
+
+  @override
+  String frameLink(String host) => '$host  ↗';
 
   @override
   String get letsConnect => "LET'S CONNECT";
