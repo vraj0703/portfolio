@@ -340,9 +340,9 @@ class MyGame extends FlameGame
     // so a further stage joining that composition cannot miss it.
     if (state.showsMark) _exitReported = false;
 
-    state.maybeWhen(
-      logoOverlayRemoving: () => audio.play(AudioCue.enter),
-      title: () {
+    state.maybeMap(
+      logoOverlayRemoving: (_) => audio.play(AudioCue.enter),
+      title: (_) {
         audio.play(AudioCue.bouncyArrow);
 
         _rewindBoldTextStage();
@@ -350,11 +350,11 @@ class MyGame extends FlameGame
       // Arriving in the corridor. Hung off the state rather than off the
       // two things that reach it — the bold text running out, and the
       // gallery mark on the contact menu — so both doors sound the same.
-      gallery: () => audio.play(AudioCue.galleryEntry),
+      gallery: (_) => audio.play(AudioCue.galleryEntry),
       // Nothing of the corridor's approach may be left standing under the
       // contact screen.
-      contact: _rewindBoldTextStage,
-      active: (_, _) {
+      contact: (_) => _rewindBoldTextStage(),
+      active: (_) {
         if (_boldTextActive) return;
         _boldTextActive = true;
         _scroll.reset();

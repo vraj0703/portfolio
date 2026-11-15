@@ -135,10 +135,10 @@ class TitleLayerComponent extends PositionComponent
   /// Matched through the union rather than with `is Title`, because Flutter
   /// exports a `Title` widget of its own and importing both into one library
   /// is ambiguous.
-  static bool hasBegunBy(SceneState state) => state.maybeWhen(
-    titleLoading: () => true,
-    title: () => true,
-    active: (_, _) => true,
+  static bool hasBegunBy(SceneState state) => state.maybeMap(
+    titleLoading: (_) => true,
+    title: (_) => true,
+    active: (_) => true,
     orElse: () => false,
   );
 
@@ -146,15 +146,15 @@ class TitleLayerComponent extends PositionComponent
   void onNewState(SceneState state) {
     super.onNewState(state);
 
-    state.maybeWhen(
-      titleLoading: () => _elapsed ??= 0,
+    state.maybeMap(
+      titleLoading: (_) => _elapsed ??= 0,
       // Returning to the logo rewinds the stage so it plays again rather than
       // snapping straight to the finished pose.
       logo: (_) => _rewind(),
       // The contact screen clears the stage the same way. Home then arrives
       // as `titleLoading`, so the entrance plays again from the top rather
       // than the titles snapping back on.
-      contact: _rewind,
+      contact: (_) => _rewind(),
       orElse: () {
         // Reached the title without passing through its loading stage —
         // which is what walking back out of the gallery does, and what the

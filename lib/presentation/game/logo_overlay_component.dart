@@ -108,8 +108,8 @@ class LogoOverlayComponent extends PositionComponent
   void onNewState(SceneState state) {
     super.onNewState(state);
 
-    state.maybeWhen(
-      contact: () {
+    state.maybeMap(
+      contact: (_) {
         _isContact = true;
         _replay();
       },
@@ -120,7 +120,7 @@ class LogoOverlayComponent extends PositionComponent
         // the entrance rather than snapping to the finished pose.
         if (_isLeaving) _replay();
       },
-      logoOverlayRemoving: () => _isLeaving = true,
+      logoOverlayRemoving: (_) => _isLeaving = true,
       // Loading is the one stage where nothing has happened yet: the layer
       // is waiting behind the curtain and must not be told it is leaving.
       loading: (_) {},

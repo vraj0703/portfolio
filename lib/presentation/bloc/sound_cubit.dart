@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 
@@ -16,9 +17,14 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 /// the whole visit and this lives for one mount of the scene, so a site
 /// silenced before a remount must come back silent and say so.
 class SoundCubit extends Cubit<bool> {
-  SoundCubit({required AppAudio audio, required this._radio})
-    : _audio = audio,
-      super(audio.isMuted);
+  SoundCubit({
+    required AppAudio audio,
+    required this._radio,
+    this._events,
+  }) : _audio = audio,
+       super(audio.isMuted);
+
+  final SiteEvents? _events;
 
   final AppAudio _audio;
   final RadioPlayer _radio;
@@ -40,5 +46,6 @@ class SoundCubit extends Cubit<bool> {
     unawaited(_radio.setVolume(silencing ? 0 : RadioState.defaultVolume));
 
     emit(silencing);
+    _events?.soundToggled(muted: silencing);
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show debugPrint;
+import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser, posthogToken;
 
 /// Where the gallery's build spends its time, phase by phase (PORTFOLIO-8).
 ///
@@ -15,7 +16,24 @@ import 'package:flutter/foundation.dart' show debugPrint;
 /// The build is sequential (each step awaits the last), so one current
 /// phase is enough to attribute every millisecond.
 abstract final class BuildTiming {
-  static const bool enabled = bool.fromEnvironment('BUILD_TIMING');
+  static const bool printed = bool.fromEnvironment('BUILD_TIMING');
+
+  /// On for the console table, and on whenever the build sends analytics:
+  /// `site_loaded` carries the same phases (docs/analytics/README.md).
+  static const bool enabled = printed || posthogToken != '';
+
+  /// When the build finished, in milliseconds since navigation started.
+  static double? finishedAt;
+
+  /// Whether the build has finished and its phases are final.
+  static bool get done => finishedAt != null;
+
+  /// Each phase's wall time, in whole milliseconds, once [done].
+  static Map<String, int> get phases => <String, int>{
+    for (final phase in BuildPhase.values)
+      if ((_totals[phase] ?? Duration.zero) > Duration.zero)
+        phase.name: (_totals[phase]!).inMilliseconds,
+  };
 
   static final Map<BuildPhase, Duration> _totals = <BuildPhase, Duration>{};
   static final Map<BuildPhase, int> _counts = <BuildPhase, int>{};
@@ -85,6 +103,8 @@ abstract final class BuildTiming {
     _switchTo(BuildPhase.other);
     _clock.stop();
     _printed = true;
+    finishedAt = Browser.now();
+    if (!printed) return;
     final total = _clock.elapsed.inMicroseconds / 1000;
     final rows = StringBuffer('[build] phase | ms | share | calls\n');
     for (final phase in BuildPhase.values) {

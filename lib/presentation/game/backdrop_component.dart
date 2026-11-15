@@ -51,12 +51,12 @@ class BackdropComponent extends PositionComponent
   void onNewState(SceneState state) {
     super.onNewState(state);
 
-    state.maybeWhen(
+    state.maybeMap(
       // Starts with the mark's retreat, not with the title, so the two
       // overlap rather than queue.
-      logoOverlayRemoving: () => _isRising = true,
+      logoOverlayRemoving: (_) => _isRising = true,
       logo: (_) => _fall(),
-      contact: _fall,
+      contact: (_) => _fall(),
       orElse: () {
         // Up already by this stage, and never seen to rise. Same reason as
         // the mark's: the ways out of the contact screen do not pass through

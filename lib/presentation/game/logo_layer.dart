@@ -93,8 +93,8 @@ class LogoMarkComponent extends PositionComponent
     final from = _stage;
     _stage = state;
 
-    state.maybeWhen(
-      logoOverlayRemoving: () {
+    state.maybeMap(
+      logoOverlayRemoving: (_) {
         _returning = false;
         _exitElapsed ??= 0;
       },
@@ -113,7 +113,7 @@ class LogoMarkComponent extends PositionComponent
       // corridor flies its own mark to the centre before handing over. This
       // layer taking the trip again would play it twice — the second time
       // starting from a corner the visitor had just watched it leave.
-      contact: () => _returnHome(travelling: from is! Gallery),
+      contact: (_) => _returnHome(travelling: from is! Gallery),
       orElse: () {
         _returning = false;
         // Arrived somewhere past the logo screen without having played the

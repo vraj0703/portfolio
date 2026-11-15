@@ -61,6 +61,16 @@ class LoadingProgress {
   ///
   /// Checked per phase rather than against [value], so floating-point drift
   /// in the weighted sum can never gate the transition out of loading.
+  /// The last phase, in loading order, that has reported anything: how far
+  /// a visitor got (`load_abandoned`). Null before any has.
+  LoadingPhase? get furthest {
+    LoadingPhase? last;
+    for (final phase in LoadingPhase.values) {
+      if ((_reported[phase] ?? 0) > 0) last = phase;
+    }
+    return last;
+  }
+
   bool get isComplete =>
       LoadingPhase.values.every((phase) => of(phase) >= 1.0);
 

@@ -79,7 +79,9 @@ class TitleActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SceneBloc, SceneState>(
       buildWhen: (previous, current) =>
-          previous.showsMenu != current.showsMenu,
+          previous.showsMenu != current.showsMenu ||
+          previous.showsConnect != current.showsConnect ||
+          previous.showsMenuButton != current.showsMenuButton,
       builder: (context, state) {
         if (!state.showsMenu) return const SizedBox.shrink();
 
@@ -103,14 +105,19 @@ class TitleActions extends StatelessWidget {
                   order: 0,
                   child: SoundButton(glyph: glyph, target: target),
                 ),
-                TitleActionEntry(
-                  order: 1,
-                  child: ConnectButton(glyph: glyph, target: target),
-                ),
-                TitleActionEntry(
-                  order: 2,
-                  child: MenuButton(glyph: glyph, target: target),
-                ),
+                // Each behind its feature flag, read from the state (see
+                // [SceneState.showsConnect]): a flag is a rule on the state,
+                // not a branch here.
+                if (state.showsConnect)
+                  TitleActionEntry(
+                    order: 1,
+                    child: ConnectButton(glyph: glyph, target: target),
+                  ),
+                if (state.showsMenuButton)
+                  TitleActionEntry(
+                    order: 2,
+                    child: MenuButton(glyph: glyph, target: target),
+                  ),
               ],
             ),
           ),
