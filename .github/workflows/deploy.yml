@@ -4,6 +4,8 @@ name: Test & Deploy
 #
 # - build: analyse, test, and compile the web release, then hand the output
 #   to deploy as an artifact so the compile happens once per run.
+# - preview: on a pull request, ship build/web to a temporary Firebase channel named after the PR
+#   and comment its URL; expires in 7 days.
 # - deploy: on push to master only, ship build/web to the `live` channel of
 #   the site serving vishalraj.space. Pull requests build and test but do
 #   not deploy.
@@ -73,4 +75,34 @@ jobs:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
+          projectId: vishal-raj-space-firebase-home
+
+  # A pull request gets its own preview URL on Firebase Hosting, so the work can be walked through
+  # in a real browser before the merge that ships it. The channel is named after the PR, is
+  # replaced on every push to the branch, and expires by itself; the live site is not touched.
+  # The action comments the URL on the PR. Same-repository branches only: a fork has no secret.
+  preview:
+    needs: build
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download web build
+        uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: build/web
+
+      - name: Deploy preview to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          channelId: pr-${{ github.event.pull_request.number }}
+          expires: 7d
           projectId: vishal-raj-space-firebase-home
