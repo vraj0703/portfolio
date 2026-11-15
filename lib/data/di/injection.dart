@@ -1,4 +1,10 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:portfolio/data/analytics/analytics_setup.dart';
 import 'package:portfolio/data/audio/flame_app_audio.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
+import 'package:portfolio/presentation/analytics/site_telemetry.dart';
 import 'package:portfolio/data/config/durations.dart';
 import 'package:portfolio/data/contact/url_contact_links.dart';
 import 'package:portfolio/data/recommendations/local_recommendation_store.dart';
@@ -36,11 +42,43 @@ Future<void> initDependencies() async {
 
   // A factory for the same reason, and seeded from the shared audio backend
   // so a remounted scene shows the mute the visit already chose.
-  di.registerFactory<SoundCubit>(
-    () => SoundCubit(audio: di.get<AppAudio>(), radio: di.get<RadioPlayer>()),
+  // Analytics: PostHog with a token, silence without one. A build with no
+  // token sends nothing and loads nothing (docs/analytics/README.md).
+  di.registerLazySingleton<Analytics>(createAnalytics);
+  di.registerLazySingleton<SiteEvents>(
+    () => SiteEvents(
+      di.get<Analytics>(),
+      viewport: () {
+        final view = PlatformDispatcher.instance.implicitView;
+        if (view == null) return (0, 0);
+        final size = view.physicalSize / view.devicePixelRatio;
+        return (size.width, size.height);
+      },
+    ),
+  );
+  di.registerLazySingleton<SiteTelemetry>(
+    () => SiteTelemetry(di.get<SiteEvents>()),
   );
 
-  di.registerFactory<SceneBloc>(() => SceneBloc(radio: di.get<RadioPlayer>()));
+  di.registerFactory<SoundCubit>(
+    () => SoundCubit(
+      audio: di.get<AppAudio>(),
+      radio: di.get<RadioPlayer>(),
+      events: di.get<SiteEvents>(),
+    ),
+  );
+
+  di.registerFactory<SceneBloc>(() {
+    final events = di.get<SiteEvents>();
+    return SceneBloc(
+      radio: di.get<RadioPlayer>(),
+      // The compiled defaults, or what the flags already say: never waits.
+      flags: ButtonFlags(
+        connect: events.showsConnect(),
+        menu: events.showsMenu(),
+      ),
+    );
+  });
 
   // One shared audio backend: it owns a cache and a pool of players, so a
   // second instance would duplicate both and let cues talk over each other.

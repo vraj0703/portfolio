@@ -15,7 +15,9 @@ import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/config/mark_travel.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/gallery/gallery_depth.dart';
+import 'package:portfolio/presentation/analytics/site_telemetry.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
@@ -351,14 +353,17 @@ class _GalleryViewState extends State<GalleryView> {
       _reading = false;
     });
     _placeControls(frame);
+    locate<SiteTelemetry>().onPiece(frame?.project?.id);
   }
 
   /// Opens the focused piece's case on the sheet. Only a finished piece has
   /// one; a piece in preparation has nothing to read yet.
   void _read() {
-    if (_focused?.project?.isLive != true || _reading) return;
+    final project = _focused?.project;
+    if (project == null || !project.isLive || _reading) return;
     _sound(AudioCue.click);
     setState(() => _reading = true);
+    locate<SiteEvents>().projectCaseOpened(project.id);
   }
 
   /// Closes the sheet back to the piece, and gives the keyboard back to the
@@ -448,6 +453,7 @@ class _GalleryViewState extends State<GalleryView> {
   /// Opens the recommendation form.
   void _addYours() {
     if (!mounted) return;
+    locate<SiteEvents>().testimonialFormOpened();
     unawaited(
       RecommendationForm.open(context, onSubmit: _submitRecommendation),
     );
@@ -457,12 +463,15 @@ class _GalleryViewState extends State<GalleryView> {
   /// or the browser takes the new tab for a pop-up; then the words are
   /// copied for pasting there, kept in this browser, and put on frame 2.
   Future<void> _submitRecommendation(PendingRecommendation words) async {
+    final events = locate<SiteEvents>()..testimonialLinkedinOpened();
     unawaited(locate<ContactLinks>().openLinkedIn());
     // Best effort: a browser may refuse the clipboard, and the words must
     // still be kept and shown — the form says where to paste them, and they
     // are on the wall to copy by hand.
     try {
       await Clipboard.setData(ClipboardData(text: words.clipboardText));
+      // How long, bucketed; never the text.
+      events.testimonialTextCopied(TextLength.of(words.clipboardText));
     } catch (_) {}
     locate<RecommendationStore>().save(words);
     await _gallery?.testimonials.show(words);
@@ -477,7 +486,9 @@ class _GalleryViewState extends State<GalleryView> {
     if (project == null || !project.hasLink) return null;
     return () {
       _sound(AudioCue.pageTurn);
-      unawaited(locate<ContactLinks>().open(Uri.parse(project.url)));
+      final url = Uri.parse(project.url);
+      locate<SiteEvents>().projectLinkOpened(project.id, url.host);
+      unawaited(locate<ContactLinks>().open(url));
     };
   }
 
@@ -1092,6 +1103,14 @@ class _GalleryViewState extends State<GalleryView> {
             _focused == null &&
             wallProgress >= GalleryCameraPath.walkFraction &&
             wallProgress <= GalleryCameraPath.panEnd;
+        // Where in the gallery, for the journey; a no-op unless it changed.
+        locate<SiteTelemetry>().onRegion(
+          _onWall
+              ? SitePath.testimonials
+              : _inHall
+              ? SitePath.skills
+              : null,
+        );
 
         if (!_atBoard) {
           // Leaving. Eased back to the doorway view so a reverse scroll walks

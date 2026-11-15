@@ -38,6 +38,9 @@ class UrlContactLinks implements ContactLinks {
   );
 
   @override
+  bool get hasCv => profile.hasCv;
+
+  @override
   Future<void> downloadCv() async {
     final cv = profile.cv;
 

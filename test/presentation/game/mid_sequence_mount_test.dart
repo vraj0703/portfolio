@@ -50,10 +50,10 @@ void main() {
 
     test('the title has begun by every stage it is visible in', () {
       for (final stage in stages) {
-        final shows = stage.maybeWhen(
-          titleLoading: () => true,
-          title: () => true,
-          active: (_, _) => true,
+        final shows = stage.maybeMap(
+          titleLoading: (_) => true,
+          title: (_) => true,
+          active: (_) => true,
           orElse: () => false,
         );
         expect(

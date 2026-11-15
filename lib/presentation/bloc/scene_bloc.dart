@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
@@ -19,12 +20,16 @@ part 'scene_state.dart';
 /// through [Queuer] without knowing what else is loading or how the bar is
 /// weighted.
 class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
-  SceneBloc({RadioPlayer radio = const SilentRadio()})
+  SceneBloc({
+    RadioPlayer radio = const SilentRadio(),
+    ButtonFlags flags = const ButtonFlags(),
+  })
     // A named parameter cannot be spelled `_radio`, so the field cannot be
     // an initialising formal here — the lint's suggestion does not compile.
     // ignore: prefer_initializing_formals
     : _radio = radio,
-      super(const SceneState.loading()) {
+      _flags = flags,
+      super(SceneState.loading(flags: flags)) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
@@ -37,6 +42,29 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<ContactRequested>(_onContactRequested);
     on<GalleryRequested>(_onGalleryRequested);
     on<HomeRequested>(_onHomeRequested);
+    on<FlagsChanged>(_onFlagsChanged);
+  }
+
+  /// The title buttons' flags, carried onto every state this bloc emits.
+  ButtonFlags _flags;
+
+  /// Every state leaves here carrying the flags, whichever handler built
+  /// it: a state constructed without them would quietly put both buttons
+  /// back. One place, rather than a copy at each of the handlers' emits.
+  @override
+  @visibleForTesting
+  void emit(SceneState state) {
+    final carried =
+        state.flags == _flags ? state : state.copyWith(flags: _flags);
+    // The one call to the base's emit; every handler's emit arrives here.
+    // ignore: invalid_use_of_visible_for_testing_member
+    super.emit(carried);
+  }
+
+  void _onFlagsChanged(FlagsChanged event, Emitter<SceneState> emit) {
+    if (event.flags == _flags) return;
+    _flags = event.flags;
+    emit(state.copyWith(flags: _flags));
   }
 
   /// The wall radio, which the scene owns rather than the corridor does.

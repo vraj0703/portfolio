@@ -84,11 +84,11 @@ class ScrollCueComponent extends PositionComponent
   void onNewState(SceneState state) {
     super.onNewState(state);
 
-    state.maybeWhen(
+    state.maybeMap(
       // Only offered once the title has finished arriving; before that there
       // is nothing to move on from.
-      title: () => _isVisible = true,
-      active: (_, isArrowVisible) => _isVisible = isArrowVisible,
+      title: (_) => _isVisible = true,
+      active: (s) => _isVisible = s.isArrowVisible,
       orElse: () {
         _isVisible = false;
         _opacity = 0;
