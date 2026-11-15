@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_depth.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
@@ -134,6 +136,56 @@ void main() {
         );
         expect(distance, greaterThanOrEqualTo(needed), reason: '$aspect');
       }
+    });
+  });
+
+  group('on a portrait screen', () {
+    // Where a point on the wall lands on screen, as a share of the height
+    // from the top, for a camera looking square on at [pose].
+    double fromTop(FocusPose pose, double y) {
+      final d = (pose.position.x - pose.target.x).abs();
+      final half = d * math.tan(GalleryDimensions.fovRadians / 2);
+      return (pose.target.y + half - y) / (2 * half);
+    }
+
+    test('the piece is centred in the space above the drawn controls', () {
+      for (final reserve in <double>[0.1, 0.14, 0.2]) {
+        for (final piece in pieces) {
+          final pose = ProjectFocus.poseFor(
+            piece,
+            aspect: 390 / 844,
+            reserveBelow: reserve,
+          );
+          expect(
+            fromTop(pose, piece.position.y),
+            closeTo((1 - reserve) / 2, 1e-4),
+            reason: '${piece.project?.id} at $reserve',
+          );
+          // Square on: the camera looks level, at its own height.
+          expect(pose.position.y, closeTo(pose.target.y, 1e-6));
+        }
+      }
+    });
+
+    test('the whole piece is in the space above them, top and bottom', () {
+      final piece = pieces.first;
+      const reserve = 0.14;
+      final pose = ProjectFocus.poseFor(
+        piece,
+        aspect: 390 / 844,
+        reserveBelow: reserve,
+      );
+      final top = fromTop(pose, piece.position.y + piece.extents.y / 2);
+      final foot = fromTop(pose, piece.position.y - piece.extents.y / 2);
+      expect(top, greaterThan(0));
+      expect(foot, lessThan(1 - reserve));
+    });
+
+    test('a wide screen is not moved by it', () {
+      final piece = pieces.first;
+      final a = ProjectFocus.poseFor(piece, aspect: 16 / 10);
+      final b = ProjectFocus.poseFor(piece, aspect: 16 / 10, reserveBelow: 0.2);
+      expect(b.target.y, a.target.y);
     });
   });
 

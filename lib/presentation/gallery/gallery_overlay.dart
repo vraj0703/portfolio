@@ -80,6 +80,13 @@ class GalleryOverlay extends StatelessWidget {
   final VoidCallback? onCloseSheet;
   final VoidCallback? onOpenProject;
 
+  /// How far the drawn row sits above the screen's foot.
+  static const double rowFoot = 44;
+
+  /// How much of the screen's height, from its foot, the drawn row and its
+  /// margins take: what the camera keeps clear on a portrait screen.
+  static const double rowBand = rowFoot + _Control.size + 24;
+
   /// How long the sheet takes to come up or go down.
   static const Duration sheetTravel = Duration(milliseconds: 280);
 
@@ -160,7 +167,7 @@ class GalleryOverlay extends StatelessWidget {
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
-              padding: const EdgeInsets.only(bottom: 44),
+              padding: const EdgeInsets.only(bottom: rowFoot),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[

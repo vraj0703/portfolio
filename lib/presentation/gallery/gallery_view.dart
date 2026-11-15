@@ -1179,6 +1179,9 @@ class _GalleryViewState extends State<GalleryView> {
     return ProjectFocus.poseFor(
       frame,
       aspect: _viewSize.isEmpty ? 16 / 9 : _viewSize.width / _viewSize.height,
+      // On a portrait screen the controls are the drawn row at the foot:
+      // the piece is centred in what is left above it.
+      reserveBelow: _portrait ? GalleryOverlay.rowBand / _viewSize.height : 0,
     );
   }
 

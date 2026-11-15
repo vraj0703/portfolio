@@ -104,22 +104,39 @@ abstract final class ProjectFocus {
   /// The camera comes off the wall along its normal and looks straight back
   /// at the centre of the composition — square on, not angled. A raking view
   /// of a flat plane of text is a view you cannot read.
-  static FocusPose poseFor(Placement frame, {required double aspect}) {
+  ///
+  /// On a portrait screen the controls are not on the wall but drawn over
+  /// the bottom of the screen, and [reserveBelow] is how much of the
+  /// screen's height they take. The piece is then centred in the space above
+  /// them rather than in the whole screen: framed by width, a portrait shot
+  /// has height to spare, and centring on the screen left the piece low
+  /// with empty ceiling over it.
+  static FocusPose poseFor(
+    Placement frame, {
+    required double aspect,
+    double reserveBelow = 0,
+  }) {
     final portrait = aspect < 1;
     final distance = distanceFor(
       width: compositionWidth,
-      height: GalleryDimensions.frameMaxHeight + reachBelow,
+      height: GalleryDimensions.frameMaxHeight + (portrait ? 0 : reachBelow),
       aspect: aspect,
       room: portrait ? portraitMargin : margin,
     );
 
-    // Aimed low of the work's own centre by half what was added beneath it,
-    // so the extra room appears where the controls are rather than as empty
-    // ceiling above the frame; and across toward the label by half of it, so
-    // the two sit in the middle of the shot together.
+    // Across toward the label by half of it, so the two sit in the middle
+    // of the shot together. Down: on a wide screen, low of the work's own
+    // centre by half what was added beneath it, so the extra room appears
+    // where the controls hang rather than as ceiling. On a portrait screen,
+    // by the share of the screen the controls take: the visible half-height
+    // times that share moves the piece's centre to the middle of what is
+    // left above them.
+    final halfHeight = distance * math.tan(GalleryDimensions.fovRadians / 2);
     final centre = frame.position +
         GalleryLayout.acrossOf(frame) * compositionShift
-      ..y = frame.position.y - reachBelow / 2;
+      ..y = portrait
+          ? frame.position.y - halfHeight * reserveBelow
+          : frame.position.y - reachBelow / 2;
 
     // Frames hang just inside the wall they belong to, so the sign of their x
     // is also the direction of the wall — and stepping the *opposite* way is
