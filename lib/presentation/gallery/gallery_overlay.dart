@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/gallery/project_data.dart';
 import 'package:portfolio/domain/style/colors.dart';
@@ -27,6 +28,8 @@ class GalleryOverlay extends StatelessWidget {
     required this.onForward,
     required this.mirrored,
     required this.asFallback,
+    this.rowOnScreen = false,
+    this.readAnchor,
     this.reading = false,
     this.onRead,
     this.onCloseSheet,
@@ -59,6 +62,15 @@ class GalleryOverlay extends StatelessWidget {
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
 
+  /// Whether to draw the three controls here even though the room has
+  /// them: on a portrait screen the row is drawn over the room, with "Read
+  /// the case" in it.
+  final bool rowOnScreen;
+
+  /// Where "Read the case" goes when the controls are on the wall: just
+  /// past them, on their line. Null hides it.
+  final ValueListenable<Offset?>? readAnchor;
+
   /// Whether the focused piece's case is open on the sheet.
   final bool reading;
 
@@ -78,21 +90,27 @@ class GalleryOverlay extends StatelessWidget {
     final canRead = project != null && project.isLive && onRead != null;
     final still = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
     final travel = still ? Duration.zero : sheetTravel;
+    final drawsRow = isFocused && (asFallback || rowOnScreen);
 
     return Stack(
       children: <Widget>[
-        // "Read the case": over the room, for a finished piece only, in the
-        // corner on the label's side. Not under the piece: the room's own
-        // three controls hang there, and centred it covered the arrow on.
-        // Real text and a real button, not a texture; it is the way into
-        // the words the wall no longer carries.
-        if (canRead && !reading)
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 24, bottom: 28),
-              child: _ReadCase(onTap: onRead!),
-            ),
+        // "Read the case", in the row with the room's three controls, under
+        // the piece: placed on their line when they hang on the wall (the
+        // view measures where), and drawn in the row below when the row is
+        // drawn here. For a finished piece only. Real text and a real
+        // button, not a texture; it is the way into the words the wall no
+        // longer carries.
+        if (canRead && !reading && !drawsRow && readAnchor != null)
+          ValueListenableBuilder<Offset?>(
+            valueListenable: readAnchor!,
+            builder: (context, at, child) => at == null
+                ? const SizedBox.shrink()
+                : Positioned(
+                    left: at.dx,
+                    top: at.dy - _ReadCase.height / 2,
+                    child: child!,
+                  ),
+            child: _ReadCase(onTap: onRead!),
           ),
 
         // The shade over the room while the sheet is up; a press on it is
@@ -138,7 +156,7 @@ class GalleryOverlay extends StatelessWidget {
         // The controls are only meaningful with something focused, and are
         // gone rather than disabled when nothing is: a permanent bar of dead
         // buttons reads as a broken interface.
-        if (isFocused && asFallback)
+        if (drawsRow && !reading)
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -173,6 +191,10 @@ class GalleryOverlay extends StatelessWidget {
                       onTap: mirrored ? onBack : onForward,
                     ),
                   ),
+                  if (canRead) ...<Widget>[
+                    const SizedBox(width: 18),
+                    _ReadCase(onTap: onRead!),
+                  ],
                 ],
               ),
             ),
@@ -187,6 +209,8 @@ class GalleryOverlay extends StatelessWidget {
 class _ReadCase extends StatelessWidget {
   const _ReadCase({required this.onTap});
 
+  static const double height = 48;
+
   final VoidCallback onTap;
 
   @override
@@ -199,8 +223,9 @@ class _ReadCase extends StatelessWidget {
         child: GestureDetector(
           onTap: onTap,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 48),
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+            height: height,
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
               color: colors.sheetInk,
               borderRadius: BorderRadius.circular(8),

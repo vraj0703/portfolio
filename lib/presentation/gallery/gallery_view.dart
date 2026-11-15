@@ -158,6 +158,20 @@ class _GalleryViewState extends State<GalleryView> {
   /// would be moving something to where it already is.
   final ValueNotifier<double> _markJourney = ValueNotifier<double>(1);
 
+  /// Where "Read the case" sits on screen: just past the room's three
+  /// controls, on their line. Moved by the render loop while the camera
+  /// settles, so a notifier and not state: only the button redraws.
+  final ValueNotifier<Offset?> _readAnchor = ValueNotifier<Offset?>(null);
+
+  /// Whether the view is portrait, as of the last layout. A portrait screen
+  /// draws the three controls as a row over the room (with "Read the case"
+  /// in it) instead of hanging them on the wall, where a phone's narrow
+  /// shot leaves no line beside them for a fourth.
+  bool _wasPortrait = false;
+
+  bool get _portrait =>
+      !_viewSize.isEmpty && _viewSize.width < _viewSize.height;
+
   /// Follows the radio so the face on the wall says what it is doing.
   StreamSubscription<RadioState>? _radio;
 
@@ -401,7 +415,7 @@ class _GalleryViewState extends State<GalleryView> {
     final controls = _gallery?.controls;
     if (controls == null) return;
 
-    if (frame == null) {
+    if (frame == null || _portrait) {
       controls.hide();
       return;
     }
@@ -824,6 +838,7 @@ class _GalleryViewState extends State<GalleryView> {
     _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
+    _readAnchor.dispose();
     _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it
@@ -848,6 +863,14 @@ class _GalleryViewState extends State<GalleryView> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           _viewSize = constraints.biggest;
+          if (_portrait != _wasPortrait) {
+            _wasPortrait = _portrait;
+            // Turned between portrait and landscape: the controls move
+            // between the wall and the overlay.
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => _placeControls(_focused),
+            );
+          }
 
           return Stack(
             fit: StackFit.expand,
@@ -956,6 +979,8 @@ class _GalleryViewState extends State<GalleryView> {
                 onForward: () => _control(ControlAction.next),
                 mirrored: !(_focused?.position.x.isNegative ?? true),
                 asFallback: _gallery?.controls == null,
+                rowOnScreen: _portrait,
+                readAnchor: _readAnchor,
                 reading: _reading,
                 onRead: _read,
                 onCloseSheet: _closeSheet,
@@ -1102,9 +1127,45 @@ class _GalleryViewState extends State<GalleryView> {
           target: SceneAxes.position(_look ?? _targetPose().target),
         );
         _lastCamera = camera;
+        _placeReadAnchor(camera);
         return camera;
       },
     );
+  }
+
+  /// Puts "Read the case" on the line of the room's controls, just past the
+  /// last of the three as the screen shows them.
+  ///
+  /// Measured from all three slots whether or not an end is hidden, so the
+  /// button does not move between one piece and the next. Nothing when the
+  /// controls are not on the wall: on a portrait screen and in the fallback
+  /// the overlay draws the row itself, with the button in it.
+  void _placeReadAnchor(PerspectiveCamera camera) {
+    final frame = _focused;
+    Offset? next;
+    if (frame != null &&
+        !_portrait &&
+        !_viewSize.isEmpty &&
+        _gallery?.controls != null) {
+      final points = <Offset>[
+        for (final c in ControlLayout.below(
+          frame,
+          canGoBack: true,
+          canGoForward: true,
+        ))
+          ?camera.worldToScreen(SceneAxes.position(c.position), _viewSize),
+      ]..sort((a, b) => a.dx.compareTo(b.dx));
+      if (points.length == 3) {
+        final unit = (points.last.dx - points.first.dx) /
+            (2 * ControlLayout.spacing);
+        next = Offset(
+          (points.last.dx + unit * ControlLayout.iconSize / 2 + 20)
+              .roundToDouble(),
+          points.last.dy.roundToDouble(),
+        );
+      }
+    }
+    if (_readAnchor.value != next) _readAnchor.value = next;
   }
 
   /// Where the camera wants to be this frame.

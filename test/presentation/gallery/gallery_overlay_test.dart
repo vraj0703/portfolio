@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,9 @@ void main() {
     bool mirrored = false,
     bool reading = false,
     bool withLink = false,
+    bool asFallback = true,
+    bool rowOnScreen = false,
+    ValueListenable<Offset?>? readAnchor,
     Size size = const Size(1280, 800),
   }) {
     taps.clear();
@@ -31,7 +35,9 @@ void main() {
             onExit: () => taps.add('exit'),
             onForward: () => taps.add('forward'),
             mirrored: mirrored,
-            asFallback: true,
+            asFallback: asFallback,
+            rowOnScreen: rowOnScreen,
+            readAnchor: readAnchor,
             reading: reading,
             onRead: () => taps.add('read'),
             onCloseSheet: () => taps.add('close sheet'),
@@ -121,6 +127,65 @@ void main() {
     final linked = order.frames.firstWhere((f) => f.project?.hasLink ?? false);
     await tester.pumpWidget(host(focused: linked, withLink: true));
     expect(find.textContaining('Open the project'), findsNothing);
+  });
+
+  group('"Read the case" sits in the control row', () {
+    testWidgets('in the drawn row, after the arrows, when the row is drawn', (
+      tester,
+    ) async {
+      // A portrait screen draws the room's three controls here.
+      await tester.pumpWidget(
+        host(focused: pieceFor('tantr'), asFallback: false, rowOnScreen: true),
+      );
+      final read = tester.getCenter(find.text('Read the case'));
+      final next = tester.getCenter(find.text('›'));
+      final close = tester.getCenter(find.text('✕'));
+      expect(read.dy, closeTo(close.dy, 1));
+      expect(read.dx, greaterThan(next.dx));
+    });
+
+    testWidgets('on the wall\'s line, where the view measured it', (
+      tester,
+    ) async {
+      final anchor = ValueNotifier<Offset?>(const Offset(700, 690));
+      addTearDown(anchor.dispose);
+      await tester.pumpWidget(
+        host(focused: pieceFor('tantr'), asFallback: false, readAnchor: anchor),
+      );
+      // The room's controls are on the wall, so the row is not drawn.
+      expect(find.text('✕'), findsNothing);
+      final rect = tester.getRect(
+        find.ancestor(
+          of: find.text('Read the case'),
+          matching: find.byType(Container),
+        ).first,
+      );
+      expect(rect.left, closeTo(700, 0.5));
+      expect(rect.center.dy, closeTo(690, 0.5));
+
+      // It follows the camera as it settles.
+      anchor.value = const Offset(720, 700);
+      await tester.pump();
+      expect(
+        tester.getRect(find.ancestor(
+          of: find.text('Read the case'),
+          matching: find.byType(Container),
+        ).first).left,
+        closeTo(720, 0.5),
+      );
+
+      // And is gone while there is no line to sit on.
+      anchor.value = null;
+      await tester.pump();
+      expect(find.text('Read the case'), findsNothing);
+    });
+
+    testWidgets('never floats alone in a corner', (tester) async {
+      await tester.pumpWidget(
+        host(focused: pieceFor('tantr'), asFallback: false),
+      );
+      expect(find.text('Read the case'), findsNothing);
+    });
   });
 
   group('the sheet', () {
