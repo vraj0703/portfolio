@@ -141,6 +141,16 @@ void main() {
   });
 
   group('the journey (question 3)', () {
+    test('the first scene is announced too, after start', () {
+      // The meter starts on the scene the wrapper begins in; that must not
+      // read as "already announced".
+      telemetry.onScene(const SceneState.logo());
+      expect(
+        sink.sent.where((e) => e.$1 == r'$pageview').map((e) => e.$2['path']),
+        <String>[SitePath.logo],
+      );
+    });
+
     test('one page view per scene, with the piece and the wall', () {
       telemetry
         ..onScene(const SceneState.logo())

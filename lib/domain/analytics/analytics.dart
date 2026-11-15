@@ -170,6 +170,9 @@ class SiteEvents {
 
   bool _entered = false;
 
+  /// Whether any scene has been announced yet.
+  bool get entered => _entered;
+
   // Question 1.
   void siteLoaded(Map<String, Object?> timings) =>
       _send('site_loaded', timings);
