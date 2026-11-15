@@ -61,6 +61,9 @@ class PostHogAnalytics implements Analytics {
         'capture_pageleave': false,
         'disable_session_recording': true,
         'capture_exceptions': true,
+        // Nothing is written onto a visitor (the plan): no person profiles,
+        // so the SDK sends no $set of its own.
+        'person_profiles': 'never',
       }.jsify(),
     );
     ph.callMethod<JSAny?>(
@@ -113,7 +116,13 @@ class PostHogAnalytics implements Analytics {
   bool flag(String key, {required bool orElse}) {
     final ph = _ph;
     if (ph == null || !_started) return orElse;
-    final value = ph.callMethod<JSAny?>('isFeatureEnabled'.toJS, key.toJS);
+    // send_event: false, or every read of a flag is an event of its own
+    // ($feature_flag_called), outside the plan's fifteen.
+    final value = ph.callMethod<JSAny?>(
+      'isFeatureEnabled'.toJS,
+      key.toJS,
+      <String, Object?>{'send_event': false}.jsify(),
+    );
     if (value == null || !value.isA<JSBoolean>()) return orElse;
     return (value as JSBoolean).toDart;
   }

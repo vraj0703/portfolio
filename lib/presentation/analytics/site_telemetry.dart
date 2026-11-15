@@ -144,7 +144,8 @@ class SiteTelemetry {
         : _piece != null
         ? SitePath.piece(_piece!)
         : _region ?? SitePath.gallery;
-    if (path == events.scene && _health.scene != null) return;
+    // The same scene again is no new view; the first one always is.
+    if (path == events.scene && events.entered) return;
     final summary = _health.take();
     if (summary != null) events.sceneHealth(summary);
     if (events.enter(path)) _health.begin(path);
