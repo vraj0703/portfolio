@@ -9,7 +9,6 @@ import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 
 /// The title screen's controls, across the top from the parked mark: the
 /// sound switch, the way to the contact screen, and the drawer.
@@ -197,7 +196,8 @@ class SoundButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<SoundCubit, bool>(
+    return BlocSelector<SceneBloc, SceneState, bool>(
+      selector: (state) => state.muted,
       builder: (context, muted) {
         final colors = context.colors;
         final strings = context.strings;
@@ -208,7 +208,8 @@ class SoundButton extends StatelessWidget {
           tint: muted ? colors.menuTextSoft : colors.menuMark,
           glyph: glyph,
           target: target,
-          onTap: context.read<SoundCubit>().toggle,
+          onTap: () =>
+              context.read<SceneBloc>().add(const SceneEvent.muteToggled()),
         );
       },
     );

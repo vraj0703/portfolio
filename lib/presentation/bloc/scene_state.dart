@@ -12,6 +12,7 @@ sealed class SceneState with _$SceneState {
   const factory SceneState.loading({
     @Default(LoadingProgress.empty) LoadingProgress progress,
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Loading;
 
   /// The mark is on screen with its "tap to enter" affordance.
@@ -22,29 +23,35 @@ sealed class SceneState with _$SceneState {
   const factory SceneState.logo({
     @Default(false) bool isInteractive,
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Logo;
 
   const factory SceneState.logoOverlayRemoving({
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = LogoOverlayRemoving;
 
   const factory SceneState.titleLoading({
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = TitleLoading;
 
   const factory SceneState.title({
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Title;
 
   const factory SceneState.active({
     @Default(1.0) double uiOpacity,
     @Default(true) bool isArrowVisible,
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Active;
 
   /// The gallery: the corridor of work the bold text hands over to.
   const factory SceneState.gallery({
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Gallery;
 
   /// The contact screen.
@@ -56,6 +63,7 @@ sealed class SceneState with _$SceneState {
   /// it again reads as arriving somewhere rather than as a page change.
   const factory SceneState.contact({
     @Default(ButtonFlags()) ButtonFlags flags,
+    @Default(false) bool muted,
   }) = Contact;
 
   /// Whether the mark is the subject of the screen, centred and full size.

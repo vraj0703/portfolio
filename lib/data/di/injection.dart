@@ -17,7 +17,6 @@ import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 
 Future<void> initDependencies() async {
   final di = DependencyManager.instance;
@@ -60,18 +59,12 @@ Future<void> initDependencies() async {
     () => SiteTelemetry(di.get<SiteEvents>()),
   );
 
-  di.registerFactory<SoundCubit>(
-    () => SoundCubit(
-      audio: di.get<AppAudio>(),
-      radio: di.get<RadioPlayer>(),
-      events: di.get<SiteEvents>(),
-    ),
-  );
-
   di.registerFactory<SceneBloc>(() {
     final events = di.get<SiteEvents>();
     return SceneBloc(
       radio: di.get<RadioPlayer>(),
+      audio: di.get<AppAudio>(),
+      events: events,
       // The compiled defaults, or what the flags already say: never waits.
       flags: ButtonFlags(
         connect: events.showsConnect(),
