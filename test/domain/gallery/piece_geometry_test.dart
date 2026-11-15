@@ -123,8 +123,8 @@ void main() {
       }
     });
 
-    test('the whole composition is in the shot, side to side', () {
-      for (final aspect in aspects) {
+    test('on a wide screen the whole composition is in the shot', () {
+      for (final aspect in aspects.where((a) => a >= 1)) {
         final piece = pieces.first;
         final pose = ProjectFocus.poseFor(piece, aspect: aspect);
         final distance = (pose.position.x - pose.target.x).abs();
@@ -135,6 +135,32 @@ void main() {
           room: 1,
         );
         expect(distance, greaterThanOrEqualTo(needed), reason: '$aspect');
+      }
+    });
+
+    test('on a portrait screen the piece alone is framed, larger', () {
+      // The label's words are drawn over the screen there instead.
+      for (final aspect in aspects.where((a) => a < 1)) {
+        for (final piece in pieces) {
+          final alone = ProjectFocus.poseFor(piece, aspect: aspect);
+          expect(alone.target.z, closeTo(piece.position.z, 1e-5));
+          final distance = (alone.position.x - alone.target.x).abs();
+          final composition = ProjectFocus.distanceFor(
+            width: ProjectFocus.compositionWidth,
+            height: 0,
+            aspect: aspect,
+            room: ProjectFocus.portraitMargin,
+          );
+          expect(distance, lessThan(composition), reason: '$aspect');
+          // And still the whole piece, side to side.
+          final needed = ProjectFocus.distanceFor(
+            width: GalleryLayout.pieceWidth,
+            height: 0,
+            aspect: aspect,
+            room: 1,
+          );
+          expect(distance, greaterThanOrEqualTo(needed));
+        }
       }
     });
   });
@@ -168,17 +194,21 @@ void main() {
     });
 
     test('the whole piece is in the space above them, top and bottom', () {
-      final piece = pieces.first;
-      const reserve = 0.14;
-      final pose = ProjectFocus.poseFor(
-        piece,
-        aspect: 390 / 844,
-        reserveBelow: reserve,
-      );
-      final top = fromTop(pose, piece.position.y + piece.extents.y / 2);
-      final foot = fromTop(pose, piece.position.y - piece.extents.y / 2);
-      expect(top, greaterThan(0));
-      expect(foot, lessThan(1 - reserve));
+      // The row and the label's words: 330 px, on a tall phone and a short
+      // one, where the height rather than the width decides.
+      for (final (w, h) in <(double, double)>[(390, 844), (360, 640)]) {
+        final reserve = 330 / h;
+        final piece = pieces.first;
+        final pose = ProjectFocus.poseFor(
+          piece,
+          aspect: w / h,
+          reserveBelow: reserve,
+        );
+        final top = fromTop(pose, piece.position.y + piece.extents.y / 2);
+        final foot = fromTop(pose, piece.position.y - piece.extents.y / 2);
+        expect(top, greaterThan(0), reason: '${w}x$h');
+        expect(foot, lessThan(1 - reserve), reason: '${w}x$h');
+      }
     });
 
     test('a wide screen is not moved by it', () {

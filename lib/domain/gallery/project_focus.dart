@@ -117,12 +117,22 @@ abstract final class ProjectFocus {
     double reserveBelow = 0,
   }) {
     final portrait = aspect < 1;
-    final distance = distanceFor(
-      width: compositionWidth,
-      height: GalleryDimensions.frameMaxHeight + (portrait ? 0 : reachBelow),
-      aspect: aspect,
-      room: portrait ? portraitMargin : margin,
-    );
+    // A portrait screen frames the piece alone, as large as it fits: the
+    // label's words are drawn over the screen there (see GalleryOverlay),
+    // because at a phone's width the label on the wall was too small to
+    // read. The height it must fit is what is left above the reserve.
+    final distance = portrait
+        ? distanceFor(
+            width: GalleryLayout.pieceWidth,
+            height: GalleryDimensions.frameMaxHeight / (1 - reserveBelow),
+            aspect: aspect,
+            room: portraitMargin,
+          )
+        : distanceFor(
+            width: compositionWidth,
+            height: GalleryDimensions.frameMaxHeight + reachBelow,
+            aspect: aspect,
+          );
 
     // Across toward the label by half of it, so the two sit in the middle
     // of the shot together. Down: on a wide screen, low of the work's own
@@ -133,7 +143,7 @@ abstract final class ProjectFocus {
     // left above them.
     final halfHeight = distance * math.tan(GalleryDimensions.fovRadians / 2);
     final centre = frame.position +
-        GalleryLayout.acrossOf(frame) * compositionShift
+        GalleryLayout.acrossOf(frame) * (portrait ? 0 : compositionShift)
       ..y = portrait
           ? frame.position.y - halfHeight * reserveBelow
           : frame.position.y - reachBelow / 2;

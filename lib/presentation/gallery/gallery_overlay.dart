@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/gallery/project_data.dart';
+import 'package:portfolio/domain/gallery/wall_label.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/style/strings.dart';
@@ -87,6 +88,10 @@ class GalleryOverlay extends StatelessWidget {
   /// margins take: what the camera keeps clear on a portrait screen.
   static const double rowBand = rowFoot + _Control.size + 24;
 
+  /// How much more the label's words take, above the row, on a portrait
+  /// screen: the camera keeps this clear too.
+  static const double labelBand = 210;
+
   /// How long the sheet takes to come up or go down.
   static const Duration sheetTravel = Duration(milliseconds: 280);
 
@@ -118,6 +123,23 @@ class GalleryOverlay extends StatelessWidget {
                     child: child!,
                   ),
             child: _ReadCase(onTap: onRead!),
+          ),
+
+        // On a portrait screen, the label's five fields in real text,
+        // between the piece and the row: at a phone's width the label on
+        // the wall is too small to read, so the camera frames the piece
+        // alone and the words are set here instead. The wall label stays in
+        // the room for wide screens.
+        if (drawsRow && rowOnScreen && !reading && project != null)
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: rowBand,
+            height: labelBand - 12,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: PieceLabelCard(project: project),
+            ),
           ),
 
         // The shade over the room while the sheet is up; a press on it is
@@ -208,6 +230,82 @@ class GalleryOverlay extends StatelessWidget {
           ),
 
       ],
+    );
+  }
+}
+
+/// A piece's wall label as real text: name, line, number, tags, years, each
+/// only when the project has it (the label's rule, [WallLabel]).
+class PieceLabelCard extends StatelessWidget {
+  const PieceLabelCard({required this.project, super.key});
+
+  final Project project;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final type = context.typography;
+    final ink = colors.labelInk;
+    final soft = colors.labelInkSoft;
+    final rows = WallLabel.of(project).rows;
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 420),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      color: colors.labelPaper,
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            for (final row in rows)
+              Padding(
+                padding: EdgeInsets.only(top: row == LabelRow.name ? 0 : 6),
+                child: switch (row) {
+                  LabelRow.name => Text(
+                    project.title,
+                    style: type.sheetTitle.copyWith(color: ink),
+                  ),
+                  LabelRow.line => Text(
+                    project.line,
+                    style: type.sheetBody.copyWith(color: soft, height: 1.35),
+                  ),
+                  LabelRow.figure => Text(
+                    project.figure,
+                    style: type.sheetStat.copyWith(color: ink),
+                  ),
+                  LabelRow.tags => Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: <Widget>[
+                      for (final tag
+                          in project.tags.take(WallLabel.maxTags))
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: colors.labelTagEdge),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            tag,
+                            style: type.sheetTag.copyWith(color: ink),
+                          ),
+                        ),
+                    ],
+                  ),
+                  LabelRow.years => Text(
+                    project.years,
+                    style: type.sheetStat.copyWith(color: soft),
+                  ),
+                },
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

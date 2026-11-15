@@ -188,6 +188,68 @@ void main() {
     });
   });
 
+  group('on a portrait screen, the label in real text', () {
+    testWidgets('its five fields, between the piece and the row', (
+      tester,
+    ) async {
+      final piece = pieceFor('tantr');
+      final p = piece.project!;
+      await tester.pumpWidget(
+        host(focused: piece, asFallback: false, rowOnScreen: true),
+      );
+      expect(find.byType(PieceLabelCard), findsOneWidget);
+      for (final text in <String>[p.title, p.line, p.figure, p.years, ...p.tags]) {
+        expect(
+          find.descendant(of: find.byType(PieceLabelCard), matching: find.text(text)),
+          findsOneWidget,
+          reason: text,
+        );
+      }
+      // Above the row, not over it.
+      final card = tester.getRect(find.byType(PieceLabelCard));
+      final row = tester.getRect(find.text('✕'));
+      expect(card.bottom, lessThanOrEqualTo(row.top));
+    });
+
+    testWidgets('the same rule: an empty field is left off', (tester) async {
+      final piece = pieceFor('twin-health');
+      await tester.pumpWidget(
+        host(focused: piece, asFallback: false, rowOnScreen: true),
+      );
+      final card = find.byType(PieceLabelCard);
+      expect(find.descendant(of: card, matching: find.text('Twin Health')), findsOneWidget);
+      // No tags are known: no row of them, and nothing invented.
+      expect(
+        find.descendant(of: card, matching: find.byType(Wrap)),
+        findsNothing,
+      );
+    });
+
+    testWidgets('not on a wide screen, where the wall label is read', (
+      tester,
+    ) async {
+      final anchor = ValueNotifier<Offset?>(null);
+      addTearDown(anchor.dispose);
+      await tester.pumpWidget(
+        host(focused: pieceFor('tantr'), asFallback: false, readAnchor: anchor),
+      );
+      expect(find.byType(PieceLabelCard), findsNothing);
+    });
+
+    testWidgets('not while the sheet is open over it', (tester) async {
+      await tester.pumpWidget(
+        host(
+          focused: pieceFor('tantr'),
+          asFallback: false,
+          rowOnScreen: true,
+          reading: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(PieceLabelCard), findsNothing);
+    });
+  });
+
   group('the sheet', () {
     testWidgets('"Read the case" is offered on a finished piece', (
       tester,
