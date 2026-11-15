@@ -13,7 +13,7 @@ import 'package:portfolio/presentation/gallery/build_timing.dart';
 /// on the scene, one on the frames, one on the page.
 ///
 /// Sources, per the plan: [SceneBloc] state for scenes and for the title
-/// taking input (`$pageview`, `site_loaded`), [LoadingProgress] for how far
+/// the logo accepting the tap (`$pageview`, `site_loaded`), [LoadingProgress] for how far
 /// a visitor who gave up got (`load_abandoned`), [BuildTiming] for the
 /// build's phases, the frame clock for `scene_health` (what `FrameWatch`
 /// measures for the console, folded per scene), a main-thread watchdog for
@@ -121,7 +121,13 @@ class SiteTelemetry {
     _base = base;
     _enter();
 
-    if (state is Title && _load.arrive()) events.siteLoaded(_timings());
+    // Loading has ended when the logo first accepts the tap: the gate
+    // lifting. Not the title taking input, which waits on the visitor's
+    // tap and so measured their patience; that wait is the gap between the
+    // /#/logo and /#/title page views.
+    if (state is Logo && state.isInteractive && _load.arrive()) {
+      events.siteLoaded(_timings());
+    }
   }
 
   /// A piece was focused in the gallery, or let go (null).
@@ -182,7 +188,7 @@ class SiteTelemetry {
     'ms_first_paint': Browser.firstPaint()?.round(),
     'ms_engine_ready': _engineReady?.round(),
     'ms_gallery_built': BuildTiming.finishedAt?.round(),
-    'ms_interactive': now().round(),
+    'ms_ready': now().round(),
     if (BuildTiming.done) 'build_phases': BuildTiming.phases,
     'renderer': Browser.renderer(),
     ..._device(),

@@ -28,8 +28,12 @@ device class (`phone` / `tablet` / `desktop`), and whether this browser has been
 
 | Event | When | Properties |
 |---|---|---|
-| `site_loaded` | once, when the title screen first takes input | `ms_first_paint`, `ms_engine_ready`, `ms_gallery_built`, `ms_interactive` (all from navigation start); `build_phases` (the BUILD_TIMING phases, ms each); `renderer`; `cores`, `memory_gb`, `connection` (when the browser tells); `intro_skipped` |
-| `load_abandoned` | the page is hidden or closed before `site_loaded` | `phase_reached` (LoadingPhase), `ms_waited`, same device properties |
+| `site_loaded` | once, when loading ends and the logo screen first accepts the tap (the loading gate lifting) | `ms_first_paint`, `ms_engine_ready`, `ms_gallery_built`, `ms_ready` (all from navigation start); `build_phases` (the BUILD_TIMING phases, ms each); `renderer`; `cores`, `memory_gb`, `connection` (when the browser tells); `intro_skipped` |
+| `load_abandoned` | the page is hidden or closed before `site_loaded`, which is to say during loading | `phase_reached` (LoadingPhase), `ms_waited`, same device properties |
+
+Not "when the title takes input": the logo screen waits for the visitor's tap, so a time taken there
+measures their patience, not the site (53 s in the first walk). The time a visitor spends on the logo before
+tapping is already the gap between the `/#/logo` and `/#/title` page views; nothing is added for it.
 
 `load_abandoned` is the number that says what the loading work is worth: of ten people who arrive, how many
 see the title. It must be sent on `pagehide` with a beacon, or it never arrives.

@@ -117,18 +117,29 @@ void main() {
       expect(abandoned.single.$3, isTrue, reason: 'sent as the page closes');
     });
 
-    test('not after the title has taken input: then it was site_loaded', () {
-      telemetry.onScene(const SceneState.title());
+    test('site_loaded when the logo first accepts the tap, with ms_ready', () {
+      telemetry.onScene(const SceneState.logo());
+      expect(sink.names, isNot(contains('site_loaded')));
+      clock = 9100;
+      telemetry.onScene(const SceneState.logo(isInteractive: true));
+      final loaded = sink.sent.where((e) => e.$1 == 'site_loaded').single;
+      expect(loaded.$2['ms_ready'], 9100);
+      expect(loaded.$2.containsKey('ms_interactive'), isFalse);
+    });
+
+    test('not after the logo accepts the tap: then it was site_loaded', () {
+      telemetry.onScene(const SceneState.logo(isInteractive: true));
       expect(sink.names, contains('site_loaded'));
       telemetry.leaving();
       expect(sink.names, isNot(contains('load_abandoned')));
     });
 
-    test('site_loaded once, however often the title comes back', () {
+    test('site_loaded once, however often the logo comes back', () {
       telemetry
+        ..onScene(const SceneState.logo(isInteractive: true))
         ..onScene(const SceneState.title())
-        ..onScene(const SceneState.gallery())
-        ..onScene(const SceneState.title());
+        ..onScene(const SceneState.contact())
+        ..onScene(const SceneState.logo(isInteractive: true));
       expect(sink.names.where((n) => n == 'site_loaded'), hasLength(1));
     });
 
