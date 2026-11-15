@@ -14,6 +14,7 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/config/mark_travel.dart';
 import 'package:portfolio/domain/gallery/gallery_depth.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
@@ -1168,6 +1169,13 @@ class _GalleryViewState extends State<GalleryView> {
     if (_readAnchor.value != next) _readAnchor.value = next;
   }
 
+  /// How far down the screen the site's mark reaches when parked, with a
+  /// little air under it.
+  double get _markClearance {
+    final mark = MarkTravel.at(1, viewport: _viewSize);
+    return mark.centre.dy + mark.size.height / 2 + 12;
+  }
+
   /// Where the camera wants to be this frame.
   FocusPose _targetPose() {
     final frame = _focused;
@@ -1186,6 +1194,9 @@ class _GalleryViewState extends State<GalleryView> {
           ? (GalleryOverlay.rowBand + GalleryOverlay.labelBand) /
                 _viewSize.height
           : 0,
+      // And the site's mark, parked in the top corner: the piece keeps
+      // clear of it rather than the mark of the piece.
+      reserveAbove: _portrait ? _markClearance / _viewSize.height : 0,
     );
   }
 

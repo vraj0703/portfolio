@@ -110,11 +110,14 @@ abstract final class ProjectFocus {
   /// screen's height they take. The piece is then centred in the space above
   /// them rather than in the whole screen: framed by width, a portrait shot
   /// has height to spare, and centring on the screen left the piece low
-  /// with empty ceiling over it.
+  /// with empty ceiling over it. [reserveAbove] keeps the top of the screen
+  /// clear the same way, for the site's mark parked in its corner, which
+  /// otherwise sat on the piece's paper.
   static FocusPose poseFor(
     Placement frame, {
     required double aspect,
     double reserveBelow = 0,
+    double reserveAbove = 0,
   }) {
     final portrait = aspect < 1;
     // A portrait screen frames the piece alone, as large as it fits: the
@@ -124,7 +127,8 @@ abstract final class ProjectFocus {
     final distance = portrait
         ? distanceFor(
             width: GalleryLayout.pieceWidth,
-            height: GalleryDimensions.frameMaxHeight / (1 - reserveBelow),
+            height: GalleryDimensions.frameMaxHeight /
+                (1 - reserveBelow - reserveAbove),
             aspect: aspect,
             room: portraitMargin,
           )
@@ -138,14 +142,14 @@ abstract final class ProjectFocus {
     // of the shot together. Down: on a wide screen, low of the work's own
     // centre by half what was added beneath it, so the extra room appears
     // where the controls hang rather than as ceiling. On a portrait screen,
-    // by the share of the screen the controls take: the visible half-height
-    // times that share moves the piece's centre to the middle of what is
-    // left above them.
+    // by the shares of the screen kept clear below and above: the visible
+    // half-height times their difference moves the piece's centre to the
+    // middle of what is left between them.
     final halfHeight = distance * math.tan(GalleryDimensions.fovRadians / 2);
     final centre = frame.position +
         GalleryLayout.acrossOf(frame) * (portrait ? 0 : compositionShift)
       ..y = portrait
-          ? frame.position.y - halfHeight * reserveBelow
+          ? frame.position.y - halfHeight * (reserveBelow - reserveAbove)
           : frame.position.y - reachBelow / 2;
 
     // Frames hang just inside the wall they belong to, so the sign of their x

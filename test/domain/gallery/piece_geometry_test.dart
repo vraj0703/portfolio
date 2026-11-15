@@ -211,6 +211,30 @@ void main() {
       }
     });
 
+    test('the piece keeps clear of a band at the top as well', () {
+      // The site's mark parks in the top corner; on a phone it sat on the
+      // piece's paper.
+      for (final (w, h) in <(double, double)>[(390, 844), (360, 640)]) {
+        final below = 330 / h, above = 90 / h;
+        final piece = pieces.first;
+        final pose = ProjectFocus.poseFor(
+          piece,
+          aspect: w / h,
+          reserveBelow: below,
+          reserveAbove: above,
+        );
+        final top = fromTop(pose, piece.position.y + piece.extents.y / 2);
+        final foot = fromTop(pose, piece.position.y - piece.extents.y / 2);
+        expect(top, greaterThanOrEqualTo(above - 1e-6), reason: '${w}x$h');
+        expect(foot, lessThanOrEqualTo(1 - below + 1e-6), reason: '${w}x$h');
+        // Centred between the two bands.
+        expect(
+          fromTop(pose, piece.position.y),
+          closeTo(above + (1 - above - below) / 2, 1e-4),
+        );
+      }
+    });
+
     test('a wide screen is not moved by it', () {
       final piece = pieces.first;
       final a = ProjectFocus.poseFor(piece, aspect: 16 / 10);
