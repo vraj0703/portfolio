@@ -75,4 +75,8 @@ class SceneEvent with _$SceneEvent {
   /// whoever listens to the analytics; the flags then ride on every state.
   const factory SceneEvent.flagsChanged({required ButtonFlags flags}) =
       FlagsChanged;
+
+  /// The visitor pressed the sound switch. Whether the site is silent is a
+  /// fact every stage carries (see [SceneState.muted]).
+  const factory SceneEvent.muteToggled() = MuteToggled;
 }

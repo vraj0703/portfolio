@@ -9,7 +9,6 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/bloc/sound_cubit.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
 
@@ -20,7 +19,6 @@ void main() {
 
   SceneBloc? scene;
   MenuDrawerCubit? drawer;
-  SoundCubit? sound;
   late RecordingAudio audio;
 
   setUp(() async {
@@ -32,17 +30,14 @@ void main() {
   tearDown(() async {
     await scene?.close();
     await drawer?.close();
-    await sound?.close();
     scene = null;
     drawer = null;
-    sound = null;
     DependencyManager.instance.reset();
   });
 
   Widget host({required SceneState state}) {
-    scene = SceneBloc()..emit(state);
+    scene = SceneBloc(audio: audio)..emit(state);
     drawer = MenuDrawerCubit();
-    sound = SoundCubit(audio: audio, radio: RecordingRadio());
 
     return MaterialApp(
       theme: ThemeData(
@@ -52,7 +47,6 @@ void main() {
         providers: [
           BlocProvider<SceneBloc>.value(value: scene!),
           BlocProvider<MenuDrawerCubit>.value(value: drawer!),
-          BlocProvider<SoundCubit>.value(value: sound!),
         ],
         child: const Scaffold(
           body: Stack(
