@@ -42,7 +42,7 @@ void main() {
     });
 
     test('every finished project carries the stats its card draws', () {
-      // A `soon` frame shows its title and "coming soon" only.
+      // A `soon` piece shows its name and that it is in preparation only.
       for (final p in GalleryProjects.all) {
         expect(p.title, isNotEmpty, reason: '${p.id} has no title');
         if (p.isLive) {
@@ -57,7 +57,10 @@ void main() {
       for (final p in GalleryProjects.all) {
         final shown = <String>[
           p.title,
-          p.description,
+          p.line,
+          p.figure,
+          ...p.tags,
+          p.years,
           p.summary,
           ...p.stats,
           ...p.stack,

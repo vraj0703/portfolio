@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'piece_art.dart';
+
 /// The corridor's seven frames. The left wall is what Vishal builds now; the
 /// right wall is where he built before.
 ///
@@ -17,13 +19,6 @@ import 'dart:ui';
 /// paired corridor layout, and the corridor's physical length is derived
 /// from the left-wall count in `gallery_dimensions.dart`. Reordering this
 /// list moves walls.
-
-/// Which generative artwork a project's card would carry.
-///
-/// Kept while the cards are deliberately blank: the painters that consumed it
-/// were deleted with them, and the choice per project is content worth
-/// keeping rather than something to re-decide when the cards are filled in.
-enum ProjectVisual { mesh, pipeline, timeline, graph, funnel, dashboard, chat }
 
 /// How far along a piece of work is.
 ///
@@ -45,42 +40,61 @@ class Project {
   const Project({
     required this.id,
     required this.title,
-    required this.description,
+    required this.line,
     required this.url,
-    required this.gradient,
-    required this.stats,
-    required this.visual,
+    required this.accent,
+    required this.art,
+    this.figure = '',
+    this.tags = const <String>[],
+    this.years = '',
+    this.stats = const <String>[],
     this.status = ProjectStatus.live,
     this.summary = '',
     this.stack = const <String>[],
   });
 
   final String id;
+
+  /// The name, on the wall label and at the head of the sheet. One to three
+  /// words.
   final String title;
-  final String description;
+
+  /// What it is, in at most eight words: the wall label's second line.
+  final String line;
+
+  /// The one number that proves it, on the wall label. Empty when there is
+  /// none yet, and then left off the label rather than announced.
+  final String figure;
+
+  /// The tools, no more than three, on the wall label. Empty until they are
+  /// known; the label leaves the row out.
+  final List<String> tags;
+
+  /// When, on the wall label. Empty until known, and left off.
+  final String years;
+
   final String url;
 
-  /// Two-stop linear gradient painted as the artwork's base layer.
-  final (Color, Color) gradient;
+  /// The one colour in the drawing; everything else is ink on paper.
+  final Color accent;
 
-  /// Key metrics printed along the bottom of the frame.
+  /// The drawing made from the project's own facts; see [PieceDrawing].
+  final PieceArt art;
+
+  /// The case's three numbers, on the sheet.
   final List<String> stats;
-
-  final ProjectVisual visual;
 
   final ProjectStatus status;
 
   /// What the work is for, in the visitor's terms rather than the author's.
   ///
-  /// The one thing [description] cannot carry: it is a label, read in passing
-  /// at four metres, and has to stay short enough to be. This is read at
-  /// arm's length by someone who has already stopped, and answers the
-  /// question a label cannot — *why does this exist*.
+  /// Read on the sheet, at arm's length, by someone who has already stopped,
+  /// and answers the question a label cannot: *why does this exist*.
   final String summary;
 
-  /// What it is built with. Named, not counted: a stack is how a reader
-  /// decides whether they recognise the work, and a number tells them
-  /// nothing.
+  /// What it is built with, on the sheet. Named, not counted: a stack is how
+  /// a reader decides whether they recognise the work, and a number tells
+  /// them nothing.
   final List<String> stack;
 
   /// Whether there is a finished case to read, as opposed to a premise.
@@ -96,13 +110,16 @@ abstract final class GalleryProjects {
     Project(
       id: 'shunya-systems',
       title: 'Shunya Systems',
-      description: 'A Two-Person Company Run with AI Agents',
+      line: 'A two-person company run with AI agents',
+      figure: '22 written rules',
+      tags: <String>['Claude Code', 'Python', 'Salt'],
+      years: '2026',
       // TODO(vishal): the repositories are private; link a public page here
       // or leave it without one.
       url: '#',
-      gradient: (Color(0xFFD4A800), Color(0xFF5C3A1E)),
-      stats: <String>['5 Nodes', '22 Written Rules', '15 Instruments'],
-      visual: ProjectVisual.mesh,
+      accent: Color(0xFFC1900A),
+      art: PieceArt.mesh,
+      stats: <String>['5 nodes', '22 written rules', '15 instruments'],
       summary:
           'A company of two, Vishal and an AI chief of staff. The agent '
           'plans and reviews on one machine and hands the work to agents on '
@@ -114,26 +131,31 @@ abstract final class GalleryProjects {
     Project(
       id: 'twin-health',
       title: 'Twin Health',
-      description: 'Digital Health Platform',
+      line: 'Digital health platform',
+      figure: '67 releases, 0 hotfixes',
+      // TODO(vishal): the label's three tags.
+      years: '2022 –',
       url: '#',
-      gradient: (Color(0xFF6366F1), Color(0xFF312E81)),
-      stats: <String>['67 Releases', '0 Hotfixes', r'$87K Saved'],
-      visual: ProjectVisual.funnel,
+      accent: Color(0xFF5B5FE0),
+      art: PieceArt.tally,
+      stats: <String>['67 releases', '0 hotfixes', r'$87K saved'],
       summary:
           'A digital health platform, from 2022: 67 releases shipped '
           'without a single hotfix.',
       // TODO(vishal): the role, what the $87K saving was, and the stack.
-      stack: <String>[],
     ),
     // 2 · left 2
     Project(
       id: 'tantr',
       title: 'tantr app',
-      description: 'One Runtime for the Five Things Every App Rebuilds',
+      line: 'One runtime for what every app rebuilds',
+      figure: '31 packages',
+      tags: <String>['Flutter', 'Dart', 'JSON Schema'],
+      years: '2026',
       url: 'https://tantr.app',
-      gradient: (Color(0xFF10B981), Color(0xFF064E3B)),
-      stats: <String>['31 Packages', '5 Profiles', '7 Apps'],
-      visual: ProjectVisual.pipeline,
+      accent: Color(0xFF0F9F73),
+      art: PieceArt.nested,
+      stats: <String>['31 packages', '5 profiles', '7 apps'],
       summary:
           'Most product apps rebuild the same five things: forms, insight '
           'cards, notifications, asking the user to act, and chat. tantr '
@@ -145,28 +167,33 @@ abstract final class GalleryProjects {
     Project(
       id: 'fieldassist-payu',
       title: 'FieldAssist / PayU',
-      description: 'Field Force at Scale · Payment Encryption',
+      line: 'Field force at scale, payment encryption',
+      figure: '1,600+ files',
+      // TODO(vishal): the label's three tags.
+      years: '2016 –',
       url: '#',
-      gradient: (Color(0xFFC8A45C), Color(0xFF5C3A1E)),
-      stats: <String>['1600+ Files', 'Multi-Flavor', 'Triple DES'],
-      visual: ProjectVisual.dashboard,
+      accent: Color(0xFFB07D28),
+      art: PieceArt.field,
+      stats: <String>['1,600+ files', 'Multi-flavor', 'Triple DES'],
       summary:
           'At PayU, in fintech from 2016: client-side encryption of card PIN '
           'and PAN with Triple DES. At FieldAssist, in FMCG from 2018: an '
           'enterprise field-force app of more than 1,600 files, shipped in '
           'several flavors.',
       // TODO(vishal): the role at each, and the stack.
-      stack: <String>[],
     ),
     // 4 · left 3
     Project(
       id: 'publications',
       title: 'Publications',
-      description: 'Open-Source Packages and an App on Google Play',
+      line: 'Open-source packages and one Play Store app',
+      figure: '12 published',
+      tags: <String>['Node', 'Python', 'Flutter'],
+      // TODO(vishal): the years.
       url: 'https://www.npmjs.com/~vraj0703',
-      gradient: (Color(0xFF4338CA), Color(0xFF1E1B4B)),
-      stats: <String>['6 npm Packages', '5 PyPI Projects', '1 Play Store App'],
-      visual: ProjectVisual.timeline,
+      accent: Color(0xFF4A40C8),
+      art: PieceArt.constellation,
+      stats: <String>['6 npm packages', '5 PyPI projects', '1 Play Store app'],
       summary:
           'The parts of the agent systems, published for anyone to install: '
           'six npm packages under @raj-sadan (mind, memory, knowledge, '
@@ -180,11 +207,10 @@ abstract final class GalleryProjects {
       id: 'school-college',
       title: 'School and College',
       // TODO(vishal): the schools, the college, the degree and the years.
-      description: '',
+      line: 'In preparation',
       url: '#',
-      gradient: (Color(0xFFF59E0B), Color(0xFF78350F)),
-      stats: <String>[],
-      visual: ProjectVisual.graph,
+      accent: Color(0xFFD98A0A),
+      art: PieceArt.rings,
       status: ProjectStatus.soon,
       // TODO(vishal): two or three sentences on where it started.
     ),
@@ -193,11 +219,10 @@ abstract final class GalleryProjects {
       id: 'creative-works',
       title: 'Creative Works',
       // TODO(vishal): which works, and a link.
-      description: '',
+      line: 'In preparation',
       url: '#',
-      gradient: (Color(0xFFEF4444), Color(0xFF7F1D1D)),
-      stats: <String>[],
-      visual: ProjectVisual.chat,
+      accent: Color(0xFFD94A3A),
+      art: PieceArt.brush,
       status: ProjectStatus.soon,
       // TODO(vishal): two or three sentences on the creative work.
     ),

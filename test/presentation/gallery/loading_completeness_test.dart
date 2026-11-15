@@ -8,7 +8,6 @@ void main() {
   const sets = <String, TextureSet>{
     'floor': GallerySurfaces.floor,
     'wall': GallerySurfaces.wall,
-    'frame': GallerySurfaces.frame,
     'testimonialFrame': GallerySurfaces.testimonialFrame,
     'keyboardBase': GallerySurfaces.keyboardBase,
     'ceiling': GallerySurfaces.ceiling,

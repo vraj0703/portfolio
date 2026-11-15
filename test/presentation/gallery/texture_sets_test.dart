@@ -101,7 +101,6 @@ void main() {
       GallerySurfaces.floor,
       GallerySurfaces.wall,
       GallerySurfaces.ceiling,
-      GallerySurfaces.frame,
       GallerySurfaces.testimonialFrame,
     ]) {
       expect(set.packedFrom, isNull, reason: set.roughMetal);

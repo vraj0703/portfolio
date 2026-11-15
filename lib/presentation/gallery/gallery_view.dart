@@ -14,6 +14,7 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/gallery/control_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/gallery/gallery_depth.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/keyboard_orbit.dart';
@@ -27,7 +28,6 @@ import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
@@ -185,6 +185,13 @@ class _GalleryViewState extends State<GalleryView> {
   /// The piece being read, or null while walking the corridor.
   Placement? _focused;
 
+  /// Whether the focused piece's case is open on the sheet. Never true with
+  /// nothing focused: the sheet belongs to a piece.
+  bool _reading = false;
+
+  GalleryDepth get _depth =>
+      GalleryDepth.of(focused: _focused != null, reading: _reading);
+
   /// The key the visitor last pressed on the skills board.
   Skill? _skill;
 
@@ -322,9 +329,65 @@ class _GalleryViewState extends State<GalleryView> {
   void _focus(Placement? frame) {
     if (frame?.project?.id == _focused?.project?.id) return;
 
-    setState(() => _focused = frame);
+    // A new piece, or none, starts closed: the sheet is one piece's case,
+    // and carrying it open to the next would show the wrong one.
+    setState(() {
+      _focused = frame;
+      _reading = false;
+    });
     _placeControls(frame);
   }
+
+  /// Opens the focused piece's case on the sheet. Only a finished piece has
+  /// one; a piece in preparation has nothing to read yet.
+  void _read() {
+    if (_focused?.project?.isLive != true || _reading) return;
+    _sound(AudioCue.click);
+    setState(() => _reading = true);
+  }
+
+  /// Closes the sheet back to the piece, and gives the keyboard back to the
+  /// room so Escape and the arrows answer again.
+  void _closeSheet() {
+    if (!_reading) return;
+    _sound(AudioCue.click);
+    setState(() => _reading = false);
+    _keys.requestFocus();
+  }
+
+  /// One level out: the sheet to the piece, the piece to the corridor.
+  bool _back() {
+    switch (_depth.back) {
+      case GalleryDepth.focused:
+        _closeSheet();
+        return true;
+      case GalleryDepth.corridor:
+        _control(ControlAction.exit);
+        return true;
+      case GalleryDepth.reading || null:
+        return false;
+    }
+  }
+
+  /// Steps to the piece on the screen's left or right of the one in focus.
+  ///
+  /// By screen side, not by order: the right-hand wall is read from the
+  /// other side, so there the next piece in the walk is on the left. The
+  /// same mapping as the overlay's arrows (see [GalleryOverlay.mirrored]).
+  void _stepToward({required bool right}) {
+    final frame = _focused;
+    if (frame == null) return;
+    final mirrored = !frame.position.x.isNegative;
+    _control(
+      right == mirrored ? ControlAction.previous : ControlAction.next,
+    );
+  }
+
+  /// How far a finger has to travel sideways, and how much straighter than
+  /// it travels up or down, for a drag on a focused piece to be a swipe to
+  /// the next.
+  static const double _swipeDistance = 60;
+  static const double _swipeStraightness = 1.5;
 
   /// Brings the room's own controls to [frame], or takes them away.
   ///
@@ -541,20 +604,11 @@ class _GalleryViewState extends State<GalleryView> {
     // get rid of you.
     if (hit == null) return;
 
-    // On the frame already in focus, the link drawn on its card opens the
-    // work. Only there: down the corridor the link is a few pixels wide, and
-    // the first press on a frame is a request to look at it.
-    final open = _openFor(hit);
-    if (open != null && _isFocused(hit) && _onLink(hit, at, camera)) {
-      open();
-      return;
-    }
-
+    // The link out lives on the sheet now, in real text; a press on the
+    // piece itself is only ever a request to look at it.
     _sound(AudioCue.click);
     _focus(hit);
   }
-
-  bool _isFocused(Placement frame) => _focused?.position == frame.position;
 
   /// Whether [at] falls on the button drawn on [frame], if [frame] is the
   /// one that carries it (the invitation, frame 1).
@@ -601,26 +655,31 @@ class _GalleryViewState extends State<GalleryView> {
     return Size(baked, (baked * ratio).roundToDouble());
   }
 
-  /// Whether [at] falls on the link drawn on [frame]'s card.
+  /// The room's keys.
   ///
-  /// The frame's screen rectangle gives where the press landed on the frame;
-  /// the moulding is taken off each side to give where it landed on the
-  /// card; and the card says where its link is, at the size it was baked.
-  bool _onLink(Placement frame, Offset at, PerspectiveCamera camera) {
-    final project = frame.project;
-    if (project == null || _gallery == null) return false;
-    final onCard = _onCard(frame, at, camera);
-    if (onCard == null) return false;
-    final region = FrameCard.linkRegion(_bakedCard(frame), project: project);
-    return region != null && region.contains(onCard);
-  }
-
-  /// Enter on a focused frame opens its link, as pressing the link does; on
-  /// the testimonial wall it opens the form, as frame 1's button does.
+  /// Escape steps back one level (the sheet, then the piece). On a focused
+  /// piece the arrows step left and right and Enter opens the case; on the
+  /// testimonial wall Enter opens the form, as frame 1's button does. With
+  /// the sheet open, Enter and the arrows belong to the sheet and its
+  /// buttons, so only Escape is taken here.
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
-    if (event.logicalKey != LogicalKeyboardKey.enter &&
-        event.logicalKey != LogicalKeyboardKey.numpadEnter) {
+    final key = event.logicalKey;
+
+    if (key == LogicalKeyboardKey.escape) {
+      return _back() ? KeyEventResult.handled : KeyEventResult.ignored;
+    }
+    if (_reading) return KeyEventResult.ignored;
+
+    if (_focused != null &&
+        (key == LogicalKeyboardKey.arrowLeft ||
+            key == LogicalKeyboardKey.arrowRight)) {
+      _stepToward(right: key == LogicalKeyboardKey.arrowRight);
+      return KeyEventResult.handled;
+    }
+
+    if (key != LogicalKeyboardKey.enter &&
+        key != LogicalKeyboardKey.numpadEnter) {
       return KeyEventResult.ignored;
     }
     // At the testimonial wall, Enter is frame 1's button.
@@ -630,10 +689,8 @@ class _GalleryViewState extends State<GalleryView> {
       return KeyEventResult.handled;
     }
 
-    final focused = _focused;
-    final open = focused == null ? null : _openFor(focused);
-    if (open == null) return KeyEventResult.ignored;
-    open();
+    if (_focused?.project?.isLive != true) return KeyEventResult.ignored;
+    _read();
     return KeyEventResult.handled;
   }
 
@@ -858,9 +915,23 @@ class _GalleryViewState extends State<GalleryView> {
                   );
                 },
                 onPointerUp: (event) {
+                  final from = _dragFrom;
                   final dragged = _dragDistance > _tapSlop;
                   _dragFrom = null;
-                  if (dragged) return;
+                  if (dragged) {
+                    // On a focused piece, a sideways swipe moves on, as the
+                    // arrows do: the finger pushes the wall, so a swipe to
+                    // the left brings the piece on the right.
+                    final swipe =
+                        from == null ? Offset.zero : event.localPosition - from;
+                    if (_focused != null &&
+                        !_reading &&
+                        swipe.dx.abs() > _swipeDistance &&
+                        swipe.dx.abs() > swipe.dy.abs() * _swipeStraightness) {
+                      _stepToward(right: swipe.dx < 0);
+                    }
+                    return;
+                  }
                   _pick(event.localPosition);
                 },
                 onPointerCancel: (_) => _dragFrom = null,
@@ -885,6 +956,10 @@ class _GalleryViewState extends State<GalleryView> {
                 onForward: () => _control(ControlAction.next),
                 mirrored: !(_focused?.position.x.isNegative ?? true),
                 asFallback: _gallery?.controls == null,
+                reading: _reading,
+                onRead: _read,
+                onCloseSheet: _closeSheet,
+                onOpenProject: _openFor(_focused),
               ),
 
               // Over the room *and* over its controls. A ✕ still lit on a

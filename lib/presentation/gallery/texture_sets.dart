@@ -154,26 +154,13 @@ abstract final class GallerySurfaces {
     metallic: 0,
   );
 
-  /// ambientCG `Wood066`, for the frames the work hangs in.
-  ///
-  /// A much shorter repeat than any wall: a frame moulding is a few
-  /// centimetres across, and grain tiled at wall scale would stretch a single
-  /// board over the whole frame and read as a photograph of wood rather than
-  /// as wood.
-  static const TextureSet frame = TextureSet(
-    colour: 'assets/textures/frame/Wood066_1K-JPG_Color.webp',
-    roughMetal: 'assets/textures/frame/Wood066_1K-JPG_Roughness.webp',
-    normal: 'assets/textures/frame/Wood066_1K-JPG_NormalGL.webp',
-    unitsPerRepeat: 0.6,
-    metallic: 0,
-  );
-
   /// ambientCG `Wood020`, for the frames on the far wall.
   ///
-  /// A different wood from the corridor's on purpose. The far wall is a
-  /// different room in all but name — a bay off the main run — and giving it
-  /// its own timber says so before any label does. Same short repeat, for the
-  /// same reason: a moulding is centimetres across.
+  /// The only timber left in the gallery: the corridor's pieces hang in
+  /// thin black mouldings (ink on paper), so this bay off the main run is
+  /// the one place wood is seen. A short repeat, because a moulding is
+  /// centimetres across and grain tiled at wall scale would stretch a single
+  /// board over the whole frame.
   static const TextureSet testimonialFrame = TextureSet(
     colour: 'assets/textures/frame_testimonials/Wood020_1K-JPG_Color.webp',
     roughMetal:
@@ -290,7 +277,6 @@ abstract final class GalleryPrefetch {
       GallerySurfaces.ceiling,
       GallerySurfaces.wall,
       GallerySurfaces.wall,
-      GallerySurfaces.frame,
       GallerySurfaces.testimonialFrame,
       GallerySurfaces.keyboardBase,
       ...GallerySurfaces.keyRows,

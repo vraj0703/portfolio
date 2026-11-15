@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
@@ -101,8 +103,66 @@ abstract final class GalleryLayout {
   static const double wallThickness = 0.2;
   static const double paintedOnWall = wallThickness / 2 + 0.02;
 
-  /// Frames are wider than they are tall, matching the artwork.
+  /// The far wall's frames are wider than they are tall, matching the
+  /// recommendations they carry. The corridor's pieces are not; see
+  /// [pieceWidth].
   static const double frameWidth = 4;
+
+  /// A piece in the corridor is portrait, 4:5, at the frames' full height:
+  /// 2.4 wide. One drawing hangs in it and no words, so it no longer needs
+  /// the width a slide of text did; the words move to [labelWidth] beside it.
+  static const double pieceWidth = GalleryDimensions.frameMaxHeight * 4 / 5;
+
+  /// The piece's frame: a thin black moulding, not the walnut of the far
+  /// wall. Ink on paper wants a hairline, not furniture.
+  static const double pieceBorder = 0.05;
+
+  /// The wall label beside a piece: small, paper-coloured, the same on every
+  /// piece. Sized to be read from the focus pose, not from the corridor,
+  /// except for its name, which is set large enough to carry.
+  static const double labelWidth = 1.4;
+  static const double labelHeight = 1.1;
+
+  /// How thick the label is. A card on the plaster, not a panel.
+  static const double labelDepth = 0.02;
+
+  /// The plaster between a piece's edge and its label.
+  static const double labelGap = 0.25;
+
+  /// How far the label's foot sits above the piece's foot, so the two read
+  /// as one hang rather than as a label dropped toward the floor.
+  static const double labelLift = 0.2;
+
+  /// Which side of the piece the label hangs on, along the piece's own
+  /// across axis: +1 is the side the mock shows it on, the visitor's right.
+  static const double labelSide = 1;
+
+  /// How far the label's centre sits from its piece's centre, across.
+  static const double labelAcross = pieceWidth / 2 + labelGap + labelWidth / 2;
+
+  /// The direction along the wall that is the piece's own "across", in
+  /// design space: the frame's local +x after its turn about the vertical.
+  static Vector3 acrossOf(Placement frame) => Vector3(
+    math.cos(frame.rotationY),
+    0,
+    -math.sin(frame.rotationY),
+  );
+
+  /// Where [frame]'s wall label hangs, in design space.
+  ///
+  /// Beside the piece, in the gutter between it and the next, and on the
+  /// plaster: the piece stands off the wall, the label is painted on it, so
+  /// it is moved back toward the wall by the difference.
+  static Vector3 labelCentreFor(Placement frame) {
+    final towardWall = frame.position.x.isNegative ? -1.0 : 1.0;
+    final back = frameStandoff - paintedOnWall - labelDepth / 2;
+    final foot =
+        frame.position.y - GalleryDimensions.frameMaxHeight / 2 + labelLift;
+    return frame.position +
+        acrossOf(frame) * (labelSide * labelAcross) +
+        Vector3(towardWall * back, 0, 0)
+      ..y = foot + labelHeight / 2;
+  }
 
   /// How much wood shows around the card, on every side.
   ///
@@ -511,7 +571,7 @@ abstract final class GalleryLayout {
         kind: SurfaceKind.frame,
         position: Vector3(x, GalleryDimensions.frameY, z),
         extents: Vector3(
-          frameWidth,
+          pieceWidth,
           GalleryDimensions.frameMaxHeight,
           GalleryDimensions.frameDepth * 0.3,
         ),

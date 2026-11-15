@@ -6,7 +6,8 @@ import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/presentation/gallery/build_yield.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
-import 'package:portfolio/presentation/gallery/frame_card.dart';
+import 'package:portfolio/presentation/gallery/piece_card.dart';
+import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
@@ -357,7 +358,8 @@ class GalleryScene {
       SurfaceKind.ceiling: GallerySurfaces.ceiling,
       SurfaceKind.sideWall: GallerySurfaces.wall,
       SurfaceKind.hallWall: GallerySurfaces.wall,
-      SurfaceKind.frame: GallerySurfaces.frame,
+      // No set for the corridor's pieces: their moulding is plain black (ink
+      // on paper), so the walnut they used to be cut from is not loaded.
       SurfaceKind.testimonialFrame: GallerySurfaces.testimonialFrame,
     };
 
@@ -647,7 +649,8 @@ class GalleryScene {
     );
   }
 
-  /// Hangs one piece: the wooden frame, and the card inside it.
+  /// Hangs one frame: the moulding, and the card inside it; for a piece in
+  /// the corridor, its wall label beside it as well.
   ///
   /// Two meshes rather than one. The frame is a moulding with its own
   /// material and the card is a flat surface with another, and a single box
@@ -663,16 +666,21 @@ class GalleryScene {
     int artworkSize,
     TestimonialCards testimonials,
   ) async {
-    final width = GalleryLayout.frameWidth;
+    final isPiece = piece.kind == SurfaceKind.frame;
+    final width = piece.extents.x;
     final height = piece.extents.y;
     final depth = piece.extents.z;
+    final border = isPiece ? GalleryLayout.pieceBorder : GalleryLayout.frameBorder;
+    const colors = DefaultAppColors();
 
     scene.add(
       Node(
         mesh: Mesh(
           CuboidGeometry(Vector3(width, height, depth)),
-          wood?.materialFor(width, height) ??
-              _material(const ui.Color(0xFF6B4A2F), 0.7, 0),
+          isPiece
+              ? _material(colors.pieceMoulding, 0.55, 0)
+              : wood?.materialFor(width, height) ??
+                    _material(const ui.Color(0xFF6B4A2F), 0.7, 0),
         ),
         localTransform: transform,
       ),
@@ -680,8 +688,8 @@ class GalleryScene {
 
     final card = Matrix4.copy(transform)
       ..translateByDouble(0, 0, depth / 2 + GalleryLayout.cardRelief, 1);
-    final cardWidth = width - GalleryLayout.frameBorder * 2;
-    final cardHeight = height - GalleryLayout.frameBorder * 2;
+    final cardWidth = width - border * 2;
+    final cardHeight = height - border * 2;
     final cardShape = CuboidGeometry(
       Vector3(cardWidth, cardHeight, GalleryLayout.cardRelief * 2),
     );
@@ -717,20 +725,46 @@ class GalleryScene {
       return;
     }
 
-    if (FrameCard.paints(piece.project)) {
-      final image = await BuildTiming.span(BuildPhase.bake, () => FrameCard.render(
-        project: piece.project!,
-        width: artworkSize,
-        height: (artworkSize * cardHeight / cardWidth).round(),
-      ));
+    final project = piece.project;
+    if (isPiece && project != null) {
+      // One image for the paper and the label together, each face sampling
+      // its own part of it: seven pieces stay seven textures.
+      final scale = artworkSize / 1024;
+      final layout = PieceCard.atlas(scale: scale);
+      final image = await BuildTiming.span(
+        BuildPhase.bake,
+        () => PieceCard.render(project: project, scale: scale),
+      );
       images.add(image);
-      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+      final texture = await BuildTiming.upload('gallery_scene_builder.piece', image, () => GpuUpload.image(image));
       textures.add(texture);
 
       scene.add(
         Node(
-          mesh: Mesh(cardShape, UnlitMaterial(colorTexture: texture)),
+          mesh: Mesh(cardShape, _faceOf(texture, layout.share(layout.piece))),
           localTransform: card,
+        ),
+      );
+
+      // The label, on the plaster beside the piece; placed in design space
+      // and carried across like everything else, so the camera's framing
+      // (which reads the same point) and the room cannot disagree.
+      final at = Matrix4.translation(
+        SceneAxes.position(GalleryLayout.labelCentreFor(piece)),
+      )..rotateY(SceneAxes.rotationY(piece.rotationY));
+      scene.add(
+        Node(
+          mesh: Mesh(
+            CuboidGeometry(
+              Vector3(
+                GalleryLayout.labelWidth,
+                GalleryLayout.labelHeight,
+                GalleryLayout.labelDepth,
+              ),
+            ),
+            _faceOf(texture, layout.share(layout.label)),
+          ),
+          localTransform: at,
         ),
       );
       await BuildYield.frame();
@@ -754,6 +788,17 @@ class GalleryScene {
       ),
     );
   }
+
+  /// An unlit face showing [region] of [texture], `0..1` from its top left.
+  ///
+  /// Unlit like the lettering on the walls: paper and print, and lit by a
+  /// picture light this dim the ink sinks into the paper.
+  static UnlitMaterial _faceOf(TextureSource texture, ui.Rect region) =>
+      UnlitMaterial(colorTexture: texture)
+        ..baseColorTextureTransform = TextureTransform(
+          offset: Vector2(region.left, region.top),
+          scale: Vector2(region.width, region.height),
+        );
 
   static PhysicallyBasedMaterial _surfaceOf(
     Placement piece,

@@ -65,17 +65,38 @@ abstract class AppTypography {
   TextStyle get creditsBody;
   TextStyle get creditsAction;
 
-  /// A project's card, baked onto its frame at 1024 pixels across: the title,
-  /// read from down the corridor; the line under it; the three stats; the
-  /// summary, read once the frame is focused; and the stack's small tags.
+  /// A card on the far wall, baked onto its frame at 1024 pixels across: the
+  /// title, read from across the wing; the line under it; the stats; the
+  /// words; and the small tags.
   TextStyle get frameTitle;
   TextStyle get frameDescription;
   TextStyle get frameStat;
   TextStyle get frameSummary;
   TextStyle get frameTag;
 
-  /// The link at the foot of a card: the one pressable thing on it.
+  /// The button at the foot of a card: the one pressable thing on it.
   TextStyle get frameLink;
+
+  /// A piece's wall label, baked at 300 pixels to the unit: the name,
+  /// set large enough to carry down the corridor; the line under it; the
+  /// one number; the tags; and the years. Everything but the name is for
+  /// the visitor who has stopped.
+  TextStyle get labelName;
+  TextStyle get labelLine;
+  TextStyle get labelFigure;
+  TextStyle get labelTag;
+  TextStyle get labelYears;
+
+  /// The sheet with the case, in real text: its title, the summary, the
+  /// three numbers, the stack's tags, and its two buttons.
+  TextStyle get sheetTitle;
+  TextStyle get sheetBody;
+  TextStyle get sheetStat;
+  TextStyle get sheetTag;
+  TextStyle get sheetButton;
+
+  /// "Read the case", over the room under a focused piece.
+  TextStyle get readCase;
 
   /// The word on the "open" pill over a focused frame: the stat pills' face
   /// and scale, so it reads as part of the card's set rather than the system.
@@ -280,6 +301,93 @@ class DefaultAppTypography implements AppTypography {
     fontSize: 26,
     height: 1.2,
     letterSpacing: 1,
+    fontWeight: FontWeight.w600,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get labelName => const TextStyle(
+    fontSize: 50,
+    height: 1.12,
+    fontFamily: 'Marcellus',
+  );
+
+  @override
+  TextStyle get labelLine => const TextStyle(
+    fontSize: 24,
+    height: 1.35,
+    fontFamily: 'Margot',
+  );
+
+  /// Mono, like the stats it stands in for.
+  @override
+  TextStyle get labelFigure => const TextStyle(
+    fontSize: 21,
+    height: 1.3,
+    letterSpacing: 0.5,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get labelTag => const TextStyle(
+    fontSize: 18,
+    height: 1.2,
+    letterSpacing: 0.4,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get labelYears => const TextStyle(
+    fontSize: 18,
+    height: 1.3,
+    letterSpacing: 0.5,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get sheetTitle => const TextStyle(
+    fontSize: 26,
+    height: 1.15,
+    fontFamily: 'Marcellus',
+  );
+
+  @override
+  TextStyle get sheetBody => const TextStyle(
+    fontSize: 17,
+    height: 1.55,
+    fontFamily: 'Margot',
+  );
+
+  @override
+  TextStyle get sheetStat => const TextStyle(
+    fontSize: 14,
+    height: 1.3,
+    letterSpacing: 0.4,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get sheetTag => const TextStyle(
+    fontSize: 12,
+    height: 1.2,
+    letterSpacing: 0.4,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get sheetButton => const TextStyle(
+    fontSize: 14,
+    height: 1.2,
+    letterSpacing: 0.4,
+    fontWeight: FontWeight.w600,
+    fontFamily: 'AzeretMono',
+  );
+
+  @override
+  TextStyle get readCase => const TextStyle(
+    fontSize: 14,
+    height: 1.2,
+    letterSpacing: 0.6,
     fontWeight: FontWeight.w600,
     fontFamily: 'AzeretMono',
   );

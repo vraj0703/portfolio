@@ -27,8 +27,13 @@ abstract class AppStrings {
   /// The two signs painted on the gallery's marble.
   String get galleryBack;
 
-  /// On a frame whose work is not ready yet, under its title.
-  String get frameComingSoon;
+  /// The sheet with a piece's case: the control that opens it, what a
+  /// screen reader calls it, the way back to the piece, and the way out to
+  /// the work itself.
+  String get readTheCase;
+  String get theCase;
+  String get backToThePiece;
+  String get openTheProject;
 
   /// The testimonial wall: its first frame's title and invitation, the quiet
   /// line on the frames still empty, and the mark on a visitor's own words.
@@ -54,9 +59,6 @@ abstract class AppStrings {
   /// to someone who cannot see it.
   String get galleryOpen;
   String galleryOpenLabel(String title);
-
-  /// The link drawn on a card, naming where it goes.
-  String frameLink(String host);
 
   /// A button drawn on a card: its word and the arrow that says it acts.
   String cardButton(String word);
@@ -134,7 +136,16 @@ class DefaultAppStrings implements AppStrings {
   String get galleryBack => 'BACK';
 
   @override
-  String get frameComingSoon => 'coming soon';
+  String get readTheCase => 'Read the case';
+
+  @override
+  String get theCase => 'The case';
+
+  @override
+  String get backToThePiece => 'Back to the piece';
+
+  @override
+  String get openTheProject => 'Open the project  ↗';
 
   @override
   String get testimonialsTitle => 'Testimonials';
@@ -189,9 +200,6 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String galleryOpenLabel(String title) => 'Open $title';
-
-  @override
-  String frameLink(String host) => '$host  ↗';
 
   @override
   String cardButton(String word) => '$word  →';

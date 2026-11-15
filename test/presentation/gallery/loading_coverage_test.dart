@@ -8,7 +8,6 @@ void main() {
     'floor': GallerySurfaces.floor,
     'wall': GallerySurfaces.wall,
     'ceiling': GallerySurfaces.ceiling,
-    'frame': GallerySurfaces.frame,
     'testimonialFrame': GallerySurfaces.testimonialFrame,
     'keyboardBase': GallerySurfaces.keyboardBase,
   };
@@ -53,7 +52,7 @@ void main() {
     // fine grain, a single milled block wants almost none.
     expect(
       GallerySurfaces.keyboardBase.unitsPerRepeat,
-      greaterThan(GallerySurfaces.frame.unitsPerRepeat * 3),
+      greaterThan(GallerySurfaces.testimonialFrame.unitsPerRepeat * 3),
     );
   });
 }

@@ -21,13 +21,10 @@ class FocusPose {
 /// stop by giving them something the corridor could not — otherwise clicking
 /// buys nothing but scale, which is what the original did.
 ///
-/// So the plane the artwork hangs on doubles as the case for the work: the
-/// frame is a display, and focusing changes what it displays. That choice is
-/// forced by the room. A gallery would put a card beside the piece, but the
-/// frames stand five units apart and are four wide, leaving a one-unit gutter,
-/// and the floor is only 0.8 below the frame's bottom edge. There is nowhere
-/// in this corridor to hang a card that is big enough to read. The four square
-/// metres already on the wall is the only surface with room on it.
+/// So the stop is a composition, not a crop: the piece and its wall label,
+/// framed together. The label is small and set for this distance; down the
+/// corridor only its name carries. The pieces are 2.4 wide and five apart,
+/// which leaves the gutter a label needs.
 ///
 /// Pure geometry, like the rest of `domain/gallery` — the interesting failure
 /// is a framing that crops the work or puts the camera through a wall, and
@@ -46,18 +43,30 @@ abstract final class ProjectFocus {
   /// the work by standing inside the frame shows nothing at all.
   static const double minimumStandoff = 1.2;
 
-  /// Breathing room on a portrait screen, where the fit is the card's width.
+  /// Breathing room on a portrait screen, where the fit is the width.
   ///
-  /// On a phone the shot is governed by width, and fitting the whole frame
-  /// with [margin] around it took eight metres at 19.5:9 — wider than the
-  /// corridor, so the camera stood behind the far wall and showed the back
-  /// of a moulding. A portrait screen fits the card instead, edge to edge
-  /// with a sliver either side: the moulding is cropped, the work is not.
+  /// On a phone the shot is governed by width, and the same [margin] as a
+  /// laptop stands the camera further off than it needs to, which makes a
+  /// small label smaller. A portrait screen fits the composition edge to
+  /// edge with a sliver either side.
   static const double portraitMargin = 1.04;
 
-  /// The card inside the moulding, which is what has to be read.
+  /// The piece's paper inside its moulding.
   static double get cardWidth =>
-      GalleryLayout.frameWidth - GalleryLayout.frameBorder * 2;
+      GalleryLayout.pieceWidth - GalleryLayout.pieceBorder * 2;
+
+  /// The piece and its label side by side, edge to edge.
+  static double get compositionWidth =>
+      GalleryLayout.pieceWidth +
+      GalleryLayout.labelGap +
+      GalleryLayout.labelWidth;
+
+  /// How far the composition's centre sits from the piece's, across the
+  /// piece toward its label.
+  static double get compositionShift =>
+      GalleryLayout.labelSide *
+      (GalleryLayout.labelGap + GalleryLayout.labelWidth) /
+      2;
 
   /// Distance needed to fit [width] by [height] at [aspect].
   ///
@@ -98,7 +107,7 @@ abstract final class ProjectFocus {
   static FocusPose poseFor(Placement frame, {required double aspect}) {
     final portrait = aspect < 1;
     final distance = distanceFor(
-      width: portrait ? cardWidth : GalleryLayout.frameWidth,
+      width: compositionWidth,
       height: GalleryDimensions.frameMaxHeight + reachBelow,
       aspect: aspect,
       room: portrait ? portraitMargin : margin,
@@ -106,8 +115,11 @@ abstract final class ProjectFocus {
 
     // Aimed low of the work's own centre by half what was added beneath it,
     // so the extra room appears where the controls are rather than as empty
-    // ceiling above the frame.
-    final centreY = frame.position.y - reachBelow / 2;
+    // ceiling above the frame; and across toward the label by half of it, so
+    // the two sit in the middle of the shot together.
+    final centre = frame.position +
+        GalleryLayout.acrossOf(frame) * compositionShift
+      ..y = frame.position.y - reachBelow / 2;
 
     // Frames hang just inside the wall they belong to, so the sign of their x
     // is also the direction of the wall — and stepping the *opposite* way is
@@ -115,12 +127,8 @@ abstract final class ProjectFocus {
     final inward = frame.position.x.isNegative ? 1.0 : -1.0;
 
     return FocusPose(
-      position: Vector3(
-        frame.position.x + inward * distance,
-        centreY,
-        frame.position.z,
-      ),
-      target: Vector3(frame.position.x, centreY, frame.position.z),
+      position: Vector3(centre.x + inward * distance, centre.y, centre.z),
+      target: centre,
     );
   }
 

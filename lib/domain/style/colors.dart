@@ -102,11 +102,9 @@ abstract class AppColors {
   /// backdrop it travels over.
   Color get scrollCueShadow;
 
-  /// A project's card in the corridor, baked onto its frame: the ink every
-  /// word on it is set in, the quieter ink of the lines under the title, and
-  /// the fill and edge of the small tags. One ink on every card, because
-  /// the ground under it is the project's own gradient and changes card to
-  /// card.
+  /// A card on the far wall, baked onto its frame: the ink every word on it
+  /// is set in, the quieter ink of the lines under the title, and the fill
+  /// and edge of the small tags.
   Color get frameCardInk;
   Color get frameCardInkSoft;
   Color get frameCardTagFill;
@@ -115,11 +113,31 @@ abstract class AppColors {
   Color get frameCardLinkFill;
   Color get frameCardTagEdge;
 
-  /// The room's own warm pair, which a card's gradient can be toned toward
-  /// (`FRAME_TONE=warm`) so the seven cards sit in the marble and walnut
-  /// rather than in their own colours. An alternative for Vishal to judge.
+  /// The room's own warm pair: the ground of the far wall's cards.
   Color get frameCardWarmTop;
   Color get frameCardWarmBottom;
+
+  /// A piece in the corridor, ink on paper: the thin black moulding, the
+  /// paper of its mat and drawing, and the ink every drawing is made in.
+  /// One colour more per piece, its project's accent, comes from the
+  /// project itself.
+  Color get pieceMoulding;
+  Color get piecePaper;
+  Color get pieceInk;
+
+  /// The wall label beside a piece: its paper, its ink, the quieter ink of
+  /// the line and the years, and the edge of a tag.
+  Color get labelPaper;
+  Color get labelInk;
+  Color get labelInkSoft;
+  Color get labelTagEdge;
+
+  /// The sheet that slides up with the case: its paper, its ink, the grip
+  /// at its top edge, and the shade it casts over the room.
+  Color get sheetGround;
+  Color get sheetInk;
+  Color get sheetGrip;
+  Color get sheetShade;
 }
 
 /// [DefaultAppColors] provides the concrete color implementation for the portfolio.
@@ -271,8 +289,8 @@ class DefaultAppColors implements AppColors {
   @override
   Color get scrollCueShadow => const Color(0xFF000000);
 
-  /// The menu's warm ink, which holds on every gradient the cards are
-  /// painted on: they are all mid-to-dark at their lower stop.
+  /// The menu's warm ink, which holds on the walnut the cards are painted
+  /// on.
   @override
   Color get frameCardInk => _menuInk;
 
@@ -294,6 +312,40 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get frameCardWarmBottom => const Color(0xFF2E1D12);
+
+  /// Ink on paper, as Vishal chose it from the mock (2026-11-15).
+  @override
+  Color get pieceMoulding => const Color(0xFF1B1A17);
+
+  @override
+  Color get piecePaper => const Color(0xFFF4EFE4);
+
+  @override
+  Color get pieceInk => const Color(0xFF1B1A17);
+
+  @override
+  Color get labelPaper => const Color(0xFFF6F2E8);
+
+  @override
+  Color get labelInk => const Color(0xFF1B1A17);
+
+  @override
+  Color get labelInkSoft => const Color(0xFF5B564C);
+
+  @override
+  Color get labelTagEdge => const Color(0xFFB9B09D);
+
+  @override
+  Color get sheetGround => const Color(0xFFFBF8F1);
+
+  @override
+  Color get sheetInk => const Color(0xFF1B1A17);
+
+  @override
+  Color get sheetGrip => const Color(0xFFCFC7B6);
+
+  @override
+  Color get sheetShade => const Color(0x7314100A);
 }
 
 /// [AppColorsExtension] allows the custom color palette to be part of the Flutter [ThemeData].

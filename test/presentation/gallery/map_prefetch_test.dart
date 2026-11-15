@@ -97,7 +97,6 @@ void main() {
       GallerySurfaces.floor,
       GallerySurfaces.ceiling,
       GallerySurfaces.wall,
-      GallerySurfaces.frame,
       GallerySurfaces.testimonialFrame,
       GallerySurfaces.keyboardBase,
       ...GallerySurfaces.keyRows,
