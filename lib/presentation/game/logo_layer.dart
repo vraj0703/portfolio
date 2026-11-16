@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart' hide Image;
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/config/mark_travel.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -48,6 +49,10 @@ class LogoMarkComponent extends PositionComponent
   /// it is there. Set by the scene on resize.
   Vector2 homePosition = Vector2.zero();
   Vector2 homeSize = Vector2.zero();
+
+  /// The game's size, so the parked corner can follow the screen's rule
+  /// ([MarkTravel.parkedFor]): a phone parks it beside the action row.
+  Vector2 viewport = Vector2.zero();
 
   /// Seconds into the retreat to the corner. Null while the mark is at home.
   double? _exitElapsed;
@@ -162,8 +167,7 @@ class LogoMarkComponent extends PositionComponent
     // rather than up — but the crossing to the contact screen is its own
     // length, and it has to be the corridor's, or the same move would take
     // one time from the title and another from the hall.
-    final back =
-        duration / (LogoConfig.contactTravel.inMilliseconds / 1000);
+    final back = duration / (LogoConfig.contactTravel.inMilliseconds / 1000);
     _exitElapsed = elapsed + (_returning ? -dt * back : dt);
 
     if (_returning && _exitElapsed! <= 0) {
@@ -182,11 +186,12 @@ class LogoMarkComponent extends PositionComponent
 
     // The mark parks in the top-left as a header mark while the title takes
     // the stage. Anchored centre, so the target accounts for its own size.
-    final target = homeSize * LogoConfig.exitScale;
-    final corner = Vector2(
-      LogoConfig.exitMargin + target.x / 2,
-      LogoConfig.exitMargin + target.y / 2,
+    final parked = MarkTravel.parkedFor(
+      Size(viewport.x, viewport.y),
+      home: Size(homeSize.x, homeSize.y),
     );
+    final target = Vector2(parked.width, parked.height);
+    final corner = Vector2(parked.center.dx, parked.center.dy);
 
     position = homePosition + (corner - homePosition) * t;
     size = homeSize + (target - homeSize) * t;

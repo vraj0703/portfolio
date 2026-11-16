@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/config/title_chrome.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
@@ -74,6 +75,35 @@ class TitleActions extends StatelessWidget {
   static double glyphHeightFor(Size viewport) =>
       (markHeightFor(viewport) * markRatio).clamp(minMark, maxMark);
 
+  /// The row's sizes and place on a screen of [viewport] with system
+  /// [insets]. A compact screen (a phone) follows Material through
+  /// [TitleChrome]: 24 dp glyphs in 48 dp targets, the targets' edge 16 dp in
+  /// and clear of the insets. A wider screen keeps the desktop rule: glyphs
+  /// from the parked mark, the last *glyph* (not its target) on the mark's
+  /// margin.
+  static ActionRowLayout rowFor(Size viewport, EdgeInsets insets) {
+    if (TitleChrome.isCompact(viewport)) {
+      return ActionRowLayout(
+        glyph: TitleChrome.icon,
+        target: TitleChrome.target,
+        spacing: TitleChrome.gap,
+        top: insets.top + TitleChrome.edge,
+        right: insets.right + TitleChrome.edge,
+      );
+    }
+    final glyph = glyphHeightFor(viewport);
+    final target = math.max(minTarget, glyph);
+    // How far a target overhangs its glyph on each side.
+    final overhang = (target - glyph) / 2;
+    return ActionRowLayout(
+      glyph: glyph,
+      target: target,
+      spacing: glyph * gapRatio,
+      top: LogoConfig.exitMargin - overhang,
+      right: LogoConfig.exitMargin - overhang,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<SceneBloc, SceneState>(
@@ -84,21 +114,20 @@ class TitleActions extends StatelessWidget {
       builder: (context, state) {
         if (!state.showsMenu) return const SizedBox.shrink();
 
-        final glyph = glyphHeightFor(MediaQuery.sizeOf(context));
-        final target = math.max(minTarget, glyph);
-
-        // How far a target overhangs its glyph on each side. Subtracted from
-        // the inset so the last *glyph* lands on the mark's own margin rather
-        // than the box drawn around it.
-        final overhang = (target - glyph) / 2;
+        final row = rowFor(
+          MediaQuery.sizeOf(context),
+          MediaQuery.paddingOf(context),
+        );
+        final glyph = row.glyph;
+        final target = row.target;
 
         return Positioned(
-          top: LogoConfig.exitMargin - overhang,
-          right: LogoConfig.exitMargin - overhang,
+          top: row.top,
+          right: row.right,
           child: FocusTraversalGroup(
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              spacing: glyph * gapRatio,
+              spacing: row.spacing,
               children: <Widget>[
                 TitleActionEntry(
                   order: 0,
@@ -327,4 +356,21 @@ class _ActionIcon extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Where the title's action row sits and how big its parts are.
+class ActionRowLayout {
+  const ActionRowLayout({
+    required this.glyph,
+    required this.target,
+    required this.spacing,
+    required this.top,
+    required this.right,
+  });
+
+  final double glyph;
+  final double target;
+  final double spacing;
+  final double top;
+  final double right;
 }

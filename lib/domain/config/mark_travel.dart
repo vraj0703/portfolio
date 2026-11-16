@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/config/title_chrome.dart';
 
 /// Where the mark is, and how big.
 class MarkPlacement {
@@ -10,11 +11,8 @@ class MarkPlacement {
   final Size size;
 
   /// The rectangle it occupies, for a widget that positions by edges.
-  Rect get bounds => Rect.fromCenter(
-    center: centre,
-    width: size.width,
-    height: size.height,
-  );
+  Rect get bounds =>
+      Rect.fromCenter(center: centre, width: size.width, height: size.height);
 }
 
 /// The mark's journey between the middle of the screen and its corner.
@@ -44,20 +42,27 @@ abstract final class MarkTravel {
       viewportHeight: viewport.height,
     );
     final home = Size(width, width * LogoConfig.markAspect);
-    final parked = home * LogoConfig.exitScale;
-
-    // Anchored on its middle at both ends, so the corner placement has to
-    // account for its own size — a mark positioned by its centre at the
-    // margin would hang half off the screen.
+    final parked = parkedFor(viewport, home: home);
     final homeCentre = Offset(viewport.width / 2, viewport.height / 2);
-    final parkedCentre = Offset(
-      LogoConfig.exitMargin + parked.width / 2,
-      LogoConfig.exitMargin + parked.height / 2,
-    );
 
     return MarkPlacement(
-      centre: Offset.lerp(homeCentre, parkedCentre, travelled)!,
-      size: Size.lerp(home, parked, travelled)!,
+      centre: Offset.lerp(homeCentre, parked.center, travelled)!,
+      size: Size.lerp(home, parked.size, travelled)!,
     );
+  }
+
+  /// Where the mark parks as the header mark, for a home size of [home].
+  ///
+  /// A compact screen (a phone) parks it beside the action row by Material's
+  /// rule ([TitleChrome.compactMarkRect]); a wider one at
+  /// [LogoConfig.exitScale] of its home size, [LogoConfig.exitMargin] in, as
+  /// it always has. Anchored on its middle, so the corner accounts for its
+  /// own size: a mark centred on the margin would hang half off the screen.
+  static Rect parkedFor(Size viewport, {required Size home}) {
+    if (TitleChrome.isCompact(viewport)) {
+      return TitleChrome.compactMarkRect(viewport);
+    }
+    final parked = home * LogoConfig.exitScale;
+    return Offset(LogoConfig.exitMargin, LogoConfig.exitMargin) & parked;
   }
 }
