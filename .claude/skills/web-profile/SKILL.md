@@ -73,6 +73,17 @@ Scenarios live in `SCENARIOS` in the tool:
 |---|---|---|
 | `flame-scroll` | title, then eight swipes up half a second apart: the Flame scroll toward the gallery | yes |
 | `gallery-walk` | the scroll in (untraced), then eight swipes down the corridor | **not verified** |
+| `journey` | traced **from navigation**: load, logo, title, the touch scroll into the gallery, a corridor walk, focusing a frame; each part marked `journey:<part>` | yes (Pixel profile) |
+
+For "every stall over 100 ms, with its cause":
+
+```bash
+python tool/web_profile.py stalls build/profile/journey-1.trace.json --over 100
+```
+
+prints each main-thread task over the threshold: its time, its part of the journey (the last
+`journey:` mark before it) and the top self time inside it, e.g.
+`49.89 s  load  2685 ms  RenderPipeline$_$4$vertexLayout 2373, ...`.
 
 Add a scenario as a function; keep it scripted and identical between before and after.
 
@@ -173,8 +184,11 @@ throttling: its own CPU, GPU, screen and network.
 What reads differently on the phone:
 
 - **Frame p50/p95 from `FireAnimationFrame` is not reliable there**: the phone's trace held
-  only about 25 of them in a 30 s scenario. Read long tasks, stalls over 500 ms, the GPU
-  thread and the top self time instead.
+  only about 25 of them in a 30 s scenario.
+- **What to trust on a device**: long tasks (count, longest), stalls over 500 ms, the
+  `stalls` list, the GPU thread total, the main-thread script/GC totals, and the top self
+  time. All come from task and sampler events, which the phone records fully. Do not report
+  frame p50/p95 or "frames > 33 ms" from a device trace.
 - **The live site and previews are release builds**: Dart names are minified (`akX`, `Uy`).
   Name a minified caller by finding the API it calls in the package sources, or profile a
   `--profile` build served to the phone.
@@ -185,6 +199,16 @@ What reads differently on the phone:
 - The emulated win for the bold-text warm-up (first-touch frame 420 to 56 ms median) did **not**
   show as a clear difference on the ROG: before 30 / 294 / 1055 ms, after 49 / 291 / 781 ms.
   Prove a fix on the real device, not only under emulation.
+
+## 8. Counting GL work without a phone's GPU
+
+A desktop GPU hides what a phone's GPU pays, but the *calls* are the same. Inject a wrapper
+before the page loads (`Page.addScriptToEvaluateOnNewDocument`) around
+`WebGL2RenderingContext.prototype` methods and read the counts from the page: how often
+`checkFramebufferStatus` runs, which `renderbufferStorageMultisample` sizes are allocated
+and when, blits and `texImage2D` per frame. That is how the gallery's arrival stall on the
+ROG was tied to four 1082x2404 x4 multisampled renderbuffers allocated on the first corridor
+frame (flutter_scene caches framebuffers, so the check is per new target, not per frame).
 
 ## Not verified here
 

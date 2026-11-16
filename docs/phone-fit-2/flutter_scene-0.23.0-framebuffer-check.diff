@@ -1,0 +1,52 @@
+# NOT APPLIED. A proposal for Vishal: fork or upgrade is his decision (mantr, 2026-11-16).
+#
+# What: flutter_scene 0.23.0's WebGL backend checks each new framebuffer with
+# gl.checkFramebufferStatus, a synchronous round trip to the GPU process. On the ROG Phone II
+# (Chrome 151, 120 Hz) that one call was the phone's single largest cost: 1.1 to 1.7 s in one
+# task on the visitor's first corridor frame (traces of 2026-11-16, PR 9 comment).
+#
+# What our own code already changed (PR 10, item 7, H1): a portrait phone renders with FXAA,
+# so the four 1082x2404 x4 multisampled renderbuffers whose first check that was are no longer
+# allocated (probe: msaa allocations before/after). Whether the remaining first check of the
+# full-size single-sample target still stalls the phone can only be measured on the device,
+# which was locked tonight.
+#
+# This patch: check completeness only in debug builds (inside an assert). Release builds skip
+# the synchronous round trip; an incomplete framebuffer still fails loudly in debug, and in
+# release WebGL reports INVALID_FRAMEBUFFER_OPERATION on the draw instead of throwing here.
+#
+# Upstream: 0.24.3 (latest, 2026-10-09) moved this to lib/src/gpu/web/webgl/render_pass.dart
+# and still runs the check once per new framebuffer (cached since 0.23); no issue found for it.
+#
+# Measure before deciding: apply locally (dependency_overrides to a path copy), profile the
+# journey on the device with tool/web_profile.py --remote, compare `stalls` with and without.
+--- a/lib/src/gpu/web/render_pass.dart
++++ b/lib/src/gpu/web/render_pass.dart
+@@ -319,13 +319,19 @@
+       }
+     }
+
+-    final status = gl.checkFramebufferStatus(
+-      web.WebGL2RenderingContext.FRAMEBUFFER,
+-    );
+-    if (status != web.WebGL2RenderingContext.FRAMEBUFFER_COMPLETE) {
+-      throw Exception(
+-        'Framebuffer incomplete (status 0x${status.toRadixString(16)})',
+-      );
+-    }
++    // A synchronous round trip to the GPU process; on a phone the first one
++    // for a full-screen target waits for its allocation (seconds). Checked
++    // in debug only.
++    assert(() {
++      final status = gl.checkFramebufferStatus(
++        web.WebGL2RenderingContext.FRAMEBUFFER,
++      );
++      if (status != web.WebGL2RenderingContext.FRAMEBUFFER_COMPLETE) {
++        throw Exception(
++          'Framebuffer incomplete (status 0x${status.toRadixString(16)})',
++        );
++      }
++      return true;
++    }());
+     return fbo;
+   }
