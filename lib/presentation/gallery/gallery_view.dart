@@ -1004,11 +1004,17 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
+  /// The view's shape, width over height; a laptop's before the first
+  /// layout.
+  double get _aspect => _viewSize.isEmpty
+      ? GalleryCameraPath.landscape
+      : _viewSize.width / _viewSize.height;
+
   /// Where the camera wants to be this frame.
   FocusPose _targetPose() {
     final frame = _focused;
     if (frame == null) {
-      final pose = GalleryCameraPath.poseAt(_scroll.progress);
+      final pose = GalleryCameraPath.poseAt(_scroll.progress, aspect: _aspect);
       return FocusPose(position: pose.position, target: pose.target);
     }
 
@@ -1028,6 +1034,7 @@ class _GalleryViewState extends State<GalleryView> {
       final pose = GalleryCameraPath.orbitPose(
         _orbit.azimuth,
         _orbit.elevation,
+        aspect: _aspect,
       );
       return FocusPose(position: pose.position, target: pose.target);
     }

@@ -120,6 +120,35 @@ abstract final class GalleryCameraPath {
   ///
   /// Derived rather than stated, so the orbit's rest pose is the same place
   /// the approach ends and the two cannot drift apart.
+  /// How far back from the board a portrait screen stands (PORTFOLIO-13).
+  ///
+  /// A phone held upright sees too narrow a slice of the hall from
+  /// [hallViewDistance]: the board, turned side-on by dragging, still ran
+  /// off both edges. Here, turned side-on, the whole board fits a 360-wide
+  /// phone, and the camera is still inside the hall (the doorway is 5 back,
+  /// the side walls 8 away).
+  static const double portraitHallViewDistance = 4.3;
+
+  /// How far back the hall's resting pose stands at [aspect].
+  static double hallViewDistanceFor(double aspect) =>
+      aspect < 1 ? portraitHallViewDistance : hallViewDistance;
+
+  /// How high above the board the eye rests at [aspect]: in proportion to
+  /// the distance, so the resting elevation (and the orbit seeded from it)
+  /// is the same at every aspect, and only the radius grows.
+  static double hallEyeRiseFor(double aspect) =>
+      hallEyeRise * hallViewDistanceFor(aspect) / hallViewDistance;
+
+  /// The orbit's radius at [aspect].
+  static double hallOrbitRadiusFor(double aspect) {
+    final d = hallViewDistanceFor(aspect);
+    final rise = hallEyeRiseFor(aspect);
+    return math.sqrt(d * d + rise * rise);
+  }
+
+  /// The aspect a pose is worked out for when none is given: a laptop.
+  static const double landscape = 16 / 9;
+
   static double get hallRestElevation =>
       math.atan2(hallEyeRise, hallViewDistance);
 
@@ -135,9 +164,13 @@ abstract final class GalleryCameraPath {
   /// the board is an object in a place rather than a picture of one. Turning
   /// the board instead moves nothing but the board, and the room behind it
   /// sits dead still.
-  static CameraPose orbitPose(double azimuth, double elevation) {
+  static CameraPose orbitPose(
+    double azimuth,
+    double elevation, {
+    double aspect = landscape,
+  }) {
     final board = KeyboardLayout.anchor;
-    final r = hallOrbitRadius;
+    final r = hallOrbitRadiusFor(aspect);
     final flat = r * math.cos(elevation);
 
     return CameraPose(
@@ -153,11 +186,11 @@ abstract final class GalleryCameraPath {
   }
 
   /// The pose at [progress], `0`..`1`.
-  static CameraPose poseAt(double progress) {
+  static CameraPose poseAt(double progress, {double aspect = landscape}) {
     final p = progress.clamp(0.0, 1.0);
     if (p < walkFraction) return _walk(p);
     if (p < panEnd) return _pan(p);
-    return _approach(p);
+    return _approach(p, aspect);
   }
 
   /// Down the corridor, looking straight ahead.
@@ -209,11 +242,11 @@ abstract final class GalleryCameraPath {
   /// entering. Turning earlier would have them walk the last stretch of the
   /// wing looking at a wall they have already read, and turning later would
   /// put them inside the hall still facing out of it.
-  static CameraPose _approach(double p) {
+  static CameraPose _approach(double p, double aspect) {
     final t = ((p - panEnd) / hallFraction).clamp(0.0, 1.0);
     final board = KeyboardLayout.anchor;
     final entry = GalleryDimensions.kbEntryX;
-    final stopX = board.x - hallViewDistance;
+    final stopX = board.x - hallViewDistanceFor(aspect);
 
     final double x;
     final double eyeY;
@@ -237,7 +270,8 @@ abstract final class GalleryCameraPath {
       final walk = (t - revealEnd) / (1 - revealEnd);
       final ease = 1 - (1 - walk) * (1 - walk);
       x = entry + (stopX - entry) * ease;
-      eyeY = panEyeHeight + (board.y + hallEyeRise - panEyeHeight) * ease;
+      eyeY =
+          panEyeHeight + (board.y + hallEyeRiseFor(aspect) - panEyeHeight) * ease;
       turn = 1;
     }
 

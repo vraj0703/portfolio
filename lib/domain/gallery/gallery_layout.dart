@@ -382,10 +382,12 @@ abstract final class GalleryLayout {
         GalleryDimensions.instructionY,
         z,
       ),
-      // Wide, and taller than it looks it needs: the face is nine times
-      // wider than it is high, so the type inside it is small before it is
-      // anything else.
-      extents: Vector3(6.4, 0.85, 0.02),
+      // Two lines, not one: at 6.4 wide the single line ran off both edges
+      // of a portrait phone, which sees under five metres of this wall from
+      // where the hall puts it (PORTFOLIO-13). The words wrap to this width
+      // at the same type size; [hallInstructionWidth] is held to what a
+      // 360-wide phone can see.
+      extents: Vector3(hallInstructionWidth, hallInstructionHeight, 0.02),
       // Faces back down the hall, toward the door the visitor came through.
       rotationY: -quarterTurn,
     );
@@ -463,6 +465,12 @@ abstract final class GalleryLayout {
       radioControlOffset * 2 * radioWidth;
   static const double radioButtonDrop =
       (radioControlsAt - 0.5) * radioHeight;
+
+  /// The instruction on the hall's far wall: narrow enough to be read whole
+  /// on a portrait phone from the hall's resting pose, tall enough for its
+  /// words on two lines.
+  static const double hallInstructionWidth = 4.4;
+  static const double hallInstructionHeight = 1.2;
 
   /// How far a far-wall frame stands off the plaster.
   ///
