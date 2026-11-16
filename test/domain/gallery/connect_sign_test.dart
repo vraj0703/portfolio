@@ -126,9 +126,10 @@ void main() {
       expect(line.position.y, lessThan(GalleryDimensions.ceilY));
     });
 
-    test('it runs wider than it is tall, like the line it carries', () {
+    test('it runs wider than it is tall, its words on two lines', () {
+      // Two lines since PORTFOLIO-13: one line at 6.4 wide ran off a phone.
       final line = instructions.single;
-      expect(line.extents.x, greaterThan(line.extents.y * 4));
+      expect(line.extents.x, greaterThan(line.extents.y * 3));
     });
   });
 
