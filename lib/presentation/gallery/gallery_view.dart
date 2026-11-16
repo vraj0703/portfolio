@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/recommendation_form.dart';
 import 'package:flutter/gestures.dart';
@@ -45,27 +46,6 @@ import 'package:vector_math/vector_math.dart';
 /// on the way out, and the scroll position has to survive rebuilds.
 class GalleryView extends StatefulWidget {
   const GalleryView({super.key});
-
-  /// Which way a wheel turn walks the corridor.
-  ///
-  /// Inverted with respect to the stages before it, and deliberately so. Up
-  /// to here the scroll has been moving a *page*: content travels up as the
-  /// wheel goes down, which is what every scrolling surface does. The gallery
-  /// is not a page — the visitor is walking through a room, and the natural
-  /// reading of pushing the wheel away is moving away, deeper in.
-  ///
-  /// Keeping the page convention here would mean pushing forward to back out
-  /// of the corridor, which fights the first-person framing the whole scene
-  /// is built on.
-  /// How far a finger walks the corridor, against how far it travels.
-  ///
-  /// A wheel notch reports about a hundred units and a finger reports the
-  /// pixels it crossed, so one-to-one makes the corridor several times
-  /// longer to a thumb than to a mouse. Matched to the intro's own gain, so
-  /// the two stages answer a swipe at the same rate.
-  static const double dragScrollGain = 2;
-
-  static const double scrollDirection = -1;
 
   /// Identifies the stand-in shown while the corridor is still building.
   static const Key placeholderKey = ValueKey('gallery-placeholder');
@@ -534,7 +514,6 @@ class _GalleryViewState extends State<GalleryView> {
     // get rid of you.
     if (hit == null) return;
 
-
     _sound(AudioCue.click);
     _focus(hit);
   }
@@ -777,7 +756,7 @@ class _GalleryViewState extends State<GalleryView> {
                   // way at the entrance simply holds there rather than running
                   // off the start.
                   _scroll.scrollBy(
-                    event.scrollDelta.dy * GalleryView.scrollDirection,
+                    GalleryInput.wheelStep(event.scrollDelta.dy),
                   );
                 },
                 // Without this the placeholder is not a hit-test target, and
@@ -814,12 +793,8 @@ class _GalleryViewState extends State<GalleryView> {
                   if (!_gate.accept(_clock.elapsedMilliseconds)) return;
 
                   // A finger moving up walks forward: the room follows the
-                  // hand rather than opposing it.
-                  _scroll.scrollBy(
-                    -event.delta.dy *
-                        GalleryView.dragScrollGain *
-                        GalleryView.scrollDirection,
-                  );
+                  // hand rather than opposing it ([GalleryInput.dragStep]).
+                  _scroll.scrollBy(GalleryInput.dragStep(event.delta.dy));
                 },
                 onPointerUp: (event) {
                   final dragged = _dragDistance > _tapSlop;
