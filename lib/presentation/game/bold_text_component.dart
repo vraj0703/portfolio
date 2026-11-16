@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/domain/config/bold_text_layout.dart';
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
@@ -27,9 +28,6 @@ class BoldTextComponent extends PositionComponent {
   final String text;
   final TextStyle style;
 
-  /// Longest line the text is allowed to occupy before wrapping.
-  static const double maxTextWidth = 800;
-
   /// Breathing room baked into the texture, so the shader can blur and
   /// displace the glyphs without sampling past their own edges.
   static const double texturePadding = 60;
@@ -44,24 +42,63 @@ class BoldTextComponent extends PositionComponent {
   /// Fades the whole stage, independent of [progress].
   double opacity = 1;
 
+  /// The wrap width and type scale the texture was set at, so a resize that
+  /// changes neither does not set it again.
+  (double, double)? _setAt;
+
+  /// Counts rasterisations, so a slow one that finishes after a newer one
+  /// started is dropped rather than drawn.
+  int _generation = 0;
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _texture = await _rasterise();
+    final viewport = findGame()?.size ?? size;
+    await _setFor(Size(viewport.x, viewport.y));
   }
 
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     this.size = size;
+    // Rotating a phone changes the width the text has: set it again.
+    if (isLoaded) _setFor(Size(size.x, size.y));
   }
 
-  Future<ui.Image> _rasterise() async {
+  /// Rasterises the text for a screen of [viewport] ([BoldTextLayout]).
+  Future<void> _setFor(Size viewport) async {
+    final key = (
+      BoldTextLayout.wrapWidthFor(viewport),
+      BoldTextLayout.scaleFor(viewport),
+    );
+    if (key == _setAt) return;
+    _setAt = key;
+    final generation = ++_generation;
+    final image = await _rasterise(wrapWidth: key.$1, scale: key.$2);
+    if (generation != _generation || isRemoved) {
+      image.dispose();
+      return;
+    }
+    final old = _texture;
+    _texture = image;
+    old?.dispose();
+  }
+
+  Future<ui.Image> _rasterise({
+    required double wrapWidth,
+    required double scale,
+  }) async {
     final painter = TextPainter(
-      text: TextSpan(text: text, style: style),
+      text: TextSpan(
+        text: text,
+        style: style.copyWith(
+          fontSize: (style.fontSize ?? 14) * scale,
+          letterSpacing: (style.letterSpacing ?? 0) * scale,
+        ),
+      ),
       textDirection: TextDirection.ltr,
       textAlign: TextAlign.center,
-    )..layout(maxWidth: maxTextWidth);
+    )..layout(maxWidth: wrapWidth);
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
