@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
+import 'package:portfolio/presentation/analytics/site_telemetry.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/screen/scene_view.dart';
@@ -26,6 +29,7 @@ class FlameScene extends StatelessWidget {
             final bloc = locate<SceneBloc>()
               ..add(const SceneEvent.initialize());
             _warmGallery(bloc);
+            _report(bloc);
             return bloc;
           },
         ),
@@ -37,6 +41,29 @@ class FlameScene extends StatelessWidget {
       ],
       child: const Scaffold(body: SceneView()),
     );
+  }
+
+  /// The analytics' one listener on the scene, and the flags' way in.
+  ///
+  /// Scenes are read from the bloc's states, not reported by each widget;
+  /// the title's button flags arrive as an event, so the widgets read them
+  /// from the state like every other rule (see [SceneState.showsConnect]).
+  static void _report(SceneBloc bloc) {
+    final telemetry = locate<SiteTelemetry>();
+    final events = locate<SiteEvents>();
+    telemetry.onScene(bloc.state);
+    bloc.stream.listen(telemetry.onScene);
+    events.flagsChanged.addListener(() {
+      if (bloc.isClosed) return;
+      bloc.add(
+        SceneEvent.flagsChanged(
+          flags: ButtonFlags(
+            connect: events.showsConnect(),
+            menu: events.showsMenu(),
+          ),
+        ),
+      );
+    });
   }
 
   /// Starts building the gallery while the loading screen is still up.

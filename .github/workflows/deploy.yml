@@ -44,7 +44,9 @@ jobs:
       # Goldens excluded — see dart_test.yaml. Everything else runs.
       - run: flutter test --exclude-tags golden
 
-      - run: flutter build web --release
+      # The PostHog project token comes from a repository secret, never a file.
+      # Without the secret the define is empty and the site sends nothing.
+      - run: flutter build web --release --dart-define=POSTHOG_TOKEN=${{ secrets.POSTHOG_TOKEN }}
 
       - name: Upload web build
         uses: actions/upload-artifact@v4

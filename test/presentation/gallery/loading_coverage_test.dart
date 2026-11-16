@@ -25,13 +25,12 @@ void main() {
     }
   });
 
-  test('a metalness map costs a decode but not an upload', () {
-    // It is folded into the roughness map's blue channel rather than bound
-    // as a texture of its own, so counting it twice would make the bar
-    // finish early and then wait.
+  test('a metalness map costs nothing at load: it is packed ahead of time', () {
+    // Folded into the packed map's blue channel by tool/pack_rough_metal.py,
+    // so the keys load the same number of files as everything else.
     for (final set in GallerySurfaces.keyRows) {
-      expect(set.metalness, isNotNull);
-      expect(set.stepCount, set.mapCount * 2 + 1);
+      expect(set.packedFrom?.metalness, isNotNull);
+      expect(set.stepCount, set.mapCount * 2);
     }
   });
 

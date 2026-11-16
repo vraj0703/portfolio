@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,7 +22,7 @@ void main() {
       test(name, () async {
         for (final asset in <String?>[
           set.colour,
-          set.roughness,
+          set.roughMetal,
           set.normal,
           set.occlusion,
         ].nonNulls) {
@@ -44,29 +45,78 @@ void main() {
     });
   });
 
-  test('roughness is packed into the channel the shader reads', () async {
-    final image = await SurfaceMaps.packRoughness(GallerySurfaces.wall);
-    addTearDown(() => image?.dispose());
-
-    expect(image, isNotNull);
-    final data = await image!.toByteData(
-      format: ui.ImageByteFormat.rawStraightRgba,
-    );
-    final pixels = data!.buffer.asUint8List();
-    final metallicByte = (GallerySurfaces.wall.metallic * 255).round();
-    var sawRoughness = false;
-
-    for (var i = 0; i < pixels.length; i += 4) {
-      // Red is not read by the shader. These sets store roughness as a grey
-      // image, so passing one through unpacked writes the value here and
-      // nowhere else — leaving the surface uniformly glossy while looking
-      // entirely correct in an image viewer.
-      expect(pixels[i], 0);
-      expect(pixels[i + 2], metallicByte);
-      if (pixels[i + 1] != 0) sawRoughness = true;
+  group('packed roughness and metal maps are up to date with their sources', () {
+    // Packed once by tool/pack_rough_metal.py, not in the browser
+    // (PORTFOLIO-8). Read straight from disk, so the sources need not ship.
+    Future<List<int>> pixels(String path) async {
+      final codec = await ui.instantiateImageCodec(
+        File(path).readAsBytesSync(),
+      );
+      final image = (await codec.getNextFrame()).image;
+      codec.dispose();
+      final data = await image.toByteData(
+        format: ui.ImageByteFormat.rawStraightRgba,
+      );
+      image.dispose();
+      return data!.buffer.asUint8List();
     }
 
-    expect(sawRoughness, isTrue, reason: 'a fully black map carries nothing');
+    sets.forEach((name, set) {
+      final from = set.packedFrom;
+      if (from == null) return;
+      test(name, () async {
+        final packed = await pixels(set.roughMetal);
+        final rough = await pixels(from.roughness);
+        final metal = from.metalness == null
+            ? null
+            : await pixels(from.metalness!);
+        expect(packed.length, rough.length, reason: 'not the source size');
+
+        final metallicByte = (from.metallic * 255).round();
+        var worst = 0;
+        for (var i = 0; i < packed.length; i += 4) {
+          // Green is the roughness, blue the metalness: the two channels the
+          // shader reads. A pixel off by more than a rounding step means the
+          // file was not regenerated after its source changed.
+          final g = (packed[i + 1] - rough[i]).abs();
+          final b = (packed[i + 2] - (metal?[i] ?? metallicByte)).abs();
+          worst = [worst, g, b].reduce((x, y) => x > y ? x : y);
+          expect(packed[i + 3], 255);
+        }
+        expect(
+          worst,
+          lessThanOrEqualTo(2),
+          reason:
+              '${set.roughMetal} is stale: run python tool/pack_rough_metal.py',
+        );
+      });
+    });
+  });
+
+  test('a dielectric loads its grey map as it is and zeroes the metal', () {
+    // Every channel of a grey map holds roughness, blue included, so the
+    // material's factor has to be zero or the surface turns metal where it
+    // is rough.
+    for (final set in <TextureSet>[
+      GallerySurfaces.floor,
+      GallerySurfaces.wall,
+      GallerySurfaces.ceiling,
+      GallerySurfaces.frame,
+      GallerySurfaces.testimonialFrame,
+    ]) {
+      expect(set.packedFrom, isNull, reason: set.roughMetal);
+      expect(set.metallic, 0, reason: set.roughMetal);
+    }
+  });
+
+  test('a packed map carries its own metal at full factor', () {
+    for (final set in <TextureSet>[
+      GallerySurfaces.keyboardBase,
+      ...GallerySurfaces.keyRows,
+    ]) {
+      expect(set.packedFrom, isNotNull, reason: set.roughMetal);
+      expect(set.metallic, 1, reason: set.roughMetal);
+    }
   });
 
   group('every surface has relief', () {
@@ -97,7 +147,7 @@ void main() {
     sets.forEach((name, set) {
       final declared = <String?>[
         set.colour,
-        set.roughness,
+        set.roughMetal,
         set.normal,
         set.occlusion,
       ].nonNulls.length;
@@ -105,14 +155,7 @@ void main() {
       expect(set.mapCount, declared, reason: name);
       // Two steps per bound file: it is decoded, then uploaded. Counting only
       // the decodes is what left the bar silent through every upload.
-      //
-      // A metalness map adds one, not two: it is folded into the roughness
-      // map's blue channel rather than uploaded on its own.
-      expect(
-        set.stepCount,
-        declared * 2 + (set.metalness == null ? 0 : 1),
-        reason: name,
-      );
+      expect(set.stepCount, declared * 2, reason: name);
     });
   });
 }

@@ -1,6 +1,14 @@
+import 'dart:ui' show PlatformDispatcher;
+
+import 'package:portfolio/data/analytics/analytics_setup.dart';
 import 'package:portfolio/data/audio/flame_app_audio.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
+import 'package:portfolio/presentation/analytics/site_telemetry.dart';
 import 'package:portfolio/data/config/durations.dart';
 import 'package:portfolio/data/contact/url_contact_links.dart';
+import 'package:portfolio/data/recommendations/local_recommendation_store.dart';
+import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/radio/streaming_radio.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -31,7 +39,39 @@ Future<void> initDependencies() async {
   // outside it.
   di.registerFactory<MenuDrawerCubit>(MenuDrawerCubit.new);
 
-  di.registerFactory<SceneBloc>(() => SceneBloc(radio: di.get<RadioPlayer>()));
+  // A factory for the same reason, and seeded from the shared audio backend
+  // so a remounted scene shows the mute the visit already chose.
+  // Analytics: PostHog with a token, silence without one. A build with no
+  // token sends nothing and loads nothing (docs/analytics/README.md).
+  di.registerLazySingleton<Analytics>(createAnalytics);
+  di.registerLazySingleton<SiteEvents>(
+    () => SiteEvents(
+      di.get<Analytics>(),
+      viewport: () {
+        final view = PlatformDispatcher.instance.implicitView;
+        if (view == null) return (0, 0);
+        final size = view.physicalSize / view.devicePixelRatio;
+        return (size.width, size.height);
+      },
+    ),
+  );
+  di.registerLazySingleton<SiteTelemetry>(
+    () => SiteTelemetry(di.get<SiteEvents>()),
+  );
+
+  di.registerFactory<SceneBloc>(() {
+    final events = di.get<SiteEvents>();
+    return SceneBloc(
+      radio: di.get<RadioPlayer>(),
+      audio: di.get<AppAudio>(),
+      events: events,
+      // The compiled defaults, or what the flags already say: never waits.
+      flags: ButtonFlags(
+        connect: events.showsConnect(),
+        menu: events.showsMenu(),
+      ),
+    );
+  });
 
   // One shared audio backend: it owns a cache and a pool of players, so a
   // second instance would duplicate both and let cues talk over each other.
@@ -46,6 +86,9 @@ Future<void> initDependencies() async {
   // Everything the contact menu reaches for outside the scene. Stateless, and
   // behind an interface so the menu can be exercised without a platform
   // channel underneath it.
+  // A visitor's own pending recommendation, in their browser only.
+  di.registerLazySingleton<RecommendationStore>(LocalRecommendationStore.new);
+
   di.registerLazySingleton<ContactLinks>(
     () => UrlContactLinks(profile: ContactProfile.vishal),
   );

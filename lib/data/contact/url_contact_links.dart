@@ -38,6 +38,9 @@ class UrlContactLinks implements ContactLinks {
   );
 
   @override
+  bool get hasCv => profile.hasCv;
+
+  @override
   Future<void> downloadCv() async {
     final cv = profile.cv;
 
@@ -48,6 +51,9 @@ class UrlContactLinks implements ContactLinks {
     if (cv == null) return;
     await _open(cv);
   }
+
+  @override
+  Future<void> open(Uri url) => _open(url);
 
   Future<void> _open(Uri url) async {
     final opened = await launchUrl(url, mode: mode);

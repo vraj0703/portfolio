@@ -111,7 +111,11 @@ class TitleLayerComponent extends PositionComponent
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
     position = size / 2;
+    _viewportWidth = size.x;
   }
+
+  /// How wide the screen is, for fitting the name to it.
+  double _viewportWidth = 0;
 
   @override
   void onInitialState(SceneState state) {
@@ -131,10 +135,10 @@ class TitleLayerComponent extends PositionComponent
   /// Matched through the union rather than with `is Title`, because Flutter
   /// exports a `Title` widget of its own and importing both into one library
   /// is ambiguous.
-  static bool hasBegunBy(SceneState state) => state.maybeWhen(
-    titleLoading: () => true,
-    title: () => true,
-    active: (_, _) => true,
+  static bool hasBegunBy(SceneState state) => state.maybeMap(
+    titleLoading: (_) => true,
+    title: (_) => true,
+    active: (_) => true,
     orElse: () => false,
   );
 
@@ -142,15 +146,15 @@ class TitleLayerComponent extends PositionComponent
   void onNewState(SceneState state) {
     super.onNewState(state);
 
-    state.maybeWhen(
-      titleLoading: () => _elapsed ??= 0,
+    state.maybeMap(
+      titleLoading: (_) => _elapsed ??= 0,
       // Returning to the logo rewinds the stage so it plays again rather than
       // snapping straight to the finished pose.
       logo: (_) => _rewind(),
       // The contact screen clears the stage the same way. Home then arrives
       // as `titleLoading`, so the entrance plays again from the top rather
       // than the titles snapping back on.
-      contact: _rewind,
+      contact: (_) => _rewind(),
       orElse: () {
         // Reached the title without passing through its loading stage —
         // which is what walking back out of the gallery does, and what the
@@ -215,9 +219,16 @@ class TitleLayerComponent extends PositionComponent
         (1 - TitleConfig.primaryStartScale) *
             TitleTimeline.primaryScale(elapsed);
 
+    // Fitted to the screen as well as grown: on a phone the name at its
+    // designed size is wider than the screen, so it would grow into a crop.
+    final fit = TitleConfig.primaryFit(
+      naturalWidth: _primary.size.x,
+      viewportWidth: _viewportWidth,
+    );
+
     _primary
       ..fade = TitleTimeline.primaryFade(elapsed) * stageFade
-      ..scale = Vector2.all(scale)
+      ..scale = Vector2.all(scale * fit)
       // Heat drift: a slow upward creep beginning before the fade finishes,
       // so the name never sits perfectly still.
       ..position =

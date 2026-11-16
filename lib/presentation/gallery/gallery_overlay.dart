@@ -36,6 +36,7 @@ class GalleryOverlay extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onExit;
   final VoidCallback onForward;
+
   /// Whether the piece in view hangs on the right-hand wall.
   ///
   /// The camera reads that wall from the opposite side, so the corridor runs
@@ -51,7 +52,6 @@ class GalleryOverlay extends StatelessWidget {
   /// models cannot be read — a gallery whose navigation depends on a
   /// downloadable asset would be a gallery you could get stuck in.
   final bool asFallback;
-
 
   @override
   Widget build(BuildContext context) {

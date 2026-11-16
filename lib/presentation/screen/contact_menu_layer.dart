@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
@@ -390,12 +391,17 @@ class _MenuItemState extends State<_MenuItem> {
       case ContactDestination.credits:
         showCreditsDialog(context);
       case ContactDestination.cv:
+        // Only when there is a CV to open; today there is none.
+        if (locate<ContactLinks>().hasCv) locate<SiteEvents>().cvOpened();
         locate<ContactLinks>().downloadCv();
       case ContactDestination.email:
+        locate<SiteEvents>().contactLinkClicked('email');
         locate<ContactLinks>().composeEmail();
       case ContactDestination.github:
+        locate<SiteEvents>().contactLinkClicked('github');
         locate<ContactLinks>().openGithub();
       case ContactDestination.linkedin:
+        locate<SiteEvents>().contactLinkClicked('linkedin');
         locate<ContactLinks>().openLinkedIn();
     }
   }

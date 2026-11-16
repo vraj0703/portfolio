@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
@@ -19,12 +21,22 @@ part 'scene_state.dart';
 /// through [Queuer] without knowing what else is loading or how the bar is
 /// weighted.
 class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
-  SceneBloc({RadioPlayer radio = const SilentRadio()})
+  SceneBloc({
+    RadioPlayer radio = const SilentRadio(),
+    ButtonFlags flags = const ButtonFlags(),
+    AppAudio? audio,
+    this._events,
+  })
     // A named parameter cannot be spelled `_radio`, so the field cannot be
     // an initialising formal here — the lint's suggestion does not compile.
     // ignore: prefer_initializing_formals
     : _radio = radio,
-      super(const SceneState.loading()) {
+      _flags = flags,
+      _audio = audio,
+      // Seeded from the audio backend, which outlives any one bloc: a
+      // remount of the scene keeps the site as silent as it was.
+      _muted = audio?.isMuted ?? false,
+      super(SceneState.loading(flags: flags, muted: audio?.isMuted ?? false)) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
@@ -37,6 +49,51 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<ContactRequested>(_onContactRequested);
     on<GalleryRequested>(_onGalleryRequested);
     on<HomeRequested>(_onHomeRequested);
+    on<FlagsChanged>(_onFlagsChanged);
+    on<MuteToggled>(_onMuteToggled);
+  }
+
+  final AppAudio? _audio;
+  final SiteEvents? _events;
+
+  /// Whether the site is silent, carried onto every state like the flags.
+  bool _muted;
+
+  /// The title buttons' flags, carried onto every state this bloc emits.
+  ButtonFlags _flags;
+
+  /// Every state leaves here carrying the flags, whichever handler built
+  /// it: a state constructed without them would quietly put both buttons
+  /// back. One place, rather than a copy at each of the handlers' emits.
+  @override
+  @visibleForTesting
+  void emit(SceneState state) {
+    final carried = state.flags == _flags && state.muted == _muted
+        ? state
+        : state.copyWith(flags: _flags, muted: _muted);
+    // The one call to the base's emit; every handler's emit arrives here.
+    // ignore: invalid_use_of_visible_for_testing_member
+    super.emit(carried);
+  }
+
+  /// The sound switch. The confirmation plays before the silence, and not
+  /// at all on the way into it: a click swallowed by the thing it is
+  /// confirming leaves the press feeling unregistered.
+  void _onMuteToggled(MuteToggled event, Emitter<SceneState> emit) {
+    final audio = _audio;
+    final silencing = !(audio?.isMuted ?? _muted);
+    if (!silencing) audio?.play(AudioCue.click);
+    audio?.setMuted(silencing);
+    unawaited(_radio.setVolume(silencing ? 0 : RadioState.defaultVolume));
+    _muted = silencing;
+    emit(state.copyWith(muted: silencing));
+    _events?.soundToggled(muted: silencing);
+  }
+
+  void _onFlagsChanged(FlagsChanged event, Emitter<SceneState> emit) {
+    if (event.flags == _flags) return;
+    _flags = event.flags;
+    emit(state.copyWith(flags: _flags));
   }
 
   /// The wall radio, which the scene owns rather than the corridor does.
@@ -182,7 +239,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     Emitter<SceneState> emit,
   ) {
     // Two ways in now: the sign cut into the skills hall wall, and the
-    // drawer on the title screen. Both are screens a visitor can be standing
+    // heart among the title screen's controls. Both are screens a visitor can be standing
     // on with somewhere to go; the ones left out are the ones that cannot
     // ask — loading, the logo screen, the exits already in flight, and the
     // contact screen itself.

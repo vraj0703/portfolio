@@ -38,6 +38,25 @@ abstract final class TitleConfig {
   /// arrival somewhere to travel.
   static const double primaryStartScale = 0;
 
+  /// The most of the screen's width the name may take.
+  ///
+  /// The name is set at one size with wide tracking, about six hundred
+  /// pixels across, which is right on a laptop and ran off both edges of a
+  /// phone even at rest. It now shrinks to fit, and never grows past the
+  /// size it was designed at.
+  static const double primaryMaxWidthShare = 0.88;
+
+  /// What the name's scale is multiplied by on a screen [viewportWidth]
+  /// wide, for a name [naturalWidth] across at its designed size.
+  static double primaryFit({
+    required double naturalWidth,
+    required double viewportWidth,
+  }) {
+    if (naturalWidth <= 0 || viewportWidth <= 0) return 1;
+    final room = viewportWidth * primaryMaxWidthShare;
+    return room >= naturalWidth ? 1 : room / naturalWidth;
+  }
+
   /// How long the animated backdrop takes to come up behind the title.
   ///
   /// Slow on purpose: it starts as the mark retreats and is still arriving

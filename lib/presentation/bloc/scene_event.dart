@@ -70,4 +70,13 @@ class SceneEvent with _$SceneEvent {
 
   /// They chose the home mark.
   const factory SceneEvent.homeRequested() = HomeRequested;
+
+  /// The feature flags for the title's buttons arrived or changed. Raised by
+  /// whoever listens to the analytics; the flags then ride on every state.
+  const factory SceneEvent.flagsChanged({required ButtonFlags flags}) =
+      FlagsChanged;
+
+  /// The visitor pressed the sound switch. Whether the site is silent is a
+  /// fact every stage carries (see [SceneState.muted]).
+  const factory SceneEvent.muteToggled() = MuteToggled;
 }

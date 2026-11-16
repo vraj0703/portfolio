@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
@@ -112,8 +113,12 @@ class _GalleryPrimerState extends State<GalleryPrimer> {
   void _countFrame() {
     if (_finished) return;
 
+    if (_drawn == 0) BuildTiming.mark(BuildPhase.priming);
     _drawn++;
-    if (_drawn >= GalleryPrimer.warmFrames) _finished = true;
+    if (_drawn >= GalleryPrimer.warmFrames) {
+      _finished = true;
+      BuildTiming.finish();
+    }
 
     widget.queuer.queue(
       event: SceneEvent.loadingProgressed(

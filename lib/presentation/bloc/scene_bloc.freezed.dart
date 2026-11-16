@@ -56,7 +56,7 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,TResult Function( GalleryExited value)?  galleryExited,TResult Function( ContactRequested value)?  contactRequested,TResult Function( GalleryRequested value)?  galleryRequested,TResult Function( HomeRequested value)?  homeRequested,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,TResult Function( GalleryExited value)?  galleryExited,TResult Function( ContactRequested value)?  contactRequested,TResult Function( GalleryRequested value)?  galleryRequested,TResult Function( HomeRequested value)?  homeRequested,TResult Function( FlagsChanged value)?  flagsChanged,TResult Function( MuteToggled value)?  muteToggled,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
@@ -71,7 +71,9 @@ return boldTextCompleted(_that);case GalleryExited() when galleryExited != null:
 return galleryExited(_that);case ContactRequested() when contactRequested != null:
 return contactRequested(_that);case GalleryRequested() when galleryRequested != null:
 return galleryRequested(_that);case HomeRequested() when homeRequested != null:
-return homeRequested(_that);case _:
+return homeRequested(_that);case FlagsChanged() when flagsChanged != null:
+return flagsChanged(_that);case MuteToggled() when muteToggled != null:
+return muteToggled(_that);case _:
   return orElse();
 
 }
@@ -89,7 +91,7 @@ return homeRequested(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,required TResult Function( GalleryExited value)  galleryExited,required TResult Function( ContactRequested value)  contactRequested,required TResult Function( GalleryRequested value)  galleryRequested,required TResult Function( HomeRequested value)  homeRequested,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,required TResult Function( GalleryExited value)  galleryExited,required TResult Function( ContactRequested value)  contactRequested,required TResult Function( GalleryRequested value)  galleryRequested,required TResult Function( HomeRequested value)  homeRequested,required TResult Function( FlagsChanged value)  flagsChanged,required TResult Function( MuteToggled value)  muteToggled,}){
 final _that = this;
 switch (_that) {
 case Initialize():
@@ -104,7 +106,9 @@ return boldTextCompleted(_that);case GalleryExited():
 return galleryExited(_that);case ContactRequested():
 return contactRequested(_that);case GalleryRequested():
 return galleryRequested(_that);case HomeRequested():
-return homeRequested(_that);case _:
+return homeRequested(_that);case FlagsChanged():
+return flagsChanged(_that);case MuteToggled():
+return muteToggled(_that);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -121,7 +125,7 @@ return homeRequested(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,TResult? Function( GalleryExited value)?  galleryExited,TResult? Function( ContactRequested value)?  contactRequested,TResult? Function( GalleryRequested value)?  galleryRequested,TResult? Function( HomeRequested value)?  homeRequested,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,TResult? Function( GalleryExited value)?  galleryExited,TResult? Function( ContactRequested value)?  contactRequested,TResult? Function( GalleryRequested value)?  galleryRequested,TResult? Function( HomeRequested value)?  homeRequested,TResult? Function( FlagsChanged value)?  flagsChanged,TResult? Function( MuteToggled value)?  muteToggled,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
@@ -136,7 +140,9 @@ return boldTextCompleted(_that);case GalleryExited() when galleryExited != null:
 return galleryExited(_that);case ContactRequested() when contactRequested != null:
 return contactRequested(_that);case GalleryRequested() when galleryRequested != null:
 return galleryRequested(_that);case HomeRequested() when homeRequested != null:
-return homeRequested(_that);case _:
+return homeRequested(_that);case FlagsChanged() when flagsChanged != null:
+return flagsChanged(_that);case MuteToggled() when muteToggled != null:
+return muteToggled(_that);case _:
   return null;
 
 }
@@ -153,7 +159,7 @@ return homeRequested(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,TResult Function()?  galleryExited,TResult Function()?  contactRequested,TResult Function()?  galleryRequested,TResult Function()?  homeRequested,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,TResult Function()?  galleryExited,TResult Function()?  contactRequested,TResult Function()?  galleryRequested,TResult Function()?  homeRequested,TResult Function( ButtonFlags flags)?  flagsChanged,TResult Function()?  muteToggled,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
@@ -167,7 +173,9 @@ return boldTextCompleted();case GalleryExited() when galleryExited != null:
 return galleryExited();case ContactRequested() when contactRequested != null:
 return contactRequested();case GalleryRequested() when galleryRequested != null:
 return galleryRequested();case HomeRequested() when homeRequested != null:
-return homeRequested();case _:
+return homeRequested();case FlagsChanged() when flagsChanged != null:
+return flagsChanged(_that.flags);case MuteToggled() when muteToggled != null:
+return muteToggled();case _:
   return orElse();
 
 }
@@ -185,7 +193,7 @@ return homeRequested();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,required TResult Function()  galleryExited,required TResult Function()  contactRequested,required TResult Function()  galleryRequested,required TResult Function()  homeRequested,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,required TResult Function()  galleryExited,required TResult Function()  contactRequested,required TResult Function()  galleryRequested,required TResult Function()  homeRequested,required TResult Function( ButtonFlags flags)  flagsChanged,required TResult Function()  muteToggled,}) {final _that = this;
 switch (_that) {
 case Initialize():
 return initialize();case LoadingProgressed():
@@ -199,7 +207,9 @@ return boldTextCompleted();case GalleryExited():
 return galleryExited();case ContactRequested():
 return contactRequested();case GalleryRequested():
 return galleryRequested();case HomeRequested():
-return homeRequested();case _:
+return homeRequested();case FlagsChanged():
+return flagsChanged(_that.flags);case MuteToggled():
+return muteToggled();case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -216,7 +226,7 @@ return homeRequested();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,TResult? Function()?  galleryExited,TResult? Function()?  contactRequested,TResult? Function()?  galleryRequested,TResult? Function()?  homeRequested,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,TResult? Function()?  galleryExited,TResult? Function()?  contactRequested,TResult? Function()?  galleryRequested,TResult? Function()?  homeRequested,TResult? Function( ButtonFlags flags)?  flagsChanged,TResult? Function()?  muteToggled,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
@@ -230,7 +240,9 @@ return boldTextCompleted();case GalleryExited() when galleryExited != null:
 return galleryExited();case ContactRequested() when contactRequested != null:
 return contactRequested();case GalleryRequested() when galleryRequested != null:
 return galleryRequested();case HomeRequested() when homeRequested != null:
-return homeRequested();case _:
+return homeRequested();case FlagsChanged() when flagsChanged != null:
+return flagsChanged(_that.flags);case MuteToggled() when muteToggled != null:
+return muteToggled();case _:
   return null;
 
 }
@@ -659,7 +671,78 @@ String toString() {
 
 
 /// @nodoc
-mixin _$SceneState {
+
+
+class FlagsChanged implements SceneEvent {
+  const FlagsChanged({required this.flags});
+  
+
+ final  ButtonFlags flags;
+
+/// Create a copy of SceneEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$FlagsChangedCopyWith<FlagsChanged> get copyWith => _$FlagsChangedCopyWithImpl<FlagsChanged>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is FlagsChanged&&(identical(other.flags, flags) || other.flags == flags));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,flags);
+
+@override
+String toString() {
+  return 'SceneEvent.flagsChanged(flags: $flags)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $FlagsChangedCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
+  factory $FlagsChangedCopyWith(FlagsChanged value, $Res Function(FlagsChanged) _then) = _$FlagsChangedCopyWithImpl;
+@useResult
+$Res call({
+ ButtonFlags flags
+});
+
+
+
+
+}
+/// @nodoc
+class _$FlagsChangedCopyWithImpl<$Res>
+    implements $FlagsChangedCopyWith<$Res> {
+  _$FlagsChangedCopyWithImpl(this._self, this._then);
+
+  final FlagsChanged _self;
+  final $Res Function(FlagsChanged) _then;
+
+/// Create a copy of SceneEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? flags = null,}) {
+  return _then(FlagsChanged(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class MuteToggled implements SceneEvent {
+  const MuteToggled();
+  
+
 
 
 
@@ -667,7 +750,7 @@ mixin _$SceneState {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is SceneState);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MuteToggled);
 }
 
 
@@ -676,15 +759,74 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'SceneState()';
+  return 'SceneEvent.muteToggled()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+mixin _$SceneState {
+
+ ButtonFlags get flags; bool get muted;
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$SceneStateCopyWith<SceneState> get copyWith => _$SceneStateCopyWithImpl<SceneState>(this as SceneState, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is SceneState&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,flags,muted);
+
+@override
+String toString() {
+  return 'SceneState(flags: $flags, muted: $muted)';
 }
 
 
 }
 
 /// @nodoc
-class $SceneStateCopyWith<$Res>  {
-$SceneStateCopyWith(SceneState _, $Res Function(SceneState) __);
+abstract mixin class $SceneStateCopyWith<$Res>  {
+  factory $SceneStateCopyWith(SceneState value, $Res Function(SceneState) _then) = _$SceneStateCopyWithImpl;
+@useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
+
+
+
+
+}
+/// @nodoc
+class _$SceneStateCopyWithImpl<$Res>
+    implements $SceneStateCopyWith<$Res> {
+  _$SceneStateCopyWithImpl(this._self, this._then);
+
+  final SceneState _self;
+  final $Res Function(SceneState) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') @override $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(_self.copyWith(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
 }
 
 
@@ -742,10 +884,7 @@ return titleLoading(_that);case Title():
 return title(_that);case Active():
 return active(_that);case Gallery():
 return gallery(_that);case Contact():
-return contact(_that);case _:
-  throw StateError('Unexpected subclass');
-
-}
+return contact(_that);}
 }
 /// A variant of `map` that fallback to returning `null`.
 ///
@@ -787,17 +926,17 @@ return contact(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress)?  loading,TResult Function( bool isInteractive)?  logo,TResult Function()?  logoOverlayRemoving,TResult Function()?  titleLoading,TResult Function()?  title,TResult Function( double uiOpacity,  bool isArrowVisible)?  active,TResult Function()?  gallery,TResult Function()?  contact,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult Function( bool isInteractive,  ButtonFlags flags,  bool muted)?  logo,TResult Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult Function( ButtonFlags flags,  bool muted)?  title,TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult Function( ButtonFlags flags,  bool muted)?  gallery,TResult Function( ButtonFlags flags,  bool muted)?  contact,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
-return loading(_that.progress);case Logo() when logo != null:
-return logo(_that.isInteractive);case LogoOverlayRemoving() when logoOverlayRemoving != null:
-return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
-return titleLoading();case Title() when title != null:
-return title();case Active() when active != null:
-return active(_that.uiOpacity,_that.isArrowVisible);case Gallery() when gallery != null:
-return gallery();case Contact() when contact != null:
-return contact();case _:
+return loading(_that.progress,_that.flags,_that.muted);case Logo() when logo != null:
+return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading() when titleLoading != null:
+return titleLoading(_that.flags,_that.muted);case Title() when title != null:
+return title(_that.flags,_that.muted);case Active() when active != null:
+return active(_that.uiOpacity,_that.isArrowVisible,_that.flags,_that.muted);case Gallery() when gallery != null:
+return gallery(_that.flags,_that.muted);case Contact() when contact != null:
+return contact(_that.flags,_that.muted);case _:
   return orElse();
 
 }
@@ -815,20 +954,17 @@ return contact();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress)  loading,required TResult Function( bool isInteractive)  logo,required TResult Function()  logoOverlayRemoving,required TResult Function()  titleLoading,required TResult Function()  title,required TResult Function( double uiOpacity,  bool isArrowVisible)  active,required TResult Function()  gallery,required TResult Function()  contact,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)  loading,required TResult Function( bool isInteractive,  ButtonFlags flags,  bool muted)  logo,required TResult Function( ButtonFlags flags,  bool muted)  logoOverlayRemoving,required TResult Function( ButtonFlags flags,  bool muted)  titleLoading,required TResult Function( ButtonFlags flags,  bool muted)  title,required TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)  active,required TResult Function( ButtonFlags flags,  bool muted)  gallery,required TResult Function( ButtonFlags flags,  bool muted)  contact,}) {final _that = this;
 switch (_that) {
 case Loading():
-return loading(_that.progress);case Logo():
-return logo(_that.isInteractive);case LogoOverlayRemoving():
-return logoOverlayRemoving();case TitleLoading():
-return titleLoading();case Title():
-return title();case Active():
-return active(_that.uiOpacity,_that.isArrowVisible);case Gallery():
-return gallery();case Contact():
-return contact();case _:
-  throw StateError('Unexpected subclass');
-
-}
+return loading(_that.progress,_that.flags,_that.muted);case Logo():
+return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving():
+return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading():
+return titleLoading(_that.flags,_that.muted);case Title():
+return title(_that.flags,_that.muted);case Active():
+return active(_that.uiOpacity,_that.isArrowVisible,_that.flags,_that.muted);case Gallery():
+return gallery(_that.flags,_that.muted);case Contact():
+return contact(_that.flags,_that.muted);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -842,17 +978,17 @@ return contact();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress)?  loading,TResult? Function( bool isInteractive)?  logo,TResult? Function()?  logoOverlayRemoving,TResult? Function()?  titleLoading,TResult? Function()?  title,TResult? Function( double uiOpacity,  bool isArrowVisible)?  active,TResult? Function()?  gallery,TResult? Function()?  contact,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult? Function( bool isInteractive,  ButtonFlags flags,  bool muted)?  logo,TResult? Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult? Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult? Function( ButtonFlags flags,  bool muted)?  title,TResult? Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult? Function( ButtonFlags flags,  bool muted)?  gallery,TResult? Function( ButtonFlags flags,  bool muted)?  contact,}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
-return loading(_that.progress);case Logo() when logo != null:
-return logo(_that.isInteractive);case LogoOverlayRemoving() when logoOverlayRemoving != null:
-return logoOverlayRemoving();case TitleLoading() when titleLoading != null:
-return titleLoading();case Title() when title != null:
-return title();case Active() when active != null:
-return active(_that.uiOpacity,_that.isArrowVisible);case Gallery() when gallery != null:
-return gallery();case Contact() when contact != null:
-return contact();case _:
+return loading(_that.progress,_that.flags,_that.muted);case Logo() when logo != null:
+return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading() when titleLoading != null:
+return titleLoading(_that.flags,_that.muted);case Title() when title != null:
+return title(_that.flags,_that.muted);case Active() when active != null:
+return active(_that.uiOpacity,_that.isArrowVisible,_that.flags,_that.muted);case Gallery() when gallery != null:
+return gallery(_that.flags,_that.muted);case Contact() when contact != null:
+return contact(_that.flags,_that.muted);case _:
   return null;
 
 }
@@ -864,14 +1000,16 @@ return contact();case _:
 
 
 class Loading extends SceneState {
-  const Loading({this.progress = LoadingProgress.empty}): super._();
+  const Loading({this.progress = LoadingProgress.empty, this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
 @JsonKey() final  LoadingProgress progress;
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $LoadingCopyWith<Loading> get copyWith => _$LoadingCopyWithImpl<Loading>(this, _$identity);
 
@@ -879,16 +1017,16 @@ $LoadingCopyWith<Loading> get copyWith => _$LoadingCopyWithImpl<Loading>(this, _
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Loading&&(identical(other.progress, progress) || other.progress == progress));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Loading&&(identical(other.progress, progress) || other.progress == progress)&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,progress);
+int get hashCode => Object.hash(runtimeType,progress,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.loading(progress: $progress)';
+  return 'SceneState.loading(progress: $progress, flags: $flags, muted: $muted)';
 }
 
 
@@ -897,9 +1035,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $LoadingCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
   factory $LoadingCopyWith(Loading value, $Res Function(Loading) _then) = _$LoadingCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- LoadingProgress progress
+ LoadingProgress progress, ButtonFlags flags, bool muted
 });
 
 
@@ -916,10 +1054,12 @@ class _$LoadingCopyWithImpl<$Res>
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? progress = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? progress = null,Object? flags = null,Object? muted = null,}) {
   return _then(Loading(
 progress: null == progress ? _self.progress : progress // ignore: cast_nullable_to_non_nullable
-as LoadingProgress,
+as LoadingProgress,flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -930,14 +1070,16 @@ as LoadingProgress,
 
 
 class Logo extends SceneState {
-  const Logo({this.isInteractive = false}): super._();
+  const Logo({this.isInteractive = false, this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
 @JsonKey() final  bool isInteractive;
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $LogoCopyWith<Logo> get copyWith => _$LogoCopyWithImpl<Logo>(this, _$identity);
 
@@ -945,16 +1087,16 @@ $LogoCopyWith<Logo> get copyWith => _$LogoCopyWithImpl<Logo>(this, _$identity);
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo&&(identical(other.isInteractive, isInteractive) || other.isInteractive == isInteractive));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo&&(identical(other.isInteractive, isInteractive) || other.isInteractive == isInteractive)&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isInteractive);
+int get hashCode => Object.hash(runtimeType,isInteractive,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.logo(isInteractive: $isInteractive)';
+  return 'SceneState.logo(isInteractive: $isInteractive, flags: $flags, muted: $muted)';
 }
 
 
@@ -963,9 +1105,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $LogoCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
   factory $LogoCopyWith(Logo value, $Res Function(Logo) _then) = _$LogoCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- bool isInteractive
+ bool isInteractive, ButtonFlags flags, bool muted
 });
 
 
@@ -982,9 +1124,11 @@ class _$LogoCopyWithImpl<$Res>
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? isInteractive = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isInteractive = null,Object? flags = null,Object? muted = null,}) {
   return _then(Logo(
 isInteractive: null == isInteractive ? _self.isInteractive : isInteractive // ignore: cast_nullable_to_non_nullable
+as bool,flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -996,111 +1140,221 @@ as bool,
 
 
 class LogoOverlayRemoving extends SceneState {
-  const LogoOverlayRemoving(): super._();
+  const LogoOverlayRemoving({this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$LogoOverlayRemovingCopyWith<LogoOverlayRemoving> get copyWith => _$LogoOverlayRemovingCopyWithImpl<LogoOverlayRemoving>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoOverlayRemoving);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoOverlayRemoving&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.logoOverlayRemoving()';
+  return 'SceneState.logoOverlayRemoving(flags: $flags, muted: $muted)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $LogoOverlayRemovingCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $LogoOverlayRemovingCopyWith(LogoOverlayRemoving value, $Res Function(LogoOverlayRemoving) _then) = _$LogoOverlayRemovingCopyWithImpl;
+@override @useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
 
 
+
+
+}
+/// @nodoc
+class _$LogoOverlayRemovingCopyWithImpl<$Res>
+    implements $LogoOverlayRemovingCopyWith<$Res> {
+  _$LogoOverlayRemovingCopyWithImpl(this._self, this._then);
+
+  final LogoOverlayRemoving _self;
+  final $Res Function(LogoOverlayRemoving) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(LogoOverlayRemoving(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
 class TitleLoading extends SceneState {
-  const TitleLoading(): super._();
+  const TitleLoading({this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TitleLoadingCopyWith<TitleLoading> get copyWith => _$TitleLoadingCopyWithImpl<TitleLoading>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is TitleLoading);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is TitleLoading&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.titleLoading()';
+  return 'SceneState.titleLoading(flags: $flags, muted: $muted)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $TitleLoadingCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $TitleLoadingCopyWith(TitleLoading value, $Res Function(TitleLoading) _then) = _$TitleLoadingCopyWithImpl;
+@override @useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
 
 
+
+
+}
+/// @nodoc
+class _$TitleLoadingCopyWithImpl<$Res>
+    implements $TitleLoadingCopyWith<$Res> {
+  _$TitleLoadingCopyWithImpl(this._self, this._then);
+
+  final TitleLoading _self;
+  final $Res Function(TitleLoading) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(TitleLoading(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
 class Title extends SceneState {
-  const Title(): super._();
+  const Title({this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TitleCopyWith<Title> get copyWith => _$TitleCopyWithImpl<Title>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Title);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Title&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.title()';
+  return 'SceneState.title(flags: $flags, muted: $muted)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $TitleCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $TitleCopyWith(Title value, $Res Function(Title) _then) = _$TitleCopyWithImpl;
+@override @useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
 
 
+
+
+}
+/// @nodoc
+class _$TitleCopyWithImpl<$Res>
+    implements $TitleCopyWith<$Res> {
+  _$TitleCopyWithImpl(this._self, this._then);
+
+  final Title _self;
+  final $Res Function(Title) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(Title(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
 class Active extends SceneState {
-  const Active({this.uiOpacity = 1.0, this.isArrowVisible = true}): super._();
+  const Active({this.uiOpacity = 1.0, this.isArrowVisible = true, this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
 @JsonKey() final  double uiOpacity;
 @JsonKey() final  bool isArrowVisible;
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@JsonKey(includeFromJson: false, includeToJson: false)
+@override @JsonKey(includeFromJson: false, includeToJson: false)
 @pragma('vm:prefer-inline')
 $ActiveCopyWith<Active> get copyWith => _$ActiveCopyWithImpl<Active>(this, _$identity);
 
@@ -1108,16 +1362,16 @@ $ActiveCopyWith<Active> get copyWith => _$ActiveCopyWithImpl<Active>(this, _$ide
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Active&&(identical(other.uiOpacity, uiOpacity) || other.uiOpacity == uiOpacity)&&(identical(other.isArrowVisible, isArrowVisible) || other.isArrowVisible == isArrowVisible));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Active&&(identical(other.uiOpacity, uiOpacity) || other.uiOpacity == uiOpacity)&&(identical(other.isArrowVisible, isArrowVisible) || other.isArrowVisible == isArrowVisible)&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,uiOpacity,isArrowVisible);
+int get hashCode => Object.hash(runtimeType,uiOpacity,isArrowVisible,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.active(uiOpacity: $uiOpacity, isArrowVisible: $isArrowVisible)';
+  return 'SceneState.active(uiOpacity: $uiOpacity, isArrowVisible: $isArrowVisible, flags: $flags, muted: $muted)';
 }
 
 
@@ -1126,9 +1380,9 @@ String toString() {
 /// @nodoc
 abstract mixin class $ActiveCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
   factory $ActiveCopyWith(Active value, $Res Function(Active) _then) = _$ActiveCopyWithImpl;
-@useResult
+@override @useResult
 $Res call({
- double uiOpacity, bool isArrowVisible
+ double uiOpacity, bool isArrowVisible, ButtonFlags flags, bool muted
 });
 
 
@@ -1145,10 +1399,12 @@ class _$ActiveCopyWithImpl<$Res>
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') $Res call({Object? uiOpacity = null,Object? isArrowVisible = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? uiOpacity = null,Object? isArrowVisible = null,Object? flags = null,Object? muted = null,}) {
   return _then(Active(
 uiOpacity: null == uiOpacity ? _self.uiOpacity : uiOpacity // ignore: cast_nullable_to_non_nullable
 as double,isArrowVisible: null == isArrowVisible ? _self.isArrowVisible : isArrowVisible // ignore: cast_nullable_to_non_nullable
+as bool,flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -1160,64 +1416,136 @@ as bool,
 
 
 class Gallery extends SceneState {
-  const Gallery(): super._();
+  const Gallery({this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$GalleryCopyWith<Gallery> get copyWith => _$GalleryCopyWithImpl<Gallery>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Gallery);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Gallery&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.gallery()';
+  return 'SceneState.gallery(flags: $flags, muted: $muted)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $GalleryCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $GalleryCopyWith(Gallery value, $Res Function(Gallery) _then) = _$GalleryCopyWithImpl;
+@override @useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
 
 
+
+
+}
+/// @nodoc
+class _$GalleryCopyWithImpl<$Res>
+    implements $GalleryCopyWith<$Res> {
+  _$GalleryCopyWithImpl(this._self, this._then);
+
+  final Gallery _self;
+  final $Res Function(Gallery) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(Gallery(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 /// @nodoc
 
 
 class Contact extends SceneState {
-  const Contact(): super._();
+  const Contact({this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
+@override@JsonKey() final  ButtonFlags flags;
+@override@JsonKey() final  bool muted;
 
-
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$ContactCopyWith<Contact> get copyWith => _$ContactCopyWithImpl<Contact>(this, _$identity);
 
 
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Contact);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Contact&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => runtimeType.hashCode;
+int get hashCode => Object.hash(runtimeType,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.contact()';
+  return 'SceneState.contact(flags: $flags, muted: $muted)';
 }
 
 
 }
 
+/// @nodoc
+abstract mixin class $ContactCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
+  factory $ContactCopyWith(Contact value, $Res Function(Contact) _then) = _$ContactCopyWithImpl;
+@override @useResult
+$Res call({
+ ButtonFlags flags, bool muted
+});
 
 
+
+
+}
+/// @nodoc
+class _$ContactCopyWithImpl<$Res>
+    implements $ContactCopyWith<$Res> {
+  _$ContactCopyWithImpl(this._self, this._then);
+
+  final Contact _self;
+  final $Res Function(Contact) _then;
+
+/// Create a copy of SceneState
+/// with the given fields replaced by the non-null parameter values.
+@override @pragma('vm:prefer-inline') $Res call({Object? flags = null,Object? muted = null,}) {
+  return _then(Contact(
+flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
+as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
 
 // dart format on
