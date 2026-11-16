@@ -48,11 +48,6 @@ abstract class AppStrings {
   String get recommendDone;
   String get recommendClose;
 
-  /// The control that opens the focused work's link, and what it is called
-  /// to someone who cannot see it.
-  String get galleryOpen;
-  String galleryOpenLabel(String title);
-
   /// A button drawn on a card: its word and the arrow that says it acts.
   String cardButton(String word);
   String get letsConnect;
@@ -175,12 +170,6 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get recommendClose => 'Done';
-
-  @override
-  String get galleryOpen => 'open';
-
-  @override
-  String galleryOpenLabel(String title) => 'Open $title';
 
   @override
   String cardButton(String word) => '$word  →';
