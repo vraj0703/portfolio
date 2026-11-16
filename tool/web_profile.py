@@ -137,9 +137,40 @@ async def scenario_gallery_walk(cdp):
     await asyncio.sleep(2)
 
 
-SCENARIOS = {"flame-scroll": scenario_flame_scroll, "gallery-walk": scenario_gallery_walk}
+async def phase(cdp, name):
+    """A `performance.mark` in the page, so the trace says which part of the journey a stall
+    belongs to (`stalls` reads them back)."""
+    await cdp("Runtime.evaluate", expression=f"performance.mark('journey:{name}')")
+
+
+async def scenario_journey(cdp):
+    """The rest of the whole journey, after load, logo and title (traced from navigation, see
+    TRACE_FROM_LOAD): the touch scroll from the title into the gallery, a walk down the
+    corridor, and focusing the first frame on the left."""
+    await phase(cdp, "scroll")
+    for _ in range(8):
+        await touch_swipe(cdp, W / 2, H * 0.75, H * 0.25)
+        await asyncio.sleep(0.5)
+    await asyncio.sleep(4)
+    await phase(cdp, "corridor")
+    for _ in range(2):
+        await touch_swipe(cdp, W / 2, H * 0.6, H * 0.5)
+        await asyncio.sleep(1)
+    await asyncio.sleep(2)
+    await phase(cdp, "focus")
+    await touch_tap(cdp, W * 0.04, H * 0.49)
+    await asyncio.sleep(4)
+    await phase(cdp, "end")
+
+
+SCENARIOS = {"flame-scroll": scenario_flame_scroll, "gallery-walk": scenario_gallery_walk,
+             "journey": scenario_journey}
 # Steps of a scenario that happen before the trace starts (setup, untraced).
 UNTRACED_PREFIX = {"gallery-walk": scenario_flame_scroll}
+# Scenarios traced from navigation: loading, the logo and the title's entrance are in the trace.
+# The logo is still found by sampling the screen's colour (a screenshot a second), which costs
+# a little and shows in the trace as Page.captureScreenshot work.
+TRACE_FROM_LOAD = {"journey"}
 
 
 async def record_one(url, scenario, path, remote=None):
@@ -195,7 +226,14 @@ async def record_one(url, scenario, path, remote=None):
                           deviceScaleFactor=DPR, mobile=True)
                 await cdp("Emulation.setUserAgentOverride", userAgent=UA, platform="Android")
                 await cdp("Emulation.setTouchEmulationEnabled", enabled=True, maxTouchPoints=5)
+            from_load = scenario in TRACE_FROM_LOAD
+            if from_load:
+                await cdp("Tracing.start", categories=CATEGORIES, transferMode="ReturnAsStream",
+                          options="sampling-frequency=10000")
             await cdp("Page.navigate", url=url)
+            if from_load:
+                await asyncio.sleep(0.5)
+                await phase(cdp, "load")
 
             # The logo screen: its tan ground. Then tap in until the screen leaves it.
             t0 = time.monotonic()
@@ -206,12 +244,16 @@ async def record_one(url, scenario, path, remote=None):
                 await asyncio.sleep(1)
             else:
                 raise TimeoutError("logo screen never showed")
+            if from_load:
+                await phase(cdp, "logo")
             for _ in range(30):
                 await touch_tap(cdp, W / 2, H * 0.89)
                 await asyncio.sleep(1.5)
                 r, g, b = await mean_colour(cdp)
                 if r < 140:
                     break
+            if from_load:
+                await phase(cdp, "title")
             await asyncio.sleep(12)  # the title's entrance, at 4x CPU
 
             if scenario in UNTRACED_PREFIX:
@@ -221,8 +263,9 @@ async def record_one(url, scenario, path, remote=None):
             else:
                 body = SCENARIOS[scenario]
 
-            await cdp("Tracing.start", categories=CATEGORIES, transferMode="ReturnAsStream",
-                      options="sampling-frequency=10000")
+            if not from_load:
+                await cdp("Tracing.start", categories=CATEGORIES, transferMode="ReturnAsStream",
+                          options="sampling-frequency=10000")
             await body(cdp)
             await cdp("Tracing.end")
             done = await cdp.wait_event("Tracing.tracingComplete", timeout=180)
@@ -390,6 +433,68 @@ def summarise(events):
     }
 
 
+def stalls(events, over_ms=100):
+    """Every main-thread task longer than `over_ms`: when (s from the trace's start), which part
+    of the journey (the last `journey:` mark before it), how long, and what ran in it (top self
+    time from the sampling profiler inside its window). The list item 7 of a phone round asks for."""
+    names = {}
+    for e in events:
+        if e.get("ph") == "M" and e.get("name") == "thread_name":
+            names[(e["pid"], e["tid"])] = e["args"]["name"]
+    busy = Counter()
+    for e in events:
+        if e.get("ph") == "X" and names.get((e.get("pid"), e.get("tid"))) == "CrRendererMain"                 and e.get("name") in ("RunTask", "ThreadControllerImpl::RunTask"):
+            busy[(e["pid"], e["tid"])] += e.get("dur", 0)
+    if not busy:
+        return []
+    mt = busy.most_common(1)[0][0]
+    t_start = min(e["ts"] for e in events if e.get("ts"))
+    marks = sorted((e["ts"], e["name"].split(":", 1)[1]) for e in events
+                   if str(e.get("name", "")).startswith("journey:") and e.get("ts"))
+
+    # Sample timestamps: each Profile's startTime plus the running sum of its chunks' deltas.
+    starts = {e.get("id"): e["args"]["data"].get("startTime") for e in events
+              if e.get("name") == "Profile" and e.get("pid") == mt[0]}
+    clock, nodes, samples = {}, {}, []
+    for e in sorted((e for e in events if e.get("name") == "ProfileChunk" and e.get("pid") == mt[0]),
+                    key=lambda e: e["ts"]):
+        pid_ = e.get("id")
+        cp = e["args"]["data"].get("cpuProfile", {})
+        for n in cp.get("nodes", []):
+            nodes[(pid_, n["id"])] = n.get("callFrame", {}).get("functionName") or "(anonymous)"
+        t = clock.get(pid_, starts.get(pid_) or e["ts"])
+        for sid, dt in zip(cp.get("samples", []), e["args"]["data"].get("timeDeltas", [])):
+            t += dt
+            samples.append((t, nodes.get((pid_, sid), f"#{sid}"), max(dt, 0)))
+        clock[pid_] = t
+    samples.sort()
+
+    out, end = [], -1
+    tasks_ = sorted((e for e in events if (e.get("pid"), e.get("tid")) == mt and e.get("ph") == "X"
+                     and e.get("name") in ("RunTask", "ThreadControllerImpl::RunTask")),
+                    key=lambda e: (e["ts"], -e.get("dur", 0)))
+    for e in tasks_:
+        # Chrome emits both names for one task, one nested in the other: count it once.
+        if e["ts"] < end:
+            continue
+        end = e["ts"] + e.get("dur", 0)
+        dur = e.get("dur", 0) / 1000
+        if dur <= over_ms:
+            continue
+        a, b = e["ts"], e["ts"] + e["dur"]
+        where = "before marks"
+        for ts, name in marks:
+            if ts <= a:
+                where = name
+        inside = Counter()
+        for t, name, us in samples:
+            if a <= t <= b:
+                inside[name] += us
+        top = [(n, round(us / 1000)) for n, us in inside.most_common(4) if n not in ("(program)",)][:3]
+        out.append({"at_s": round((a - t_start) / 1e6, 2), "phase": where, "ms": round(dur), "top": top})
+    return sorted(out, key=lambda r: r["at_s"])
+
+
 def spread(rows, key):
     vals = [k for k in (key(r) for r in rows) if k is not None]
     if not vals:
@@ -431,7 +536,16 @@ def main():
                         "localabstract:chrome_devtools_remote); no emulation, no throttling")
     rd = sub.add_parser("read")
     rd.add_argument("traces", nargs="+")
+    st = sub.add_parser("stalls", help="every main-thread task over --over ms, with its cause")
+    st.add_argument("trace")
+    st.add_argument("--over", type=float, default=100)
     a = ap.parse_args()
+
+    if a.cmd == "stalls":
+        for r in stalls(load_events(a.trace), a.over):
+            top = ", ".join(f"{n} {ms}" for n, ms in r["top"])
+            print(f"{r['at_s']:7.2f} s  {r['phase']:<9} {r['ms']:5d} ms  {top}")
+        return
 
     if a.cmd == "record":
         os.makedirs(a.out, exist_ok=True)
