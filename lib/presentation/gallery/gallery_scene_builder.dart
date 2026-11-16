@@ -144,6 +144,11 @@ class GalleryScene {
     await _report(onProgress, _shaderShare);
 
     final scene = Scene()
+      // MSAA or FXAA by the screen ([GalleryShape.multisample]): a phone
+      // skips the full-resolution multisampled target.
+      ..antiAliasingMode = shape.multisample
+          ? AntiAliasingMode.auto
+          : AntiAliasingMode.fxaa
       // Replaces the engine's default studio environment. That default is
       // built to flatter a product on a turntable; this is a dim room, and
       // what it needs from its ambient term is the original's flat warm wash,
