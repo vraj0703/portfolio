@@ -27,7 +27,6 @@ import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
@@ -390,19 +389,6 @@ class _GalleryViewState extends State<GalleryView> {
     await _gallery?.testimonials.show(words);
   }
 
-  /// Opens [frame]'s own link, or null when it has none to open.
-  ///
-  /// The same sound as the two signs on the walls: it puts the room away and
-  /// opens something else, which is more than a click can say.
-  VoidCallback? _openFor(Placement? frame) {
-    final project = frame?.project;
-    if (project == null || !project.hasLink) return null;
-    return () {
-      _sound(AudioCue.pageTurn);
-      unawaited(locate<ContactLinks>().open(Uri.parse(project.url)));
-    };
-  }
-
   /// Acts on one of the three controls, whichever way it was pressed.
   ///
   /// The 3D icons on the wall and the 2D fallback both come through here, so
@@ -541,20 +527,10 @@ class _GalleryViewState extends State<GalleryView> {
     // get rid of you.
     if (hit == null) return;
 
-    // On the frame already in focus, the link drawn on its card opens the
-    // work. Only there: down the corridor the link is a few pixels wide, and
-    // the first press on a frame is a request to look at it.
-    final open = _openFor(hit);
-    if (open != null && _isFocused(hit) && _onLink(hit, at, camera)) {
-      open();
-      return;
-    }
 
     _sound(AudioCue.click);
     _focus(hit);
   }
-
-  bool _isFocused(Placement frame) => _focused?.position == frame.position;
 
   /// Whether [at] falls on the button drawn on [frame], if [frame] is the
   /// one that carries it (the invitation, frame 1).
@@ -601,22 +577,7 @@ class _GalleryViewState extends State<GalleryView> {
     return Size(baked, (baked * ratio).roundToDouble());
   }
 
-  /// Whether [at] falls on the link drawn on [frame]'s card.
-  ///
-  /// The frame's screen rectangle gives where the press landed on the frame;
-  /// the moulding is taken off each side to give where it landed on the
-  /// card; and the card says where its link is, at the size it was baked.
-  bool _onLink(Placement frame, Offset at, PerspectiveCamera camera) {
-    final project = frame.project;
-    if (project == null || _gallery == null) return false;
-    final onCard = _onCard(frame, at, camera);
-    if (onCard == null) return false;
-    final region = FrameCard.linkRegion(_bakedCard(frame), project: project);
-    return region != null && region.contains(onCard);
-  }
-
-  /// Enter on a focused frame opens its link, as pressing the link does; on
-  /// the testimonial wall it opens the form, as frame 1's button does.
+  /// Enter on the testimonial wall opens the form, as frame 1's button does.
   KeyEventResult _onKey(FocusNode node, KeyEvent event) {
     if (event is! KeyDownEvent) return KeyEventResult.ignored;
     if (event.logicalKey != LogicalKeyboardKey.enter &&
@@ -630,11 +591,7 @@ class _GalleryViewState extends State<GalleryView> {
       return KeyEventResult.handled;
     }
 
-    final focused = _focused;
-    final open = focused == null ? null : _openFor(focused);
-    if (open == null) return KeyEventResult.ignored;
-    open();
-    return KeyEventResult.handled;
+    return KeyEventResult.ignored;
   }
 
   /// Whether the visitor has arrived at the board, close enough that the

@@ -115,9 +115,7 @@ abstract class AppColors {
   Color get frameCardLinkFill;
   Color get frameCardTagEdge;
 
-  /// The room's own warm pair, which a card's gradient can be toned toward
-  /// (`FRAME_TONE=warm`) so the seven cards sit in the marble and walnut
-  /// rather than in their own colours. An alternative for Vishal to judge.
+  /// The room's own warm pair: the ground of the far wall's cards.
   Color get frameCardWarmTop;
   Color get frameCardWarmBottom;
 }

@@ -11,7 +11,7 @@ import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/gallery/gpu_upload.dart';
 import 'package:vector_math/vector_math.dart';
 
-/// A testimonial frame's card, baked once like a project's [FrameCard].
+/// A testimonial frame's card, baked once.
 ///
 /// On the room's own walnut rather than a project gradient: these frames hold
 /// other people's words, not Vishal's work, and the wall reads as one thing.

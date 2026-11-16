@@ -6,7 +6,6 @@ import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/presentation/gallery/build_yield.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
-import 'package:portfolio/presentation/gallery/frame_card.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
@@ -713,26 +712,6 @@ class GalleryScene {
       if (slot == TestimonialWall.pendingSlot) {
         testimonials.attach(node, material, card, width: width, height: height);
       }
-      await BuildYield.frame();
-      return;
-    }
-
-    if (FrameCard.paints(piece.project)) {
-      final image = await BuildTiming.span(BuildPhase.bake, () => FrameCard.render(
-        project: piece.project!,
-        width: artworkSize,
-        height: (artworkSize * cardHeight / cardWidth).round(),
-      ));
-      images.add(image);
-      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
-      textures.add(texture);
-
-      scene.add(
-        Node(
-          mesh: Mesh(cardShape, UnlitMaterial(colorTexture: texture)),
-          localTransform: card,
-        ),
-      );
       await BuildYield.frame();
       return;
     }
