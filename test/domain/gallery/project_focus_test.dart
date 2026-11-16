@@ -17,7 +17,6 @@ void main() {
   // which are narrower than 9:16 and are where the camera used to end up
   // behind the far wall.
   const aspects = <double>[16 / 9, 9 / 16, 21 / 9, 9 / 19.5, 9 / 20];
-  const phones = <double>[9 / 19.5, 9 / 20];
 
   group('framing a piece of work', () {
     test('the camera stands in the corridor, not inside the wall', () {
@@ -164,22 +163,34 @@ void main() {
     });
   });
 
-  test('on a phone the whole card is in the shot, side to side', () {
-    // Fitting the card rather than the moulding is what keeps the camera in
-    // the corridor at 19.5:9; it must not trade that for a cropped card.
-    for (final aspect in phones) {
+  test('a focused frame fits the screen whole, controls clear, at four aspects', () {
+    // A portrait phone, a tablet each way, and a laptop: the whole frame,
+    // moulding included, side to side; the frame and the three controls
+    // under it top to bottom; and the camera inside the corridor.
+    const screens = <String, double>{
+      'phone 390x844': 390 / 844,
+      'tablet 768x1024': 768 / 1024,
+      'tablet 1024x768': 1024 / 768,
+      'desktop 1280x800': 1280 / 800,
+    };
+    for (final MapEntry(key: name, value: aspect) in screens.entries) {
       for (final frame in frames) {
         final pose = ProjectFocus.poseFor(frame, aspect: aspect);
         final distance = (pose.position.x - frame.position.x).abs();
-        final halfV = math.tan(GalleryDimensions.fovRadians / 2);
-        final halfWidth = distance * halfV * aspect;
+        final halfV = distance * math.tan(GalleryDimensions.fovRadians / 2);
+        final halfH = halfV * aspect;
 
-        expect(
-          halfWidth * 2,
-          greaterThanOrEqualTo(ProjectFocus.cardWidth),
-          reason: 'at aspect $aspect the card is cropped at the sides',
-        );
-        expect(ProjectFocus.fitsInside(pose), isTrue);
+        expect(halfH * 2, greaterThanOrEqualTo(GalleryLayout.frameWidth),
+            reason: '$name: the frame is cropped at the sides');
+        final top = frame.position.y + GalleryDimensions.frameMaxHeight / 2;
+        final foot = frame.position.y -
+            GalleryDimensions.frameMaxHeight / 2 -
+            ProjectFocus.reachBelow;
+        expect(pose.target.y + halfV, greaterThanOrEqualTo(top),
+            reason: '$name: the frame is cut at the top');
+        expect(pose.target.y - halfV, lessThanOrEqualTo(foot),
+            reason: '$name: the controls are cut off below');
+        expect(ProjectFocus.fitsInside(pose), isTrue, reason: name);
       }
     }
   });

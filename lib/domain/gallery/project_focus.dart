@@ -46,18 +46,16 @@ abstract final class ProjectFocus {
   /// the work by standing inside the frame shows nothing at all.
   static const double minimumStandoff = 1.2;
 
-  /// Breathing room on a portrait screen, where the fit is the card's width.
+  /// Breathing room on a portrait screen, where the fit is the width.
   ///
   /// On a phone the shot is governed by width, and fitting the whole frame
   /// with [margin] around it took eight metres at 19.5:9 — wider than the
   /// corridor, so the camera stood behind the far wall and showed the back
-  /// of a moulding. A portrait screen fits the card instead, edge to edge
-  /// with a sliver either side: the moulding is cropped, the work is not.
+  /// of a moulding. A portrait screen fits the whole frame, moulding and
+  /// all, with a sliver either side instead: about 7.1 m at 19.5:9 and 7.3 m
+  /// at 20:9, inside the corridor.
   static const double portraitMargin = 1.04;
 
-  /// The card inside the moulding, which is what has to be read.
-  static double get cardWidth =>
-      GalleryLayout.frameWidth - GalleryLayout.frameBorder * 2;
 
   /// Distance needed to fit [width] by [height] at [aspect].
   ///
@@ -98,7 +96,7 @@ abstract final class ProjectFocus {
   static FocusPose poseFor(Placement frame, {required double aspect}) {
     final portrait = aspect < 1;
     final distance = distanceFor(
-      width: portrait ? cardWidth : GalleryLayout.frameWidth,
+      width: GalleryLayout.frameWidth,
       height: GalleryDimensions.frameMaxHeight + reachBelow,
       aspect: aspect,
       room: portrait ? portraitMargin : margin,
