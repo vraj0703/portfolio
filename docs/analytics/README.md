@@ -22,7 +22,8 @@ Fifteen events, no more. Anything else is a property on one of them, or is not c
 ## The events
 
 Names are `object_verb`, lower snake case. Every event carries, without being asked: scene, viewport size,
-device class (`phone` / `tablet` / `desktop`), and whether this browser has been here before.
+device class (`phone` / `tablet` / `desktop`), and `visit_number`: how many times this browser has opened the
+site (1 on a first visit).
 
 ### Loading (question 1)
 
@@ -126,14 +127,22 @@ matters (`&utm_campaign=<company>`). This is the cheapest and most reliable "who
 | Surveys | later | a one-question survey could ask recruiters what they were looking for |
 | Self-driving | later | priced per use; worth it once there is traffic to read |
 
-## Identity and privacy (Vishal's decision; the default below is the cautious one)
+## Identity and privacy (Vishal's decision, 2026-11-16: return visits)
 
-- **Default: no cookies and nothing stored** (PostHog's cookieless mode). No consent banner is needed. The cost:
-  a visitor who returns on another day counts as a new one, so "came back three times" cannot be seen.
-- **Alternative:** a stored anonymous id. Return visits and multi-day journeys become visible, which matters for
-  recruiters who come back; it needs a short notice and, for visitors from the EU, consent.
-- Either way the site needs one honest paragraph saying what is collected. `web/privacy-policy.html` is
-  Jotter's policy, not the site's, and must not be edited to cover this.
+- **A stored anonymous id, no cookie.** PostHog keeps its anonymous id in the browser's localStorage
+  (`persistence: 'localStorage'`), so a visitor who returns is the same visitor and "came back three times" can
+  be seen; recruiters who come back are the case that matters. Nothing else identifies them: no names, no
+  emails, no person profiles (`person_profiles: 'never'`).
+- **`visit_number` on every event:** a counter kept beside the id in localStorage (`portfolio_visit_number`),
+  raised once per page load and registered with PostHog as a super property. A first visit is 1; storage the
+  browser refuses (a private window) counts as 1 and breaks nothing.
+- **Do Not Track and Global Privacy Control are honoured:** when the browser sends either, the SDK is not
+  started at all, so nothing is loaded, stored or sent, and every flag keeps its compiled default.
+  (`respect_dnt: true` is set as well; PostHog's own check covers Do Not Track only.)
+- **The honest paragraph** is on the plain page, `web/static/index.html` ("What this site measures"): what is
+  collected, that an anonymous id and a visit count are stored, and that the signals above switch it off.
+  `web/privacy-policy.html` is Jotter's policy, not the site's, and is not edited.
+- Cookieless mode, the earlier default, is no longer used: it could not see a return visit.
 - The project token is public by nature but is not committed: it reaches the build as
   `--dart-define=POSTHOG_TOKEN=…` from a repository secret. With no token every call is a no-op and the
   site behaves exactly as today.

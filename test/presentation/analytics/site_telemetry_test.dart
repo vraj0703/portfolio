@@ -268,6 +268,34 @@ void main() {
     });
   });
 
+  group('return visits (stored anonymous id)', () {
+    test('visit_number counts up from what was stored', () {
+      expect(VisitCounter.next(null), 1, reason: 'a first visit');
+      expect(VisitCounter.next('1'), 2);
+      expect(VisitCounter.next('41'), 42);
+    });
+
+    test('unreadable storage is a first visit, not an error', () {
+      expect(VisitCounter.next('not a number'), 1);
+      expect(VisitCounter.next('-3'), 1);
+    });
+  });
+
+  group('the browser privacy signals switch it all off', () {
+    test('Do Not Track or Global Privacy Control declines', () {
+      expect(PrivacySignals.decline(doNotTrack: '1'), isTrue);
+      expect(PrivacySignals.decline(doNotTrack: 'yes'), isTrue);
+      expect(PrivacySignals.decline(globalPrivacyControl: true), isTrue);
+    });
+
+    test('neither, or a refusal of them, does not', () {
+      expect(PrivacySignals.decline(), isFalse);
+      expect(PrivacySignals.decline(doNotTrack: '0'), isFalse);
+      expect(PrivacySignals.decline(doNotTrack: 'unspecified'), isFalse);
+      expect(PrivacySignals.decline(globalPrivacyControl: false), isFalse);
+    });
+  });
+
   test('a copied testimonial is measured by its length, never its text', () {
     events.testimonialTextCopied(TextLength.of('x' * 600));
     final props = sink.sent.single.$2;

@@ -12,7 +12,8 @@ import 'package:web/web.dart' as web;
 /// Nothing is fetched until [start], which the app calls after its first
 /// frame; the snippet only defines `window.posthog` until then. Options are
 /// the ones PostHog documents for posthog-js (checked 2026-11-15 against
-/// posthog.com/docs/libraries/js/config): cookieless, no autocapture, no
+/// posthog.com/docs/libraries/js/config, re-checked 2026-11-16): an
+/// anonymous id in localStorage and no cookie, no autocapture, no
 /// automatic page views (one per scene is sent instead), no recordings,
 /// exceptions captured.
 class PostHogAnalytics implements Analytics {
@@ -24,6 +25,22 @@ class PostHogAnalytics implements Analytics {
   final ChangeNotifier _flags = ChangeNotifier();
   bool _started = false;
 
+  /// The browser declined tracking; nothing is ever sent.
+  bool _declined = false;
+
+  /// Counts this visit in localStorage. Storage can be refused (a private
+  /// window, blocked site data): then it is visit 1, and nothing breaks.
+  int _nextVisit() {
+    try {
+      final storage = web.window.localStorage;
+      final n = VisitCounter.next(storage.getItem(VisitCounter.key));
+      storage.setItem(VisitCounter.key, '$n');
+      return n;
+    } catch (_) {
+      return 1;
+    }
+  }
+
   /// Calls made before [start]. The snippet's stub only grows its methods
   /// when init runs, so until then the calls wait here, in order, and are
   /// replayed straight after it.
@@ -31,7 +48,7 @@ class PostHogAnalytics implements Analytics {
 
   void _call(void Function(JSObject) call) {
     final ph = _ph;
-    if (ph == null || token.isEmpty) return;
+    if (ph == null || token.isEmpty || _declined) return;
     if (_started) {
       call(ph);
     } else if (_pending.length < 200) {
@@ -45,7 +62,24 @@ class PostHogAnalytics implements Analytics {
   /// waits on it.
   void start() {
     final ph = _ph;
-    if (_started || ph == null || token.isEmpty) return;
+    if (_started || _declined || ph == null || token.isEmpty) return;
+    // The browser has asked not to be tracked: nothing loads, nothing is
+    // stored, nothing is sent, and every flag keeps its default.
+    final navigator = web.window.navigator;
+    final dnt = navigator.getProperty<JSAny?>('doNotTrack'.toJS);
+    final gpc = navigator.getProperty<JSAny?>('globalPrivacyControl'.toJS);
+    if (PrivacySignals.decline(
+      doNotTrack: dnt != null && dnt.isA<JSString>()
+          ? (dnt as JSString).toDart
+          : null,
+      globalPrivacyControl: gpc != null && gpc.isA<JSBoolean>()
+          ? (gpc as JSBoolean).toDart
+          : null,
+    )) {
+      _declined = true;
+      _pending.clear();
+      return;
+    }
     _started = true;
     ph.callMethod<JSAny?>(
       'init'.toJS,
@@ -53,9 +87,13 @@ class PostHogAnalytics implements Analytics {
       <String, Object?>{
         'api_host': host,
         'defaults': '2026-08-30',
-        // Nothing stored, no cookies, no banner (the plan's default). The
-        // project setting must be switched on too, or PostHog drops these.
-        'cookieless_mode': 'always',
+        // An anonymous id in localStorage, and no cookie (Vishal's
+        // decision, 2026-11-16), so a return visit is the same visitor.
+        'persistence': 'localStorage',
+        // Belt and braces: the app already stays out when Do Not Track or
+        // Global Privacy Control is on (see [start]); PostHog's own check
+        // covers Do Not Track only.
+        'respect_dnt': true,
         'autocapture': false,
         'capture_pageview': false,
         'capture_pageleave': false,
@@ -72,6 +110,12 @@ class PostHogAnalytics implements Analytics {
         // ignore: invalid_use_of_protected_member, invalid_use_of_visible_for_testing_member
         _flags.notifyListeners();
       }).toJS,
+    );
+    // This visit's number, beside the anonymous id, on every event from
+    // here on (a super property), the queued ones included.
+    ph.callMethod<JSAny?>(
+      'register'.toJS,
+      <String, Object?>{'visit_number': _nextVisit()}.jsify(),
     );
     for (final call in _pending) {
       call(ph);

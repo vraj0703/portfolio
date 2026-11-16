@@ -150,6 +150,8 @@
 
     /* Skills */
     .skills { margin-bottom: 48px; }
+    .privacy { margin-bottom: 48px; }
+    .privacy p { color: var(--text-secondary); font-size: 0.95rem; line-height: 1.6; max-width: 68ch; }
     .skill-tags { display: flex; gap: 8px; flex-wrap: wrap; }
     .skill-tags span {
       font-size: 0.75rem;
@@ -311,6 +313,17 @@
         <span>GSAP</span>
         <span>BLoC</span>
       </div>
+    </section>
+
+    <!-- What the site measures (docs/analytics/README.md) -->
+    <section class="privacy">
+      <div class="section-label">What this site measures</div>
+      <p>The full portfolio counts visits with PostHog, to learn how people find their way through it: which
+      scenes they reach, how long loading takes, whether the page runs smoothly, and which links they open. It
+      stores one anonymous id and a visit count in your browser&rsquo;s local storage (no cookie), so a return
+      visit is recognised as the same browser. It records no name, no email and nothing you type. If your
+      browser sends Do Not Track or Global Privacy Control, nothing is loaded, stored or sent. This plain page
+      measures nothing.</p>
     </section>
 
     <!-- Footer -->

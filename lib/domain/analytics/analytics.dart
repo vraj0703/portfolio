@@ -85,6 +85,29 @@ enum TextLength {
   }
 }
 
+/// Whether the browser has asked not to be tracked (Do Not Track, or the
+/// Global Privacy Control signal). Either one, and the site loads no
+/// analytics at all: nothing is stored and nothing is sent.
+abstract final class PrivacySignals {
+  static bool decline({String? doNotTrack, bool? globalPrivacyControl}) =>
+      doNotTrack == '1' || doNotTrack == 'yes' || globalPrivacyControl == true;
+}
+
+/// How many times this browser has opened the site, kept in localStorage
+/// beside PostHog's anonymous id and sent on every event as `visit_number`
+/// (Vishal's decision, 2026-11-16: return visits are worth seeing).
+abstract final class VisitCounter {
+  /// The storage key, beside PostHog's own.
+  static const String key = 'portfolio_visit_number';
+
+  /// This visit's number, from what was stored (null or unreadable on a
+  /// first visit).
+  static int next(String? stored) {
+    final previous = int.tryParse(stored ?? '') ?? 0;
+    return previous < 0 ? 1 : previous + 1;
+  }
+}
+
 /// The scenes, as the paths PostHog's own tools read (question 3).
 abstract final class SitePath {
   static const String logo = '/#/logo';
@@ -102,8 +125,9 @@ abstract final class SitePath {
 /// written.
 ///
 /// Each carries the scene, the viewport, the device class; see [_common].
-/// "Whether this browser has been here before" is not sent: in cookieless
-/// mode nothing is stored, so it cannot be known (see the PR).
+/// Whether this browser has been here before rides on every event too, as
+/// `visit_number`, registered with PostHog when it starts ([VisitCounter]).
+/// The name is PostHog's super property, not an event, so it is not here.
 class SiteEvents {
   SiteEvents(this._sink, {required this.viewport});
 
