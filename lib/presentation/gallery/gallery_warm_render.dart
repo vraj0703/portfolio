@@ -1,7 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
-import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 
@@ -68,7 +67,7 @@ class GalleryWarmRender extends StatelessWidget {
       cameraBuilder: (elapsed) {
         final pose = GalleryCameraPath.poseAt(progressAt(elapsed));
         return PerspectiveCamera(
-          fovRadiansY: GalleryDimensions.fovRadians,
+          fovRadiansY: gallery.shape.fovRadians,
           position: SceneAxes.position(pose.position),
           target: SceneAxes.position(pose.target),
         );

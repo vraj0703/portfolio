@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
@@ -46,9 +47,15 @@ class GalleryScene {
     this._artwork,
     this._textures, {
     required this.artworkSize,
+    required this.shape,
   });
 
   final Scene scene;
+
+  /// The corridor's shell and lens this scene was built for
+  /// ([GalleryShape.forAspect] of the screen when it was built). The camera,
+  /// picking and focus read it, so they agree with the walls.
+  final GalleryShape shape;
 
   /// How wide each card was baked, in pixels. The card's type is set in
   /// those pixels, so anything that finds a spot on a card (the link on a
@@ -110,7 +117,12 @@ class GalleryScene {
   static Future<GalleryScene> warmUp({
     int artworkSize = 1024,
     void Function(double)? onProgress,
-  }) => _pending ??= build(artworkSize: artworkSize, onProgress: onProgress);
+    GalleryShape shape = GalleryShape.desktop,
+  }) => _pending ??= build(
+    artworkSize: artworkSize,
+    onProgress: onProgress,
+    shape: shape,
+  );
 
   /// Assembles the corridor and everything hanging in it.
   ///
@@ -120,6 +132,7 @@ class GalleryScene {
   static Future<GalleryScene> build({
     int artworkSize = 1024,
     void Function(double)? onProgress,
+    GalleryShape shape = GalleryShape.desktop,
   }) async {
     // Geometry and materials touch the shader bundle, so nothing can be
     // constructed before the engine's static resources exist.
@@ -142,13 +155,14 @@ class GalleryScene {
 
     await _populate(
       scene,
+      shape,
       artwork,
       textures,
       artworkSize,
       onProgress,
       testimonials,
     );
-    _light(scene);
+    _light(scene, shape);
 
     var tail = 0;
     Future<void> step() => _report(
@@ -186,6 +200,7 @@ class GalleryScene {
     // which is off on a first visit and whatever it was left on for a
     // second — the player outlives the corridor.
     final radio = await WallRadios.build(
+      shape: shape,
       state: locate<RadioPlayer>().state,
       // The defaults rather than the theme's: this runs off any widget tree,
       // and the gallery is built once for a scene whose type does not change
@@ -212,6 +227,7 @@ class GalleryScene {
       artwork,
       textures,
       artworkSize: artworkSize,
+      shape: shape,
     );
 
     await _report(onProgress, 1);
@@ -322,6 +338,7 @@ class GalleryScene {
   /// is what lets it be tested without a GPU.
   static Future<void> _populate(
     Scene scene,
+    GalleryShape shape,
     List<ui.Image> artwork,
     List<TextureSource> textures,
     int artworkSize,
@@ -393,7 +410,7 @@ class GalleryScene {
       );
     }
 
-    final pieces = GalleryLayout.build();
+    final pieces = GalleryLayout.build(shape: shape);
     for (final piece in pieces) {
       // Design space in, engine space out — see [SceneAxes]. Position and
       // rotation have to cross together; flipping one without the other
@@ -487,8 +504,8 @@ class GalleryScene {
   /// A spot's aim is its node's business, not the light's: the direction is
   /// given in local space and rotated by the node's transform, so each light
   /// is placed by translation and aimed by the direction it carries.
-  static void _light(Scene scene) {
-    for (final light in GalleryLighting.build()) {
+  static void _light(Scene scene, GalleryShape shape) {
+    for (final light in GalleryLighting.build(shape: shape)) {
       final colour = Vector3(light.colour.r, light.colour.g, light.colour.b);
 
       final node = Node(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/recommendation_form.dart';
@@ -160,7 +161,12 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// The order the visitor steps through the work in — by depth down the
   /// corridor, both walls interleaved. See [FocusOrder].
-  late final List<Placement> _pickable = GalleryLayout.build();
+  late final List<Placement> _pickable = GalleryLayout.build(shape: _shape);
+
+  /// The shell and lens the scene was built for; the camera, picking and
+  /// focus follow it so they agree with the walls.
+  GalleryShape get _shape =>
+      _gallery?.shape ?? GalleryScene.ready?.shape ?? GalleryShape.desktop;
   late final WalkOrder _order = WalkOrder(_pickable);
 
   /// The piece being read, or null while walking the corridor.
@@ -269,10 +275,18 @@ class _GalleryViewState extends State<GalleryView> {
   /// on the future awaited here. A `catch` around the await never sees it, and
   /// what should have been this view's failure screen becomes an unhandled
   /// error that takes the app down with it.
+  /// The corridor's shape for this screen, if this view starts the build
+  /// (normally the loading screen already has).
+  GalleryShape _shapeForScreen() {
+    final size = MediaQuery.maybeSizeOf(context);
+    if (size == null || size.isEmpty) return GalleryShape.desktop;
+    return GalleryShape.forAspect(size.width / size.height);
+  }
+
   void _load() {
     runZonedGuarded(
       () async {
-        final gallery = await GalleryScene.warmUp();
+        final gallery = await GalleryScene.warmUp(shape: _shapeForScreen());
         if (!mounted) {
           // Disposed while the build was in flight; nothing will ever show it,
           // so release it here rather than leaking a whole scene.
@@ -967,7 +981,7 @@ class _GalleryViewState extends State<GalleryView> {
       },
       cameraBuilder: (_) {
         final camera = PerspectiveCamera(
-          fovRadiansY: GalleryDimensions.fovRadians,
+          fovRadiansY: _shape.fovRadians,
           // The camera crosses the same boundary as the room, or it would
           // pan away from the wall it is meant to be tracking.
           position: SceneAxes.position(_eye ?? _targetPose().position),
@@ -996,6 +1010,7 @@ class _GalleryViewState extends State<GalleryView> {
     return ProjectFocus.poseFor(
       frame,
       aspect: _viewSize.isEmpty ? 16 / 9 : _viewSize.width / _viewSize.height,
+      shape: _shape,
     );
   }
 

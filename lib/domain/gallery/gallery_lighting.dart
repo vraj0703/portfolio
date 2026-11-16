@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
+import 'gallery_shape.dart';
 import 'project_data.dart';
 
 enum LightKind {
@@ -99,13 +100,17 @@ abstract final class GalleryLighting {
   /// a hole the visitor is walking over.
   static const double fillSpacing = 7;
 
-  static List<LightPlacement> build() => <LightPlacement>[
-    ..._frameLights(GalleryProjects.left, onLeft: true),
-    ..._frameLights(GalleryProjects.right, onLeft: false),
-    ..._fill(),
+  /// Every light, for a corridor of [shape] (lights hang from its ceiling
+  /// and light its walls).
+  static List<LightPlacement> build({
+    GalleryShape shape = GalleryShape.desktop,
+  }) => <LightPlacement>[
+    ..._frameLights(GalleryProjects.left, onLeft: true, shape: shape),
+    ..._frameLights(GalleryProjects.right, onLeft: false, shape: shape),
+    ..._fill(shape),
     ..._testimonialLights(),
-    ..._hallLights(),
-    _backWall(),
+    ..._hallLights(shape),
+    _backWall(shape),
   ];
 
   /// The skills hall.
@@ -114,12 +119,12 @@ abstract final class GalleryLighting {
   /// in it and it floats in the middle, so it needs light from every side or
   /// it reads as a silhouette. One overhead to model it, four low fills at
   /// the compass points to keep its sides and the far wall out of the dark.
-  static Iterable<LightPlacement> _hallLights() sync* {
+  static Iterable<LightPlacement> _hallLights(GalleryShape shape) sync* {
     yield LightPlacement(
       kind: LightKind.point,
       position: Vector3(
         GalleryDimensions.kbX,
-        GalleryDimensions.ceilY - 0.5,
+        shape.ceilY - 0.5,
         GalleryDimensions.kbZ,
       ),
       colour: fill,
@@ -184,10 +189,11 @@ abstract final class GalleryLighting {
   static Iterable<LightPlacement> _frameLights(
     List<Project> projects, {
     required bool onLeft,
+    required GalleryShape shape,
   }) sync* {
     for (var i = 0; i < projects.length; i++) {
       final z = -(i + 1) * GalleryDimensions.spacing;
-      final wallX = onLeft ? -GalleryDimensions.wallX : GalleryDimensions.wallX;
+      final wallX = onLeft ? -shape.wallX : shape.wallX;
       final inward = onLeft ? 1.0 : -1.0;
 
       yield LightPlacement(
@@ -216,7 +222,7 @@ abstract final class GalleryLighting {
   /// visitor spends longest looking at, and where the first pieces hang —
   /// lit only by picture spots aimed at the walls, so the floor beneath them
   /// read as unlit rather than as shadow.
-  static Iterable<LightPlacement> _fill() sync* {
+  static Iterable<LightPlacement> _fill(GalleryShape shape) sync* {
     for (
       var z = -fillSpacing / 2.5;
       z > GalleryDimensions.backWallZ;
@@ -224,7 +230,7 @@ abstract final class GalleryLighting {
     ) {
       yield LightPlacement(
         kind: LightKind.point,
-        position: Vector3(0, GalleryDimensions.ceilY - 0.6, z),
+        position: Vector3(0, shape.ceilY - 0.6, z),
         colour: fill,
         intensity: 9,
         range: 18,
@@ -234,11 +240,11 @@ abstract final class GalleryLighting {
 
   /// Washes the far wall, so the end of the corridor reads as a destination
   /// rather than as the point at which the light runs out.
-  static LightPlacement _backWall() => LightPlacement(
+  static LightPlacement _backWall(GalleryShape shape) => LightPlacement(
     kind: LightKind.spot,
     position: Vector3(
       0,
-      GalleryDimensions.ceilY - 0.4,
+      shape.ceilY - 0.4,
       GalleryDimensions.backWallZ + 3,
     ),
     direction: Vector3(0, -1, -1)..normalize(),

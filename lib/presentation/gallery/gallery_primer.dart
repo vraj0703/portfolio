@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
-import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
@@ -69,11 +69,11 @@ class GalleryPrimer extends StatefulWidget {
   /// `poseAt(0)` and the room's own field of view, so the frustum here is the
   /// frustum there. Anything this camera can see is a pipeline the arrival
   /// will not have to stop and compile.
-  static PerspectiveCamera get entryCamera {
+  static PerspectiveCamera entryCameraFor(GalleryShape shape) {
     final pose = GalleryCameraPath.poseAt(0);
 
     return PerspectiveCamera(
-      fovRadiansY: GalleryDimensions.fovRadians,
+      fovRadiansY: shape.fovRadians,
       position: SceneAxes.position(pose.position),
       target: SceneAxes.position(pose.target),
     );
@@ -141,7 +141,7 @@ class _GalleryPrimerState extends State<GalleryPrimer> {
     return SceneView(
       gallery.scene,
       pixelRatio: GalleryPrimer.pixelRatio,
-      camera: GalleryPrimer.entryCamera,
+      camera: GalleryPrimer.entryCameraFor(gallery.shape),
       // Counted from the render loop rather than from a timer: what is being
       // waited on is frames actually drawn, and a clock cannot tell the
       // difference between a frame and a stall.

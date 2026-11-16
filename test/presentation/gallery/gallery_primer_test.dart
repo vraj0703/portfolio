@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
@@ -23,7 +24,7 @@ void main() {
       // wrong thing compiles the wrong pipelines and warms nothing. Anything
       // outside this camera's frustum is culled and never submitted.
       final pose = GalleryCameraPath.poseAt(0);
-      final camera = GalleryPrimer.entryCamera;
+      final camera = GalleryPrimer.entryCameraFor(GalleryShape.desktop);
 
       expect(camera.position, SceneAxes.position(pose.position));
       expect(camera.target, SceneAxes.position(pose.target));
@@ -34,8 +35,12 @@ void main() {
       // different set of nodes submitted — so the wrong pipelines again,
       // from a camera standing in exactly the right place.
       expect(
-        GalleryPrimer.entryCamera.fovRadiansY,
+        GalleryPrimer.entryCameraFor(GalleryShape.desktop).fovRadiansY,
         GalleryDimensions.fovRadians,
+      );
+      expect(
+        GalleryPrimer.entryCameraFor(GalleryShape.portrait).fovRadiansY,
+        GalleryShape.portrait.fovRadians,
       );
     });
 
