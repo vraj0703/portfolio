@@ -85,7 +85,22 @@ async def mean_colour(cdp):
     return tuple(sum(p[i] for p in px) / len(px) for i in range(3))
 
 
+ADB = os.environ.get("ADB")  # set in --remote mode: input goes through `adb shell input`
+SCALE = [1.0]  # CSS px to device px, read from the page in --remote mode
+
+
+def adb_input(*args):
+    subprocess.run([ADB, "shell", "input", *[str(a) for a in args]], check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 async def touch_swipe(cdp, x, y1, y2, ms=300, steps=12):
+    if ADB:
+        # Real kernel-level touch at the device's own pace. CDP touch events over adb are one
+        # round trip each (about a second), so a CDP "swipe" on a phone is not a swipe.
+        k = SCALE[0]
+        await asyncio.to_thread(adb_input, "swipe", int(x * k), int(y1 * k), int(x * k), int(y2 * k), ms)
+        return
     await cdp("Input.dispatchTouchEvent", type="touchStart", touchPoints=[{"x": x, "y": y1}])
     for i in range(1, steps + 1):
         y = y1 + (y2 - y1) * i / steps
@@ -95,6 +110,10 @@ async def touch_swipe(cdp, x, y1, y2, ms=300, steps=12):
 
 
 async def touch_tap(cdp, x, y):
+    if ADB:
+        k = SCALE[0]
+        await asyncio.to_thread(adb_input, "tap", int(x * k), int(y * k))
+        return
     await cdp("Input.dispatchTouchEvent", type="touchStart", touchPoints=[{"x": x, "y": y}])
     await asyncio.sleep(0.08)
     await cdp("Input.dispatchTouchEvent", type="touchEnd", touchPoints=[])
@@ -123,36 +142,59 @@ SCENARIOS = {"flame-scroll": scenario_flame_scroll, "gallery-walk": scenario_gal
 UNTRACED_PREFIX = {"gallery-walk": scenario_flame_scroll}
 
 
-async def record_one(url, scenario, path):
+async def record_one(url, scenario, path, remote=None):
+    """One trace. With `remote` (a local port forwarded to a phone's Chrome, see the skill),
+    no browser is launched and nothing is emulated or throttled: the tool opens one tab of its
+    own on the device, touches only that tab, and closes it at the end."""
+    global W, H
     import websockets
-    prof = tempfile.mkdtemp(prefix="cdp-prof-")
-    proc = subprocess.Popen([CHROME, "--start-minimized", "--disable-features=CalculateNativeWinOcclusion",
-                             "--no-first-run", "--no-default-browser-check",
-                             f"--remote-debugging-port={PORT}", f"--user-data-dir={prof}",
-                             f"--window-size={W},{H}", "about:blank"])
+    proc = None
+    attach = os.environ.get("REMOTE_ATTACH")
+    if remote and attach:
+        # A tab of ours already in front (opened with a marker in its URL, see the skill):
+        # a phone renders only the foreground tab of the foreground app.
+        tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{remote}/json"))
+        page = next(t for t in tabs if t.get("type") == "page" and attach in t.get("url", ""))
+    elif remote:
+        req = urllib.request.Request(f"http://127.0.0.1:{remote}/json/new?about:blank", method="PUT")
+        page = json.load(urllib.request.urlopen(req))
+    else:
+        prof = tempfile.mkdtemp(prefix="cdp-prof-")
+        proc = subprocess.Popen([CHROME, "--start-minimized", "--disable-features=CalculateNativeWinOcclusion",
+                                 "--no-first-run", "--no-default-browser-check",
+                                 f"--remote-debugging-port={PORT}", f"--user-data-dir={prof}",
+                                 f"--window-size={W},{H}", "about:blank"])
     try:
-        page = None
-        for _ in range(150):
-            try:
-                tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json"))
-                page = next(t for t in tabs if t["type"] == "page")
-                break
-            except Exception:
-                time.sleep(0.2)
-        if page is None:
-            raise RuntimeError("Chrome did not answer on the debugging port")
+        if not remote:
+            page = None
+            for _ in range(150):
+                try:
+                    tabs = json.load(urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json"))
+                    page = next(t for t in tabs if t["type"] == "page")
+                    break
+                except Exception:
+                    time.sleep(0.2)
+            if page is None:
+                raise RuntimeError("Chrome did not answer on the debugging port")
         async with websockets.connect(page["webSocketDebuggerUrl"], max_size=None, ping_interval=None) as ws:
             cdp = Cdp(ws)
             for d in ("Page", "Network", "Runtime"):
                 await cdp(f"{d}.enable")
             await cdp("Network.setCacheDisabled", cacheDisabled=True)
-            await cdp("Network.emulateNetworkConditions", offline=False, latency=60,
-                      downloadThroughput=9_000_000 / 8, uploadThroughput=1_500_000 / 8)
-            await cdp("Emulation.setCPUThrottlingRate", rate=4)
-            await cdp("Emulation.setDeviceMetricsOverride", width=W, height=H,
-                      deviceScaleFactor=DPR, mobile=True)
-            await cdp("Emulation.setUserAgentOverride", userAgent=UA, platform="Android")
-            await cdp("Emulation.setTouchEmulationEnabled", enabled=True, maxTouchPoints=5)
+            if remote:
+                # A real phone: its own CPU, GPU, screen and network. Only the viewport is read,
+                # for touch coordinates.
+                r = await cdp("Runtime.evaluate", expression="[innerWidth, innerHeight, devicePixelRatio]",
+                              returnByValue=True)
+                W, H, SCALE[0] = r["result"]["value"]
+            else:
+                await cdp("Network.emulateNetworkConditions", offline=False, latency=60,
+                          downloadThroughput=9_000_000 / 8, uploadThroughput=1_500_000 / 8)
+                await cdp("Emulation.setCPUThrottlingRate", rate=4)
+                await cdp("Emulation.setDeviceMetricsOverride", width=W, height=H,
+                          deviceScaleFactor=DPR, mobile=True)
+                await cdp("Emulation.setUserAgentOverride", userAgent=UA, platform="Android")
+                await cdp("Emulation.setTouchEmulationEnabled", enabled=True, maxTouchPoints=5)
             await cdp("Page.navigate", url=url)
 
             # The logo screen: its tan ground. Then tap in until the screen leaves it.
@@ -197,11 +239,17 @@ async def record_one(url, scenario, path):
             with open(path, "w", encoding="utf-8") as f:
                 f.write(raw)
     finally:
-        proc.terminate()
-        try:
-            proc.wait(10)
-        except Exception:
-            proc.kill()
+        if remote and not attach:
+            try:
+                urllib.request.urlopen(f"http://127.0.0.1:{remote}/json/close/{page['id']}")
+            except Exception:
+                pass
+        elif proc is not None:
+            proc.terminate()
+            try:
+                proc.wait(10)
+            except Exception:
+                proc.kill()
 
 
 async def _walk_only(cdp):
@@ -378,6 +426,9 @@ def main():
     r.add_argument("--label", required=True)
     r.add_argument("--runs", type=int, default=3)
     r.add_argument("--out", default="build/profile")
+    r.add_argument("--remote", type=int, default=None,
+                   help="local port forwarded to a phone's Chrome (adb forward tcp:PORT "
+                        "localabstract:chrome_devtools_remote); no emulation, no throttling")
     rd = sub.add_parser("read")
     rd.add_argument("traces", nargs="+")
     a = ap.parse_args()
@@ -387,7 +438,7 @@ def main():
         rows = []
         for i in range(1, a.runs + 1):
             path = os.path.join(a.out, f"{a.label}-{i}.trace.json")
-            asyncio.run(record_one(a.url, a.scenario, path))
+            asyncio.run(record_one(a.url, a.scenario, path, remote=a.remote))
             s = summarise(load_events(path))
             with open(path.replace(".trace.json", ".summary.json"), "w", encoding="utf-8") as f:
                 json.dump(s, f, indent=1)

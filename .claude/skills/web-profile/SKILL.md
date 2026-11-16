@@ -142,10 +142,52 @@ the first frame moved the compile behind the loading screen. First-touch frame
 4x), and the trace names what does: CanvasKit drawing the scene every frame and texture
 uploads in `drawPicture`.
 
+## 7. On a real Android phone (verified 2026-11-16, ROG Phone II, Android 11, Chrome 151)
+
+Same tool, `--remote`, against the phone's own Chrome over USB. No emulation and no
+throttling: its own CPU, GPU, screen and network.
+
+1. **adb**: `H:/AppData/android-studio/platform-tools/adb.exe` on the pc (not on PATH).
+   `adb devices -l` must say `device`; `unauthorized` or nothing means the phone's owner has
+   to enable USB debugging and accept the prompt. Their hands, not yours.
+2. **Device facts for the report**: `getprop ro.product.model`, `ro.build.version.release`,
+   `dumpsys package com.android.chrome | grep versionName`, and the active refresh rate from
+   `dumpsys display` (`mActiveModeId`, the mode's `fps`). The ROG ran at 120 Hz: the frame
+   budget is **8.33 ms**, not 16.6.
+3. **Wake it and keep it awake**: Chrome exposes `chrome_devtools_remote` only while its UI is
+   up, and renders only the foreground tab of the foreground app on a lit screen. With the
+   owner's leave, `adb shell svc power stayon usb` for the session and **`svc power stayon
+   false` at the end**. If the phone locks, do not try to get past the lock.
+4. **Your own tab, in front**: `adb shell am start -a android.intent.action.VIEW -d
+   "URL?pc-profile=1" -p com.android.chrome`, then `adb forward tcp:9222
+   localabstract:chrome_devtools_remote`. Touch only that tab; close it at the end
+   (`/json/close/ID`).
+5. **Record**: `ADB=<adb path> REMOTE_ATTACH=<a substring of the tab's URL> python
+   tool/web_profile.py record --remote 9222 --url URL --scenario flame-scroll --label L`.
+   Match on a substring every URL you navigate the tab to shares; the tool attaches to that
+   tab and navigates it.
+6. **Input through adb, not CDP**: each CDP touch event over adb is a round trip of about a
+   second, so a CDP "swipe" on a phone is a dozen taps a second apart. In `--remote` mode the
+   tool sends `adb shell input swipe/tap` in device pixels (CSS px x devicePixelRatio).
+
+What reads differently on the phone:
+
+- **Frame p50/p95 from `FireAnimationFrame` is not reliable there**: the phone's trace held
+  only about 25 of them in a 30 s scenario. Read long tasks, stalls over 500 ms, the GPU
+  thread and the top self time instead.
+- **The live site and previews are release builds**: Dart names are minified (`akX`, `Uy`).
+  Name a minified caller by finding the API it calls in the package sources, or profile a
+  `--profile` build served to the phone.
+- **What the phone showed that the emulator did not**: `checkFramebufferStatus` at 1.2-1.7 s
+  per trace, called from flutter_scene's web render pass (`lib/src/gpu/web/render_pass.dart`,
+  checked every time a pass begins). On a phone GPU that call forces a sync. Desktop
+  emulation throttles the CPU, not the GPU, so it barely registers there.
+- The emulated win for the bold-text warm-up (first-touch frame 420 to 56 ms median) did **not**
+  show as a clear difference on the ROG: before 30 / 294 / 1055 ms, after 49 / 291 / 781 ms.
+  Prove a fix on the real device, not only under emulation.
+
 ## Not verified here
 
 - The `gallery-walk` scenario.
-- Real phones over remote debugging (`chrome://inspect`). The emulated profile throttles the
-  CPU but not a phone's GPU, so shader compiles and fill rate are worse on a real phone.
 - iOS Safari, which has no CDP. Its Web Inspector timeline is the equivalent, by hand.
 - WebAssembly builds (`--wasm`).
