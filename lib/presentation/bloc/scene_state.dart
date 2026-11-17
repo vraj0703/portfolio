@@ -76,15 +76,16 @@ sealed class SceneState with _$SceneState {
   /// with no subject.
   bool get showsMark => this is Loading || this is Logo || this is Contact;
 
-  /// Whether the title stage draws its real draws once, under the curtain.
+  /// Whether the title stage makes its real draws while loading, through one
+  /// pixel over the loading screen (`RehearsalPixel`).
   ///
-  /// [Loading] and nothing else: the curtain is down and opaque, and every
-  /// draw the title stage makes for the first time is a GPU program
-  /// CanvasKit compiles on that frame (130-740 ms each on a phone, after the
-  /// tap). Skia keys a program on the whole draw, so only the real draw
-  /// compiles the real program. The components read this rule; none of them
-  /// decides for itself when to rehearse. `MyGame` counts the frames into
-  /// `LoadingPhase.rehearsal`, so the bar waits for them.
+  /// [Loading] and nothing else: every draw the title stage makes for the
+  /// first time is a GPU program CanvasKit compiles on that frame (130-740
+  /// ms each on a phone, after the tap). Skia keys a program on the whole
+  /// draw, so only the real draw compiles the real program. The components
+  /// read this rule; none of them decides for itself when to rehearse.
+  /// `MyGame` counts the frames into `LoadingPhase.rehearsal`, so the bar
+  /// waits for them.
   bool get rehearsesTitle => this is Loading;
 
   bool get isScrollable => this is Active || this is Gallery;

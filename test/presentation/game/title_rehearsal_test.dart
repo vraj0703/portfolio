@@ -1,8 +1,12 @@
+import 'dart:io';
+
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
+import 'package:portfolio/presentation/screen/rehearsal_pixel.dart';
 
 void main() {
   group('the title stage is rehearsed under the curtain', () {
@@ -49,4 +53,45 @@ void main() {
       expect(BackdropComponent.passesFor(rehearsing: false, opacity: 1), [1]);
     });
   });
+
+  group(
+    'the rehearsal is drawn through one pixel, over the loading screen',
+    () {
+      test('last in the scene, and only while loading', () {
+        // Under the opaque loading screen the draws never reached the GPU;
+        // drawn last, they are the screen's own draws (GL census, ROG).
+        final source = File(
+          'lib/presentation/screen/scene_view.dart',
+        ).readAsStringSync();
+        final pixel = source.indexOf('if (isLoading) const RehearsalPixel()');
+        expect(pixel, greaterThan(0));
+        expect(pixel, greaterThan(source.indexOf('LoadingScreen(')));
+        expect(pixel, greaterThan(source.indexOf('ClipPath(')));
+      });
+
+      test('inside a plain rect clip of one physical pixel, no layer', () {
+        // A rect clip is a scissor: the program stays the real draw's. A
+        // saveLayer or an alpha would change the program.
+        final source = File(
+          'lib/presentation/screen/rehearsal_pixel.dart',
+        ).readAsStringSync();
+        expect(source, contains('clipRect(Rect.fromLTWH(0, 0, pixel, pixel))'));
+        expect(source, contains('1 / View.of(context).devicePixelRatio'));
+        expect(source, isNot(contains('saveLayer')));
+        expect(source, isNot(contains('Opacity')));
+      });
+
+      testWidgets('and paints nothing before there is a game', (tester) async {
+        MyGame.stage.value = null;
+        await tester.pumpWidget(
+          const Directionality(
+            textDirection: TextDirection.ltr,
+            child: RehearsalPixel(),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+        expect(tester.takeException(), isNull);
+      });
+    },
+  );
 }

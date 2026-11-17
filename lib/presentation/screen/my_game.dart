@@ -7,6 +7,7 @@ import 'package:flame/events.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame_bloc/flame_bloc.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
@@ -534,11 +535,11 @@ class MyGame extends FlameGame
 
   /* -- Rehearsal ------------------------------------------------------- */
 
-  /// Frames the title stage's real draws are made under the curtain
-  /// ([SceneState.rehearsesTitle]).
+  /// Frames the title stage's real draws are rehearsed while loading
+  /// ([SceneState.rehearsesTitle]), through `RehearsalPixel`.
   ///
   /// One compiles every program; the second is where a compile's tail lands,
-  /// still under the curtain rather than on the first visible frame.
+  /// still behind the loading screen rather than on the first visible frame.
   static const int rehearsalFrames = 2;
 
   /// How far [LoadingPhase.rehearsal] has got after [frames] rehearsed.
@@ -551,17 +552,40 @@ class MyGame extends FlameGame
   /// of them are mounted, because a frame they were not in compiled nothing.
   List<Component> get _rehearsalCast => <Component>[_backdrop];
 
+  /// The game `RehearsalPixel` draws from, while it is mounted.
+  ///
+  /// The pixel is a widget over the loading screen and the game sits under
+  /// it; this is the one line between them.
+  static final ValueNotifier<MyGame?> stage = ValueNotifier<MyGame?>(null);
+
   @override
-  void render(ui.Canvas canvas) {
-    super.render(canvas);
-    _countRehearsal();
+  void onMount() {
+    super.onMount();
+    stage.value = this;
   }
 
-  /// Counted after the frame is drawn: the rehearsal is what was just drawn.
-  void _countRehearsal() {
-    if (_rehearsed >= rehearsalFrames) return;
+  @override
+  void onRemove() {
+    if (stage.value == this) stage.value = null;
+    super.onRemove();
+  }
+
+  /// Draws the rehearsal cast into [canvas], which the caller has clipped,
+  /// and counts the frame into [LoadingPhase.rehearsal].
+  ///
+  /// The draws have to be the screen's own and the last in their pixel.
+  /// Under the opaque loading screen they never reached the GPU, and a
+  /// picture rasterised offscreen compiles in another WebGL context than the
+  /// screen's (GL census on the ROG, 2026-11-17: three contexts, screen,
+  /// toImageSync and flutter_scene). Each component decides what to draw
+  /// from the scene's rule, as it does on screen.
+  void rehearseInto(ui.Canvas canvas) {
     if (!bloc.state.rehearsesTitle) return;
     if (!isLoaded || !_rehearsalCast.every((c) => c.isMounted)) return;
+    for (final actor in _rehearsalCast) {
+      actor.renderTree(canvas);
+    }
+    if (_rehearsed >= rehearsalFrames) return;
 
     _rehearsed++;
     queuer.queue(

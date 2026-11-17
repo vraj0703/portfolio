@@ -15,6 +15,7 @@ import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/screen/scene_input.dart';
+import 'package:portfolio/presentation/screen/rehearsal_pixel.dart';
 import 'package:portfolio/presentation/screen/vector_primer.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
@@ -148,6 +149,10 @@ class SceneView extends StatelessWidget {
                               ? state.progress
                               : LoadingProgress.complete,
                         ),
+
+                      // Last, over everything: the title stage's real draws
+                      // through one pixel, so they reach the screen's GPU.
+                      if (isLoading) const RehearsalPixel(),
                     ],
                   );
                 },
