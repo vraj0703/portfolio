@@ -222,6 +222,29 @@ and when, blits and `texImage2D` per frame. That is how the gallery's arrival st
 ROG was tied to four 1082x2404 x4 multisampled renderbuffers allocated on the first corridor
 frame (flutter_scene caches framebuffers, so the check is per new target, not per frame).
 
+**Tag every call with its context.** Keep a `WeakMap` from the context (`this` in the wrapper)
+to a small id and log it with each call. On the ROG (2026-11-17) the page had **three** WebGL
+contexts: 1 = CanvasKit's on-screen surface, 2 = `Picture.toImageSync` / `toImage`, 3 =
+flutter_scene. A GPU program is compiled per context: compiling a draw offscreen (2) does not
+spare the screen (1) its compile, and Chrome's program cache did not make the second one cheap.
+
+**What warms the screen's programs, and what does not** (proved with the census, counting
+`linkProgram` after the tap in context 1):
+
+- Drawn **under** an opaque full-screen widget (the loading curtain), a draw never reaches the
+  GPU: its shader is not compiled at all.
+- Drawn **offscreen** (`toImageSync`): compiled, but in context 2.
+- Drawn **last**, over everything, inside a `clipRect` of one physical pixel: compiled in
+  context 1, and the visitor's later draw reuses it (the backdrop's 2 programs left the tap,
+  13 to 11). A rect clip is a scissor, so the program is the real draw's; `saveLayer` or a paint
+  alpha would compile a different one. This is `RehearsalPixel`.
+- Skia keys a program on the whole draw (shader, text atlas, image sampler, blend, blur), so a
+  1-px rect with the same `FragmentShader` warms a different program from the real text draw.
+
+To name what a compile is, wrap `shaderSource` too and keep the GLSL: an app shader keeps its
+uniform names (`uResolution`, `uScrollProgress`), Skia's own read as `uTextureSampler_0_S0`,
+`uoffsetsAndKernel` (blur) and so on.
+
 ## Not verified here
 
 - The `gallery-walk` scenario.
