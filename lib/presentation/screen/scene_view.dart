@@ -15,6 +15,7 @@ import 'package:portfolio/presentation/gallery/gallery_view.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/screen/scene_input.dart';
+import 'package:portfolio/presentation/screen/vector_primer.dart';
 import 'package:portfolio/presentation/widgets/curtain_clipper.dart';
 import 'package:portfolio/presentation/widgets/loading_screen.dart';
 
@@ -121,7 +122,12 @@ class SceneView extends StatelessWidget {
                       //
                       // Below the `ClipPath`, never above: it has to be
                       // painted to be warmed, and it must not be seen.
-                      if (isLoading) GalleryPrimer(queuer: context.read<SceneBloc>()),
+                      if (isLoading)
+                        GalleryPrimer(queuer: context.read<SceneBloc>()),
+
+                      // The same, for the title's drawings: the first SVG on
+                      // the web reads a pixel back, which waits on the GPU.
+                      if (isLoading) const VectorPrimer(),
 
                       ClipPath(
                         clipper: CurtainClipper(revealProgress: reveal),
