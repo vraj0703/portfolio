@@ -21,7 +21,6 @@ class GalleryShape {
     required this.corridorWidth,
     required this.ceilY,
     required this.fovDegrees,
-    required this.multisample,
   });
 
   /// Today's corridor, unchanged.
@@ -29,7 +28,6 @@ class GalleryShape {
     corridorWidth: GalleryDimensions.corridorWidth,
     ceilY: GalleryDimensions.ceilY,
     fovDegrees: GalleryDimensions.fovDegrees,
-    multisample: true,
   );
 
   /// A screen taller than it is wide.
@@ -40,7 +38,6 @@ class GalleryShape {
     corridorWidth: 6.5,
     ceilY: GalleryDimensions.ceilY - portraitCeilingDrop,
     fovDegrees: 78,
-    multisample: false,
   );
 
   /// How much lower the portrait ceiling hangs: less of a phone's tall
@@ -58,18 +55,6 @@ class GalleryShape {
 
   /// The vertical field of view.
   final double fovDegrees;
-
-  /// Whether edges are smoothed by multisampling (MSAA) or by a single
-  /// screen-space pass (FXAA).
-  ///
-  /// MSAA renders into an offscreen multisampled colour and depth target at
-  /// the device's full resolution and resolves it every frame. On a phone
-  /// (1082x2404 at 4 samples, four renderbuffers) that target is first
-  /// allocated on the visitor's first frame in the corridor, and the ROG
-  /// Phone II's trace showed that frame as one 1.1-1.7 s task in
-  /// `checkFramebufferStatus`. FXAA needs no multisampled target; at a
-  /// phone's 2.6x density the softer edge is hard to see.
-  final bool multisample;
 
   double get wallX => corridorWidth / 2;
 

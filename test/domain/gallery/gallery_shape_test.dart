@@ -83,9 +83,4 @@ void main() {
     expect(highest(phone), lessThan(highest(desk)));
     expect(highest(phone), lessThan(GalleryShape.portrait.ceilY));
   });
-
-  test('a laptop keeps multisampling; a phone does not', () {
-    expect(GalleryShape.desktop.multisample, isTrue);
-    expect(GalleryShape.portrait.multisample, isFalse);
-  });
 }
