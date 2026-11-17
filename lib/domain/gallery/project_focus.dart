@@ -4,6 +4,7 @@ import 'package:vector_math/vector_math.dart';
 
 import 'control_layout.dart';
 import 'gallery_dimensions.dart';
+import 'gallery_shape.dart';
 import 'gallery_layout.dart';
 
 /// Where the camera stands to read one piece of work.
@@ -93,12 +94,17 @@ abstract final class ProjectFocus {
   /// The camera comes off the wall along its normal and looks straight back
   /// at the centre of the composition — square on, not angled. A raking view
   /// of a flat plane of text is a view you cannot read.
-  static FocusPose poseFor(Placement frame, {required double aspect}) {
+  static FocusPose poseFor(
+    Placement frame, {
+    required double aspect,
+    GalleryShape shape = GalleryShape.desktop,
+  }) {
     final portrait = aspect < 1;
     final distance = distanceFor(
       width: GalleryLayout.frameWidth,
       height: GalleryDimensions.frameMaxHeight + reachBelow,
       aspect: aspect,
+      fovY: shape.fovRadians,
       room: portrait ? portraitMargin : margin,
     );
 
@@ -127,6 +133,8 @@ abstract final class ProjectFocus {
   /// Not a clamp, because clamping would silently crop the work instead. If
   /// this is ever true the room is too narrow for the framing and the fix is
   /// a wider corridor or a smaller frame, not a quietly worse shot.
-  static bool fitsInside(FocusPose pose) =>
-      pose.position.x.abs() < GalleryDimensions.wallX;
+  static bool fitsInside(
+    FocusPose pose, {
+    GalleryShape shape = GalleryShape.desktop,
+  }) => pose.position.x.abs() < shape.wallX;
 }

@@ -1,6 +1,7 @@
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
+import 'gallery_shape.dart';
 import 'project_data.dart';
 
 /// What kind of surface a placement describes.
@@ -132,7 +133,7 @@ abstract final class GalleryLayout {
   /// underside genuinely faces down.
   static const double ceilingThickness = 0.2;
 
-  static List<Placement> build() {
+  static List<Placement> build({GalleryShape shape = GalleryShape.desktop}) {
     final length = GalleryDimensions.corridorLength;
     final centreZ = -length / 2;
     final height = GalleryDimensions.corridorHeight + 2;
@@ -149,7 +150,7 @@ abstract final class GalleryLayout {
         // the ceiling height, not the middle of the slab.
         position: Vector3(
           0,
-          GalleryDimensions.ceilY + ceilingThickness / 2,
+          shape.ceilY + ceilingThickness / 2,
           centreZ,
         ),
         extents: Vector3(groundSize, ceilingThickness, groundSize),
@@ -157,7 +158,7 @@ abstract final class GalleryLayout {
       // The left wall runs the whole corridor.
       Placement(
         kind: SurfaceKind.sideWall,
-        position: Vector3(-GalleryDimensions.wallX, 0.5, centreZ),
+        position: Vector3(-shape.wallX, 0.5, centreZ),
         extents: Vector3(0.2, height, length + 4),
       ),
 
@@ -168,7 +169,7 @@ abstract final class GalleryLayout {
       Placement(
         kind: SurfaceKind.sideWall,
         position: Vector3(
-          GalleryDimensions.wallX,
+          shape.wallX,
           0.5,
           -GalleryDimensions.rightWallLength / 2 + 2,
         ),
@@ -181,12 +182,12 @@ abstract final class GalleryLayout {
       Placement(
         kind: SurfaceKind.backWall,
         position: Vector3(
-          (GalleryDimensions.kbEntryX - GalleryDimensions.corridorWidth) / 2,
+          (GalleryDimensions.kbEntryX - shape.corridorWidth) / 2,
           0.5,
           GalleryDimensions.backWallZ,
         ),
         extents: Vector3(
-          GalleryDimensions.kbEntryX + GalleryDimensions.corridorWidth,
+          GalleryDimensions.kbEntryX + shape.corridorWidth,
           height,
           0.2,
         ),
@@ -197,12 +198,12 @@ abstract final class GalleryLayout {
       Placement(
         kind: SurfaceKind.wingWall,
         position: Vector3(
-          (GalleryDimensions.kbEntryX + GalleryDimensions.wallX) / 2,
+          (GalleryDimensions.kbEntryX + shape.wallX) / 2,
           0.5,
           GalleryDimensions.backWallZ + GalleryDimensions.wingWidth,
         ),
         extents: Vector3(
-          GalleryDimensions.kbEntryX - GalleryDimensions.wallX,
+          GalleryDimensions.kbEntryX - shape.wallX,
           height,
           0.2,
         ),
@@ -212,7 +213,7 @@ abstract final class GalleryLayout {
       Placement(
         kind: SurfaceKind.exitSign,
         position: Vector3(
-          -GalleryDimensions.wallX + paintedOnWall,
+          -shape.wallX + paintedOnWall,
           GalleryDimensions.frameY,
           -1,
         ),
@@ -223,11 +224,11 @@ abstract final class GalleryLayout {
         extents: Vector3(2.6, 0.95, 0.02),
         rotationY: quarterTurn,
       ),
-      ..._radio(),
+      ..._radio(shape),
       ..._skillHall(),
       ..._testimonialFrames(),
-      ..._frames(GalleryProjects.left, onLeft: true),
-      ..._frames(GalleryProjects.right, onLeft: false),
+      ..._frames(GalleryProjects.left, onLeft: true, shape: shape),
+      ..._frames(GalleryProjects.right, onLeft: false, shape: shape),
     ];
   }
 
@@ -237,10 +238,10 @@ abstract final class GalleryLayout {
   /// thing the visitor passes on that side, where the previous site had it.
   /// Before the first picture, which starts a full spacing in, so it has the
   /// wall to itself.
-  static Iterable<Placement> _radio() sync* {
+  static Iterable<Placement> _radio(GalleryShape shape) sync* {
     yield* _radioAt(
       Vector3(
-        GalleryDimensions.wallX - paintedOnWall,
+        shape.wallX - paintedOnWall,
         GalleryDimensions.frameY,
         radioZ,
       ),
@@ -506,14 +507,15 @@ abstract final class GalleryLayout {
   static Iterable<Placement> _frames(
     List<Project> projects, {
     required bool onLeft,
+    required GalleryShape shape,
   }) sync* {
     for (var i = 0; i < projects.length; i++) {
       // Frames start one spacing in, so the first is not level with the
       // entrance where it would be edge-on and unreadable.
       final z = -(i + 1) * GalleryDimensions.spacing;
       final x = onLeft
-          ? -GalleryDimensions.wallX + frameStandoff
-          : GalleryDimensions.wallX - frameStandoff;
+          ? -shape.wallX + frameStandoff
+          : shape.wallX - frameStandoff;
 
       yield Placement(
         kind: SurfaceKind.frame,

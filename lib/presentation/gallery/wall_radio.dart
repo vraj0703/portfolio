@@ -1,3 +1,4 @@
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_scene/scene.dart';
@@ -54,8 +55,9 @@ class WallRadios {
   static Future<WallRadios> build({
     required RadioState state,
     required AppTypography type,
+    GalleryShape shape = GalleryShape.desktop,
   }) async {
-    final panels = GalleryLayout.build()
+    final panels = GalleryLayout.build(shape: shape)
         .where((piece) => piece.kind == SurfaceKind.radio)
         .toList();
 

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/config/loading_layout.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
@@ -91,10 +92,9 @@ class LoadingScreen extends StatelessWidget {
     final flash = flashOpacity(e);
 
     final size = MediaQuery.sizeOf(context);
-    final logoWidth = LogoConfig.loadingMarkWidthFor(
-      viewportWidth: size.width,
-      viewportHeight: size.height,
-    );
+    // From the device's screen: a portrait phone sizes the mark from its
+    // short side; a landscape screen keeps the scene's rule.
+    final logoWidth = LoadingLayout.markWidthFor(size);
     final logoHeight = logoWidth * _aspect;
 
     // Anchor the burst on the mark rather than the viewport. The column also
@@ -141,7 +141,13 @@ class LoadingScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: _readoutGap),
-                  _LoadingReadout(width: logoWidth, progress: p, exit: e),
+                  _LoadingReadout(
+                    width: LoadingLayout.readoutWidthFor(size, logoWidth),
+                    alignRight: LoadingLayout.readoutAlignsRight(size),
+                    scale: LoadingLayout.readoutScaleFor(size),
+                    progress: p,
+                    exit: e,
+                  ),
                 ],
               ),
             );
@@ -375,11 +381,19 @@ class _LoadingMark extends StatelessWidget {
 class _LoadingReadout extends StatelessWidget {
   const _LoadingReadout({
     required this.width,
+    required this.scale,
+    required this.alignRight,
     required this.progress,
     required this.exit,
   });
 
+  /// Under the mark's right edge (landscape) or centred (portrait).
+  final bool alignRight;
+
   final double width;
+
+  /// The readout's type scale, from the screen (see [LoadingLayout]).
+  final double scale;
   final double progress;
   final double exit;
 
@@ -391,14 +405,28 @@ class _LoadingReadout extends StatelessWidget {
       offset: Offset(0, -8 * lift),
       child: Opacity(
         opacity: (1 - lift).clamp(0.0, 1.0),
+        // As wide as the screen allows, not the mark: the label stays on
+        // one line, shrinking rather than wrapping if it ever has to.
         child: SizedBox(
           width: width,
-          child: _Readout(progress: progress),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: alignRight ? Alignment.centerRight : Alignment.center,
+            child: _Readout(progress: progress, scale: scale),
+          ),
         ),
       ),
     );
   }
 }
+
+/// [style] in [ink], its size and tracking scaled together.
+TextStyle _scaledStyle(TextStyle style, Color ink, double scale) =>
+    style.copyWith(
+      color: ink,
+      fontSize: (style.fontSize ?? 16) * scale,
+      letterSpacing: (style.letterSpacing ?? 0) * scale,
+    );
 
 /// The readout: the word, and the figure that moves.
 ///
@@ -407,9 +435,13 @@ class _LoadingReadout extends StatelessWidget {
 /// is the only thing on the loading screen that changes, so it is set in a
 /// mono of its own.
 class _Readout extends StatelessWidget {
-  const _Readout({required this.progress});
+  const _Readout({required this.progress, required this.scale});
 
   final double progress;
+  final double scale;
+
+  TextStyle _scaled(TextStyle style, Color ink) =>
+      _scaledStyle(style, ink, scale);
 
   @override
   Widget build(BuildContext context) {
@@ -427,15 +459,16 @@ class _Readout extends StatelessWidget {
         children: <InlineSpan>[
           TextSpan(
             text: '${strings.loadingLabel} ',
-            style: type.loading.copyWith(color: ink),
+            style: _scaled(type.loading, ink),
           ),
           TextSpan(
             text: strings.loadingPercent(progress),
-            style: type.loadingReadout.copyWith(color: ink),
+            style: _scaled(type.loadingReadout, ink),
           ),
         ],
       ),
-      textAlign: TextAlign.right,
+      maxLines: 1,
+      textAlign: TextAlign.center,
     );
   }
 }

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
+import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/recommendation_form.dart';
 import 'package:flutter/gestures.dart';
@@ -45,27 +47,6 @@ import 'package:vector_math/vector_math.dart';
 /// on the way out, and the scroll position has to survive rebuilds.
 class GalleryView extends StatefulWidget {
   const GalleryView({super.key});
-
-  /// Which way a wheel turn walks the corridor.
-  ///
-  /// Inverted with respect to the stages before it, and deliberately so. Up
-  /// to here the scroll has been moving a *page*: content travels up as the
-  /// wheel goes down, which is what every scrolling surface does. The gallery
-  /// is not a page — the visitor is walking through a room, and the natural
-  /// reading of pushing the wheel away is moving away, deeper in.
-  ///
-  /// Keeping the page convention here would mean pushing forward to back out
-  /// of the corridor, which fights the first-person framing the whole scene
-  /// is built on.
-  /// How far a finger walks the corridor, against how far it travels.
-  ///
-  /// A wheel notch reports about a hundred units and a finger reports the
-  /// pixels it crossed, so one-to-one makes the corridor several times
-  /// longer to a thumb than to a mouse. Matched to the intro's own gain, so
-  /// the two stages answer a swipe at the same rate.
-  static const double dragScrollGain = 2;
-
-  static const double scrollDirection = -1;
 
   /// Identifies the stand-in shown while the corridor is still building.
   static const Key placeholderKey = ValueKey('gallery-placeholder');
@@ -180,7 +161,12 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// The order the visitor steps through the work in — by depth down the
   /// corridor, both walls interleaved. See [FocusOrder].
-  late final List<Placement> _pickable = GalleryLayout.build();
+  late final List<Placement> _pickable = GalleryLayout.build(shape: _shape);
+
+  /// The shell and lens the scene was built for; the camera, picking and
+  /// focus follow it so they agree with the walls.
+  GalleryShape get _shape =>
+      _gallery?.shape ?? GalleryScene.ready?.shape ?? GalleryShape.desktop;
   late final WalkOrder _order = WalkOrder(_pickable);
 
   /// The piece being read, or null while walking the corridor.
@@ -289,10 +275,18 @@ class _GalleryViewState extends State<GalleryView> {
   /// on the future awaited here. A `catch` around the await never sees it, and
   /// what should have been this view's failure screen becomes an unhandled
   /// error that takes the app down with it.
+  /// The corridor's shape for this screen, if this view starts the build
+  /// (normally the loading screen already has).
+  GalleryShape _shapeForScreen() {
+    final size = MediaQuery.maybeSizeOf(context);
+    if (size == null || size.isEmpty) return GalleryShape.desktop;
+    return GalleryShape.forAspect(size.width / size.height);
+  }
+
   void _load() {
     runZonedGuarded(
       () async {
-        final gallery = await GalleryScene.warmUp();
+        final gallery = await GalleryScene.warmUp(shape: _shapeForScreen());
         if (!mounted) {
           // Disposed while the build was in flight; nothing will ever show it,
           // so release it here rather than leaking a whole scene.
@@ -533,7 +527,6 @@ class _GalleryViewState extends State<GalleryView> {
     // dismissing on any miss would make the room feel like it was trying to
     // get rid of you.
     if (hit == null) return;
-
 
     _sound(AudioCue.click);
     _focus(hit);
@@ -777,7 +770,7 @@ class _GalleryViewState extends State<GalleryView> {
                   // way at the entrance simply holds there rather than running
                   // off the start.
                   _scroll.scrollBy(
-                    event.scrollDelta.dy * GalleryView.scrollDirection,
+                    GalleryInput.wheelStep(event.scrollDelta.dy),
                   );
                 },
                 // Without this the placeholder is not a hit-test target, and
@@ -814,12 +807,8 @@ class _GalleryViewState extends State<GalleryView> {
                   if (!_gate.accept(_clock.elapsedMilliseconds)) return;
 
                   // A finger moving up walks forward: the room follows the
-                  // hand rather than opposing it.
-                  _scroll.scrollBy(
-                    -event.delta.dy *
-                        GalleryView.dragScrollGain *
-                        GalleryView.scrollDirection,
-                  );
+                  // hand rather than opposing it ([GalleryInput.dragStep]).
+                  _scroll.scrollBy(GalleryInput.dragStep(event.delta.dy));
                 },
                 onPointerUp: (event) {
                   final dragged = _dragDistance > _tapSlop;
@@ -992,7 +981,7 @@ class _GalleryViewState extends State<GalleryView> {
       },
       cameraBuilder: (_) {
         final camera = PerspectiveCamera(
-          fovRadiansY: GalleryDimensions.fovRadians,
+          fovRadiansY: _shape.fovRadians,
           // The camera crosses the same boundary as the room, or it would
           // pan away from the wall it is meant to be tracking.
           position: SceneAxes.position(_eye ?? _targetPose().position),
@@ -1021,6 +1010,7 @@ class _GalleryViewState extends State<GalleryView> {
     return ProjectFocus.poseFor(
       frame,
       aspect: _viewSize.isEmpty ? 16 / 9 : _viewSize.width / _viewSize.height,
+      shape: _shape,
     );
   }
 

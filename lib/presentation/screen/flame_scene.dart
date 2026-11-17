@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
+import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
@@ -75,6 +77,15 @@ class FlameScene extends StatelessWidget {
   ///
   /// Deferred to after the first frame because building the scene needs a GPU
   /// context, which does not exist until the engine has painted once.
+  /// The window's width over height, read off the engine: the warm-up runs
+  /// outside any widget's build. A laptop's when there is no view yet.
+  static double _screenAspect() {
+    final size = WidgetsBinding.instance.platformDispatcher.implicitView
+        ?.physicalSize;
+    if (size == null || size.isEmpty) return GalleryCameraPath.landscape;
+    return size.width / size.height;
+  }
+
   static void _warmGallery(SceneBloc bloc) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Guarded, not merely awaited. The scene brings up a GPU context, and
@@ -88,6 +99,9 @@ class FlameScene extends StatelessWidget {
       runZonedGuarded(
         () {
           GalleryScene.warmUp(
+            // The corridor's shape for this screen, chosen once with the
+            // build (see [GalleryShape]).
+            shape: GalleryShape.forAspect(_screenAspect()),
             onProgress: (value) => bloc.add(
               SceneEvent.loadingProgressed(
                 phase: LoadingPhase.gallery,

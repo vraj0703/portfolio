@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/config/mark_travel.dart';
+import 'package:portfolio/domain/config/title_chrome.dart';
 
 void main() {
   const viewport = Size(1440, 900);
@@ -98,7 +99,12 @@ void main() {
       const phone = Size(390, 844);
       final parked = MarkTravel.at(1, viewport: phone);
 
-      expect(parked.bounds.left, closeTo(LogoConfig.exitMargin, 1e-9));
+      // A phone parks it by Material's rule, beside the action row.
+      final rule = TitleChrome.compactMarkRect(phone);
+      expect(parked.centre.dx, closeTo(rule.center.dx, 1e-9));
+      expect(parked.centre.dy, closeTo(rule.center.dy, 1e-9));
+      expect(parked.size.height, closeTo(rule.height, 1e-9));
+      expect(parked.bounds.left, closeTo(TitleChrome.edge, 1e-9));
       expect(parked.bounds.right, lessThan(phone.width));
       expect(parked.bounds.bottom, lessThan(phone.height));
     });

@@ -48,7 +48,8 @@ abstract final class GalleryDimensions {
   /* -- Camera ---------------------------------------- */
 
   /// Vertical field of view, in radians (65°, matching the R3F camera).
-  static const double fovRadians = 65 * 3.141592653589793 / 180;
+  static const double fovDegrees = 65;
+  static const double fovRadians = fovDegrees * 3.141592653589793 / 180;
 
   /// Extra breathing room around a frame when the camera focuses it.
   static const double focusMargin = 1.5;

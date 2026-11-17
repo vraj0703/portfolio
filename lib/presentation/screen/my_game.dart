@@ -154,7 +154,8 @@ class MyGame extends FlameGame
             priority: SceneLayers.mark,
           )
           ..homePosition = centre.clone()
-          ..homeSize = markSize.clone();
+          ..homeSize = markSize.clone()
+          ..viewport = size.clone();
 
     _overlay = LogoOverlayComponent(palette: palette, queuer: queuer)
       ..priority = SceneLayers.affordance;
@@ -375,7 +376,8 @@ class MyGame extends FlameGame
     _shadow.size = size;
     _mark
       ..homePosition = centre.clone()
-      ..homeSize = markSize.clone();
+      ..homeSize = markSize.clone()
+      ..viewport = size.clone();
 
     // Only reposition the mark when it is actually at home — mid-retreat it
     // is between the centre and its corner, and snapping it back would undo
