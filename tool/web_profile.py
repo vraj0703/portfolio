@@ -74,10 +74,14 @@ class Cdp:
 
 
 async def mean_colour(cdp):
-    """Mean RGB of the screen, sampled small: enough to tell the logo's tan from the title's dark."""
+    """Mean RGB of the screen: enough to tell the logo's tan from the title's dark.
+
+    Never with a `clip`: on Android Chrome a clipped capture resizes the viewport for the shot
+    (412x764 to 980x1819 and back, seen 2026-11-17 on the ROG), and the app under test pays for
+    every flip: CanvasKit's resizeCanvas, and flutter_scene reallocating its render targets. The
+    whole screen at low quality, scaled down here, costs the page nothing."""
     try:
-        r = await cdp("Page.captureScreenshot", format="jpeg", quality=40,
-                      clip={"x": 0, "y": 0, "width": W, "height": H, "scale": 0.05})
+        r = await cdp("Page.captureScreenshot", format="jpeg", quality=20)
     except RuntimeError:
         # Between navigation and the first frame there is no page to capture yet.
         return (0, 0, 0)

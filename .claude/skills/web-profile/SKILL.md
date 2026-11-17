@@ -188,6 +188,13 @@ throttling: its own CPU, GPU, screen and network.
 
 What reads differently on the phone:
 
+- **Never clip a screenshot on the phone.** `Page.captureScreenshot` with a `clip` resizes
+  Android Chrome's viewport for the shot (412x764 to 980x1819 and back, verified 2026-11-17 on
+  the ROG). The app pays for each flip: CanvasKit `resizeCanvas` (150-450 ms) and flutter_scene
+  reallocating every render target, which surfaced on gallery arrival as `checkFramebufferStatus`
+  0.4-1.2 s whenever the last flip left the primer at the other size. Traces taken before
+  2026-11-17 carry this; `mean_colour` now captures the whole screen unclipped.
+
 - **Frame p50/p95 from `FireAnimationFrame` is not reliable there**: the phone's trace held
   only about 25 of them in a 30 s scenario.
 - **What to trust on a device**: long tasks (count, longest), stalls over 500 ms, the

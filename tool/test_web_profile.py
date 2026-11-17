@@ -87,3 +87,14 @@ class AfterLoaded(unittest.TestCase):
 
     def test_none_without_a_tap_mark(self):
         self.assertIsNone(wp.after_loaded(_trace([(0, 200)], []), 100))
+
+
+class ScreenSampling(unittest.TestCase):
+    def test_mean_colour_never_clips_the_capture(self):
+        # A clipped capture resizes the phone's viewport for the shot, and the app under test
+        # pays for each flip (resizeCanvas, render targets reallocated): the tool made stalls.
+        cdp = FakeCdp()
+        asyncio.run(wp.mean_colour(cdp))
+        shots = [p for m, p in cdp.calls if m == "Page.captureScreenshot"]
+        self.assertEqual(len(shots), 1)
+        self.assertNotIn("clip", shots[0])
