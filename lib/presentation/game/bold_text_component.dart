@@ -2,7 +2,10 @@ import 'dart:ui' as ui;
 
 import 'package:portfolio/domain/config/bold_text_layout.dart';
 import 'package:flame/components.dart';
+import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 
 /// The bold-text stage, drawn entirely by its shader.
 ///
@@ -16,7 +19,9 @@ import 'package:flutter/material.dart';
 /// shader, rather than laid out per frame: the shader needs to sample it at
 /// arbitrary offsets to blur, scale and reflect it, which it cannot do with
 /// glyphs it has never seen.
-class BoldTextComponent extends PositionComponent {
+class BoldTextComponent extends PositionComponent
+    with FlameBlocListenable<SceneBloc, SceneState>
+    implements Rehearsable {
   BoldTextComponent({
     required this.shader,
     required this.text,
@@ -116,27 +121,45 @@ class BoldTextComponent extends PositionComponent {
     }
   }
 
-  /// Whether the shader's program has been compiled yet, by [render]'s
-  /// one invisible warm-up draw.
-  bool _warmed = false;
+  /// Whether the scene rehearses the title stage ([SceneState.rehearsesTitle]).
+  bool _rehearsing = false;
 
-  /// What [render] does this frame: compile the shader with an invisible
-  /// draw, draw it for real, or nothing.
+  @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+    _rehearsing = state.rehearsesTitle;
+  }
+
+  @override
+  void onNewState(SceneState state) {
+    super.onNewState(state);
+    _rehearsing = state.rehearsesTitle;
+  }
+
+  /// Ready once the text has been rasterised into the texture the shader
+  /// samples: the real draw needs it.
+  @override
+  bool get readyToRehearse => isMounted && _texture != null;
+
+  /// The draw is the full screen, so its centre is inked.
+  @override
+  List<Vector2> get rehearsalPoints => <Vector2>[absoluteCenter];
+
+  /// What [render] does this frame.
   ///
-  /// The warm-up exists because skipping the draw at the extremes (below)
-  /// meant the shader's first draw was the visitor's first scroll step, and
-  /// that is when CanvasKit compiles it into a GPU program. A trace of the
-  /// touch scroll on a phone profile (tool/web_profile.py, flame-scroll)
-  /// showed it as one 420-460 ms frame, `getProgramParameter` under
-  /// `Surface.flush`, 0.4 s after the first touch: the hang. Drawn once on the
-  /// first frame instead, the compile happens behind the loading screen.
+  /// Its real draw on the rehearsal pass while loading, so CanvasKit compiles
+  /// the program the scroll uses there and not on the visitor's first scroll
+  /// step (a 420-460 ms frame on a phone profile; 160-570 ms on the ROG).
+  /// This replaces a one-pixel warm-up draw, which compiled a different
+  /// program from the real draw: Skia keys a program on the whole draw, and
+  /// the census showed the real one still compiling in the scroll.
   @visibleForTesting
   static BoldTextDraw drawFor({
-    required bool warmed,
+    required bool rehearsing,
     required double progress,
     required double opacity,
   }) {
-    if (!warmed) return BoldTextDraw.warmUp;
+    if (rehearsing) return BoldTextDraw.rehearsal;
     if (progress <= 0.001 || progress >= 0.999) return BoldTextDraw.none;
     if (opacity <= 0.001) return BoldTextDraw.none;
     return BoldTextDraw.full;
@@ -147,14 +170,16 @@ class BoldTextComponent extends PositionComponent {
     final texture = _texture;
     if (texture == null) return;
 
-    switch (drawFor(warmed: _warmed, progress: progress, opacity: opacity)) {
-      case BoldTextDraw.warmUp:
-        // Progress 0 takes the shader's first branch and writes transparent
-        // black, so the one-pixel draw compiles the whole program and paints
-        // nothing.
-        _bind(texture, progress: 0, opacity: 0);
-        canvas.drawRect(const Rect.fromLTWH(0, 0, 1, 1), _paint);
-        _warmed = true;
+    switch (drawFor(
+      rehearsing: _rehearsing && RehearsalPass.active,
+      progress: progress,
+      opacity: opacity,
+    )) {
+      case BoldTextDraw.rehearsal:
+        // Mid-sequence, at full strength: the scroll's own draw. Only the
+        // uniforms differ from any frame of the scroll, not the program.
+        _bind(texture, progress: 0.5, opacity: 1);
+        canvas.drawRect(size.toRect(), _paint);
         return;
       case BoldTextDraw.none:
         // The shader draws nothing at either extreme, so skipping the draw
@@ -200,8 +225,8 @@ class BoldTextComponent extends PositionComponent {
 
 /// What [BoldTextComponent.render] does in a frame.
 enum BoldTextDraw {
-  /// The one invisible draw that compiles the shader, on the first frame.
-  warmUp,
+  /// The real draw, on the rehearsal pass while loading.
+  rehearsal,
 
   /// Nothing: the shader would draw nothing anyway.
   none,

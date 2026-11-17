@@ -555,6 +555,7 @@ class MyGame extends FlameGame
     _backdrop,
     _title,
     _scrollCue,
+    _boldText,
   ];
 
   /// The game `RehearsalPixel` draws from, while it is mounted.
