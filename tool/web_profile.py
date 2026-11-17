@@ -54,6 +54,12 @@ class Cdp:
                 return msg.get("result", {})
             self.events.append(msg)
 
+    async def send(self, method, **params):
+        """Send without waiting: the reply is read later by the next awaited call, and dropped
+        (it has no `method`, so wait_event never matches it)."""
+        self.n += 1
+        await self.ws.send(json.dumps({"id": self.n, "method": method, "params": params}))
+
     async def wait_event(self, name, timeout=120):
         end = time.monotonic() + timeout
         while time.monotonic() < end:
@@ -94,7 +100,27 @@ def adb_input(*args):
                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
-async def touch_swipe(cdp, x, y1, y2, ms=300, steps=12):
+async def touch_drag(cdp, x, y1, y2, ms=300, steps=6):
+    """A touch drag through CDP, so the page sees pointerType 'touch'. The corridor
+    (gallery_view.dart) accepts touch and stylus only; `adb shell input swipe` arrives in Chrome
+    with an empty pointerType (Flutter's PointerDeviceKind.unknown) and never walks it. On a
+    phone each CDP call is a round trip over adb (about a second), so the events are sent
+    without waiting for their replies, paced by the clock, and one call at the end drains them."""
+    await cdp.send("Input.dispatchTouchEvent", type="touchStart", touchPoints=[{"x": x, "y": y1}])
+    for i in range(1, steps + 1):
+        await asyncio.sleep(ms / 1000 / steps)
+        y = y1 + (y2 - y1) * i / steps
+        await cdp.send("Input.dispatchTouchEvent", type="touchMove", touchPoints=[{"x": x, "y": y}])
+    await cdp.send("Input.dispatchTouchEvent", type="touchEnd", touchPoints=[])
+    await cdp("Runtime.evaluate", expression="0")
+
+
+async def touch_swipe(cdp, x, y1, y2, ms=300, steps=12, corridor=False):
+    """A swipe. With `corridor`, always a CDP touch drag (see touch_drag); otherwise, in --remote
+    mode, a kernel-level `adb shell input swipe`, which the Flame title scrolls by."""
+    if corridor:
+        await touch_drag(cdp, x, y1, y2, ms)
+        return
     if ADB:
         # Real kernel-level touch at the device's own pace. CDP touch events over adb are one
         # round trip each (about a second), so a CDP "swipe" on a phone is not a swipe.
@@ -132,7 +158,7 @@ async def scenario_gallery_walk(cdp):
     await scenario_flame_scroll(cdp)
     await asyncio.sleep(4)
     for _ in range(8):
-        await touch_swipe(cdp, W / 2, H * 0.75, H * 0.25)
+        await touch_swipe(cdp, W / 2, H * 0.75, H * 0.25, corridor=True)
         await asyncio.sleep(0.5)
     await asyncio.sleep(2)
 
@@ -154,7 +180,7 @@ async def scenario_journey(cdp):
     await asyncio.sleep(4)
     await phase(cdp, "corridor")
     for _ in range(2):
-        await touch_swipe(cdp, W / 2, H * 0.6, H * 0.5)
+        await touch_swipe(cdp, W / 2, H * 0.6, H * 0.5, corridor=True)
         await asyncio.sleep(1)
     await asyncio.sleep(2)
     await phase(cdp, "focus")
@@ -297,7 +323,7 @@ async def record_one(url, scenario, path, remote=None):
 
 async def _walk_only(cdp):
     for _ in range(8):
-        await touch_swipe(cdp, W / 2, H * 0.75, H * 0.25)
+        await touch_swipe(cdp, W / 2, H * 0.75, H * 0.25, corridor=True)
         await asyncio.sleep(0.5)
     await asyncio.sleep(2)
 

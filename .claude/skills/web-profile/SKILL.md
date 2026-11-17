@@ -180,6 +180,11 @@ throttling: its own CPU, GPU, screen and network.
 6. **Input through adb, not CDP**: each CDP touch event over adb is a round trip of about a
    second, so a CDP "swipe" on a phone is a dozen taps a second apart. In `--remote` mode the
    tool sends `adb shell input swipe/tap` in device pixels (CSS px x devicePixelRatio).
+   **Except in the corridor**: adb's swipes reach Chrome with an empty `pointerType`, which
+   Flutter reads as an unknown pointer kind, and the corridor (`gallery_view.dart`) walks for
+   touch and stylus only. So corridor drags go through CDP `Input.dispatchTouchEvent`, sent
+   without waiting for each reply (`touch_drag`). Verified 2026-11-17 on the ROG: the journey's
+   corridor part changed 0.3% of pixels with adb swipes, 26.5% with CDP touch (a walk forward).
 
 What reads differently on the phone:
 
