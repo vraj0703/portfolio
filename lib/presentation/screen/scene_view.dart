@@ -12,7 +12,6 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
-import 'package:portfolio/presentation/gallery/gallery_warm_render.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/my_game.dart';
 import 'package:portfolio/presentation/screen/scene_input.dart';
@@ -64,28 +63,6 @@ class SceneView extends StatelessWidget {
             builder: (context, state) => state is Gallery
                 ? const GalleryView()
                 : const SizedBox.shrink(),
-          ),
-
-          // Bottom of the stack, and painted over by everything above it. This
-          // is the gallery being drawn once, small, while the intro is still
-          // running, so the frame the visitor actually arrives on is not the
-          // one paying to compile its shaders. Rebuilt with the rest of the
-          // tree, so it appears on the first state change after the scene
-          // finishes building and stops mattering once the real view mounts.
-          // Positioned, because a non-positioned child of an expanding Stack is
-          // given tight constraints — the warm render's own size would be
-          // discarded and it would draw at full screen, which is the expense it
-          // exists to avoid.
-          Positioned(
-            top: 0,
-            left: 0,
-            width: GalleryWarmRender.edge,
-            height: GalleryWarmRender.edge,
-            child: BlocBuilder<SceneBloc, SceneState>(
-              builder: (context, state) => state is Gallery
-                  ? const SizedBox.shrink()
-                  : const GalleryWarmRender(),
-            ),
           ),
 
           // Deliberately outside the BlocBuilder: the game must not be rebuilt

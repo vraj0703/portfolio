@@ -9,30 +9,40 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 
-/// Draws the finished corridor behind the loading curtain, so the first time
-/// it is drawn is not the moment the visitor walks into it.
+/// Draws the finished gallery behind the loading curtain, at its real size
+/// and down its whole length, so that nothing the visitor meets in it is
+/// drawn for the first time in front of them.
 ///
 /// Building the gallery and *drawing* it are two different costs, and only
 /// the first was being paid early. `GalleryScene.warmUp` runs during loading
 /// and hands the view a finished scene synchronously, so nothing is assembled
-/// at the transition — yet arriving still stuttered, because the first draw
-/// of a material is where its pipeline gets compiled. That bill was landing
-/// on the first frame in the corridor, which is the frame a visitor watches
-/// most closely.
+/// at the transition. The first draw is a bill of its own: pipelines compiled
+/// for each material, and the render targets the frame is drawn into
+/// allocated and checked. It is paid here, under a curtain that is already
+/// asking the visitor to wait. Loading takes a little longer; arriving takes
+/// none.
 ///
-/// It is paid here instead, under a curtain that is already asking them to
-/// wait. Loading takes a little longer; arriving takes none.
+/// Three things make this work, and each has been got wrong before:
 ///
-/// Two things make this work, and both have been got wrong before:
+/// **The real size.** A [Scene] keeps one set of render targets per view and
+/// drops and rebuilds them whenever the size it is asked to draw at changes.
+/// This drew at a twentieth of the pixels, and a one-pixel warm render ran
+/// again during the title; the corridor's own first frame then asked for the
+/// full size and paid for every target anew. On a phone that is four
+/// full-screen multisampled buffers and their framebuffer checks: a
+/// 0.4-0.9 s stall on arrival (ROG Phone II, 2026-11-17). Drawn here at the
+/// device's own pixel ratio, through the same full-screen box, the targets
+/// the corridor needs already exist when it arrives.
 ///
-/// A warm-up that draws something *other* than what the visitor will see
-/// compiles the wrong pipelines. An earlier attempt drew the skills board
-/// from the corridor's start — thirty units away behind two walls, where
-/// there is every chance it was culled and nothing was submitted at all. So
-/// this renders the real scene through the real entry camera: same field of
-/// view, same pose, same frustum, therefore the same nodes submitted.
+/// **The whole walk.** `flutter_scene` culls against the view frustum, so a
+/// node the camera cannot see is never submitted and never warmed. Parked at
+/// the entrance this warmed the first wall and nothing else, and the hitch
+/// moved down the corridor to the second or third picture. So the camera
+/// walks the visitor's own path, one viewpoint per frame, counted in frames
+/// rather than time: a phone that draws slowly under the curtain still sees
+/// every stretch of wall.
 ///
-/// And it must genuinely paint. `Offstage`, a zero-size box, or an `Opacity`
+/// **It must genuinely paint.** `Offstage`, a zero-size box, or an `Opacity`
 /// of nothing all skip the raster stage, which is the whole of what is being
 /// warmed. It is full size, and simply covered.
 class GalleryPrimer extends StatefulWidget {
@@ -45,32 +55,38 @@ class GalleryPrimer extends StatefulWidget {
   /// curtain that never lifts.
   final Queuer queuer;
 
-  /// How much of the screen the warm-up actually rasterises.
+  /// Frames spent walking the corridor, entrance to the board, one
+  /// viewpoint each.
+  static const int walkFrames = 24;
+
+  /// Frames back at the entrance after the walk.
   ///
-  /// Almost none. Which pipelines get compiled depends on the materials
-  /// submitted, not on how many pixels they cover — and culling is decided by
-  /// the view frustum, which does not change with raster size either. The
-  /// same pipelines are built either way, so rendering the corridor at a
-  /// twentieth scale keeps the warm-up from competing with the loading it is
-  /// hiding behind.
-  static const double pixelRatio = 0.05;
+  /// The arrival's own view, drawn last: it is the frame the visitor sees
+  /// first, and a compile's tail should land here, under the curtain, and
+  /// not on the raster thread as the curtain lifts.
+  static const int settleFrames = 4;
 
   /// How many frames count as warmed.
-  ///
-  /// A pipeline is compiled the first time it is drawn, so one frame is the
-  /// whole of the work in principle. A few more because that first frame is
-  /// where the compiling happens and is therefore the slow one: stopping on
-  /// it hands its tail to the raster thread at the moment the curtain lifts,
-  /// which moves the stutter rather than removing it.
-  static const int warmFrames = 5;
+  static const int warmFrames = walkFrames + settleFrames;
 
-  /// The corridor exactly as the visitor first meets it.
+  /// Where along the corridor the primer stands on frame [frame]: the walk,
+  /// then the entrance.
+  static double progressFor(int frame) {
+    if (frame >= walkFrames) return 0;
+    return frame / (walkFrames - 1);
+  }
+
+  /// The camera on frame [frame], for a view of [aspect] (width over height).
   ///
-  /// `poseAt(0)` and the room's own field of view, so the frustum here is the
-  /// frustum there. Anything this camera can see is a pipeline the arrival
-  /// will not have to stop and compile.
-  static PerspectiveCamera entryCameraFor(GalleryShape shape) {
-    final pose = GalleryCameraPath.poseAt(0);
+  /// The room's own field of view and the path's own pose for this aspect,
+  /// so the frustum here is the frustum there: a portrait phone walks the
+  /// portrait path.
+  static PerspectiveCamera cameraFor(
+    GalleryShape shape,
+    int frame, {
+    double aspect = GalleryCameraPath.landscape,
+  }) {
+    final pose = GalleryCameraPath.poseAt(progressFor(frame), aspect: aspect);
 
     return PerspectiveCamera(
       fovRadiansY: shape.fovRadians,
@@ -78,6 +94,12 @@ class GalleryPrimer extends StatefulWidget {
       target: SceneAxes.position(pose.target),
     );
   }
+
+  /// The corridor exactly as the visitor first meets it.
+  static PerspectiveCamera entryCameraFor(
+    GalleryShape shape, {
+    double aspect = GalleryCameraPath.landscape,
+  }) => cameraFor(shape, warmFrames - 1, aspect: aspect);
 
   @override
   State<GalleryPrimer> createState() => _GalleryPrimerState();
@@ -90,16 +112,11 @@ class _GalleryPrimerState extends State<GalleryPrimer> {
 
   /// Looks again next frame, until there is a scene to draw.
   ///
-  /// Belt and braces, and the braces are the point: the curtain now *waits*
-  /// on this widget, so a primer that misses its moment does not degrade the
-  /// experience — it strands the visitor behind a bar that never fills.
-  ///
-  /// It missed it once already. The scene used to be published after the
-  /// report that completes the gallery phase, and that report is the last
-  /// thing to rebuild this tree — so the final build saw no scene, and there
-  /// was no later change to wake it. That ordering is fixed, but relying on
-  /// "some rebuild will happen at the right moment" is what failed, and this
-  /// removes the dependency rather than re-tuning it.
+  /// The curtain waits on this widget, so a primer that misses its moment
+  /// does not degrade the experience — it strands the visitor behind a bar
+  /// that never fills. It missed it once (the scene was published after the
+  /// last rebuild of this tree), so this does not rely on "some rebuild will
+  /// happen at the right moment".
   void _lookAgainNextFrame() {
     if (_watching) return;
     _watching = true;
@@ -138,14 +155,30 @@ class _GalleryPrimerState extends State<GalleryPrimer> {
       return const SizedBox.shrink();
     }
 
-    return SceneView(
-      gallery.scene,
-      pixelRatio: GalleryPrimer.pixelRatio,
-      camera: GalleryPrimer.entryCameraFor(gallery.shape),
-      // Counted from the render loop rather than from a timer: what is being
-      // waited on is frames actually drawn, and a clock cannot tell the
-      // difference between a frame and a stall.
-      onTick: (_, _) => _countFrame(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final size = constraints.biggest;
+        final aspect = size.isEmpty || !size.isFinite
+            ? GalleryCameraPath.landscape
+            : size.width / size.height;
+
+        return SceneView(
+          gallery.scene,
+          // No pixelRatio: the device's own, which is what the corridor's
+          // view uses. The size is the render targets' key, see above.
+          cameraBuilder: (_) => GalleryPrimer.cameraFor(
+            gallery.shape,
+            // The frame about to be drawn. Held on the last once finished:
+            // the curtain may take a moment more to lift.
+            _drawn.clamp(0, GalleryPrimer.warmFrames - 1),
+            aspect: aspect,
+          ),
+          // Counted from the render loop rather than from a timer: what is
+          // being waited on is frames actually drawn, and a clock cannot tell
+          // the difference between a frame and a stall.
+          onTick: (_, _) => _countFrame(),
+        );
+      },
     );
   }
 }
