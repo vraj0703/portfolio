@@ -97,6 +97,13 @@ class SecondaryTitleComponent extends PositionComponent {
     }
   }
 
+  /// Passed down from the title layer: see [MetallicTextComponent.rehearsing].
+  set rehearsing(bool value) {
+    for (final glyph in _glyphs) {
+      glyph.rehearsing = value;
+    }
+  }
+
   /// Starts the entry. Ignored if it is already running.
   void begin() {
     if (_elapsed != null) return;

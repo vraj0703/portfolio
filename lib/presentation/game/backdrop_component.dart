@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -119,7 +120,10 @@ class BackdropComponent extends PositionComponent
   @override
   void render(Canvas canvas) {
     if (size.x <= 0 || size.y <= 0) return;
-    final passes = passesFor(rehearsing: _rehearsing, opacity: _opacity);
+    final passes = passesFor(
+      rehearsing: _rehearsing && RehearsalPass.active,
+      opacity: _opacity,
+    );
     if (passes.isEmpty) return;
 
     shader

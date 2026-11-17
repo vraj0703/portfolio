@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 
 /// Text painted with the metallic shader, so the glyphs read as brushed metal
 /// catching a moving light rather than as a flat fill.
@@ -58,9 +59,18 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
     _elapsed += dt;
   }
 
+  /// Set by the title layer from `SceneState.rehearsesTitle`: draw at full
+  /// strength whatever [fade] says, so the real draw (and its GPU program)
+  /// is made while loading. Only a uniform changes, not the program.
+  bool rehearsing = false;
+
   @override
   void render(Canvas canvas) {
-    if (fade <= 0.001) return;
+    final shown = RehearsalPass.strength(
+      rehearsing: rehearsing,
+      otherwise: fade,
+    );
+    if (shown <= 0.001) return;
     if (size.x <= 0 || size.y <= 0) return;
 
     // The shader reads `FlutterFragCoord()`, which is in physical pixels, so
@@ -80,7 +90,7 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
       ..setFloat(5, baseColor.r)
       ..setFloat(6, baseColor.g)
       ..setFloat(7, baseColor.b)
-      ..setFloat(8, fade.clamp(0.0, 1.0))
+      ..setFloat(8, shown.clamp(0.0, 1.0))
       ..setFloat(9, lightPosition.x * dpr)
       ..setFloat(10, lightPosition.y * dpr);
 
