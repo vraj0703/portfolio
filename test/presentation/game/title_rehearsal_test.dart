@@ -75,7 +75,12 @@ void main() {
         final source = File(
           'lib/presentation/screen/rehearsal_pixel.dart',
         ).readAsStringSync();
-        expect(source, contains('clipRect(Rect.fromLTWH(0, 0, pixel, pixel))'));
+        expect(
+          source,
+          contains(
+            'clipRect(Rect.fromLTWH(0, 0, pixel, pixel), doAntiAlias: false)',
+          ),
+        );
         expect(source, contains('1 / View.of(context).devicePixelRatio'));
         expect(source, isNot(contains('saveLayer')));
         expect(source, isNot(contains('Opacity')));

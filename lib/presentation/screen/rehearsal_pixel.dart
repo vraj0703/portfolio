@@ -65,7 +65,10 @@ class _RehearsalPainter extends CustomPainter {
     if (game == null) return;
     canvas
       ..save()
-      ..clipRect(Rect.fromLTWH(0, 0, pixel, pixel));
+      // Hard-edged: an antialiased clip that is not exactly one device pixel
+      // (1 / 2.625 is not, in floating point) becomes a coverage clip, which
+      // adds a stage to every program and so compiles different ones.
+      ..clipRect(Rect.fromLTWH(0, 0, pixel, pixel), doAntiAlias: false);
     game.rehearseInto(canvas);
     canvas.restore();
   }

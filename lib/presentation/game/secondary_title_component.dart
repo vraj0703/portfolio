@@ -97,6 +97,10 @@ class SecondaryTitleComponent extends PositionComponent {
     }
   }
 
+  /// Whether every glyph is mounted, and so can be drawn.
+  bool get glyphsMounted =>
+      isMounted && _glyphs.isNotEmpty && _glyphs.every((g) => g.isMounted);
+
   /// Passed down from the title layer: see [MetallicTextComponent.rehearsing].
   set rehearsing(bool value) {
     for (final glyph in _glyphs) {

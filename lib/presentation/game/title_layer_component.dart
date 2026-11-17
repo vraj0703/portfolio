@@ -7,6 +7,7 @@ import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/metallic_text_component.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/presentation/game/secondary_title_component.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/domain/config/title_timeline.dart';
@@ -22,7 +23,8 @@ import 'package:portfolio/domain/config/title_timeline.dart';
 /// pause is doing work; compressing them makes the stage read as a single
 /// event rather than an arrival.
 class TitleLayerComponent extends PositionComponent
-    with FlameBlocListenable<SceneBloc, SceneState> {
+    with FlameBlocListenable<SceneBloc, SceneState>
+    implements Rehearsable {
   TitleLayerComponent({
     required this.palette,
     required this.program,
@@ -167,6 +169,12 @@ class TitleLayerComponent extends PositionComponent
       },
     );
   }
+
+  /// Ready once the name and every glyph of the line beneath are mounted:
+  /// they are added in [onLoad] without waiting, so they arrive after this.
+  @override
+  bool get readyToRehearse =>
+      isMounted && _primary.isMounted && _secondary.glyphsMounted;
 
   /// The scene's rule ([SceneState.rehearsesTitle]), handed to the glyphs,
   /// which have no state of their own. Drawing only: the timeline, the cues

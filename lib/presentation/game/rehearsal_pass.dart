@@ -17,3 +17,13 @@ abstract final class RehearsalPass {
     required double otherwise,
   }) => rehearsing && active ? 1.0 : otherwise;
 }
+
+/// A member of the rehearsal cast that can say when everything it draws is
+/// ready to be drawn.
+///
+/// Mounted is not enough: the title layer mounts before the glyphs it adds,
+/// and its first rehearsal frames drew no text at all (GL census, Pixel
+/// profile, 2026-11-17: the metallic program still linked on the title).
+abstract interface class Rehearsable {
+  bool get readyToRehearse;
+}

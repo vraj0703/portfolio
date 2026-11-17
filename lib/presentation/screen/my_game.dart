@@ -575,6 +575,11 @@ class MyGame extends FlameGame
     super.onRemove();
   }
 
+  static bool _readyToRehearse(Component actor) => switch (actor) {
+    final Rehearsable cast => cast.readyToRehearse,
+    _ => actor.isMounted,
+  };
+
   /// Draws the rehearsal cast into [canvas], which the caller has clipped,
   /// and counts the frame into [LoadingPhase.rehearsal].
   ///
@@ -589,7 +594,7 @@ class MyGame extends FlameGame
     // drawn in full while the loading it hides behind is still running.
     if (_rehearsed >= rehearsalFrames) return;
     if (!bloc.state.rehearsesTitle) return;
-    if (!isLoaded || !_rehearsalCast.every((c) => c.isMounted)) return;
+    if (!isLoaded || !_rehearsalCast.every(_readyToRehearse)) return;
 
     RehearsalPass.active = true;
     try {
