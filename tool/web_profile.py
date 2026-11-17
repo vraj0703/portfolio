@@ -20,7 +20,7 @@ Needs: python3 with `websockets`, Google Chrome at the usual Windows path (CHROM
 override). Everything it knows about a trace is in `summarise()`; see the skill
 .claude/skills/web-profile/SKILL.md for what each number means.
 """
-import argparse, asyncio, base64, io, json, os, statistics, subprocess, sys, tempfile, time, urllib.request
+import argparse, asyncio, base64, bisect, io, json, os, statistics, subprocess, sys, tempfile, time, urllib.request
 from collections import Counter, defaultdict
 
 CHROME = os.environ.get("CHROME", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
@@ -522,6 +522,7 @@ def stalls(events, over_ms=100):
             samples.append((t, nodes.get((pid_, sid), f"#{sid}"), max(dt, 0)))
         clock[pid_] = t
     samples.sort()
+    sample_ts = [s[0] for s in samples]
 
     out, end = [], -1
     tasks_ = sorted((e for e in events if (e.get("pid"), e.get("tid")) == mt and e.get("ph") == "X"
@@ -541,9 +542,11 @@ def stalls(events, over_ms=100):
             if ts <= a:
                 where = name
         inside = Counter()
-        for t, name, us in samples:
-            if a <= t <= b:
-                inside[name] += us
+        # Samples are sorted by time: slice the task's window rather than scan them all, which
+        # took 20 minutes on a 470 MB phone trace when every task was asked about.
+        lo = bisect.bisect_left(sample_ts, a)
+        for t, name, us in samples[lo:bisect.bisect_right(sample_ts, b)]:
+            inside[name] += us
         top = [(n, round(us / 1000)) for n, us in inside.most_common(4) if n not in ("(program)",)][:3]
         out.append({"at_s": round((a - t_start) / 1e6, 2), "phase": where, "ms": round(dur), "top": top})
     return sorted(out, key=lambda r: r["at_s"])
