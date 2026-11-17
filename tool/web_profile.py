@@ -273,6 +273,9 @@ async def record_one(url, scenario, path, remote=None):
             if from_load:
                 await phase(cdp, "logo")
             for _ in range(30):
+                # The tap the logo accepts is `site_loaded`; the last `journey:tap` mark is it.
+                if from_load:
+                    await phase(cdp, "tap")
                 await touch_tap(cdp, W / 2, H * 0.89)
                 await asyncio.sleep(1.5)
                 r, g, b = await mean_colour(cdp)
@@ -521,6 +524,25 @@ def stalls(events, over_ms=100):
     return sorted(out, key=lambda r: r["at_s"])
 
 
+def after_loaded(events, over_ms=100):
+    """What the visitor meets after `site_loaded` (the logo accepting the tap, the last
+    `journey:tap` mark): the stalls over `over_ms`, the longest task, and ms_ready, the time
+    from navigation to that tap, as the app's own `site_loaded` reports it."""
+    taps = sorted(e["ts"] for e in events if e.get("name") == "journey:tap" and e.get("ts"))
+    if not taps:
+        return None
+    t_start = min(e["ts"] for e in events if e.get("ts"))
+    nav = [e["ts"] for e in events if e.get("name") == "navigationStart" and e.get("ts") is not None]
+    at = (taps[-1] - t_start) / 1e6
+    every = stalls(events, 0)
+    after = [r for r in every if r["at_s"] >= at]
+    return {
+        "ms_ready": round((taps[-1] - min(nav)) / 1000) if nav else None,
+        "stalls": [r for r in after if r["ms"] > over_ms],
+        "longest": max(after, key=lambda r: r["ms"], default=None),
+    }
+
+
 def spread(rows, key):
     vals = [k for k in (key(r) for r in rows) if k is not None]
     if not vals:
@@ -565,7 +587,25 @@ def main():
     st = sub.add_parser("stalls", help="every main-thread task over --over ms, with its cause")
     st.add_argument("trace")
     st.add_argument("--over", type=float, default=100)
+    ld = sub.add_parser("loaded", help="after site_loaded: stalls over --over ms, longest task, ms_ready")
+    ld.add_argument("traces", nargs="+")
+    ld.add_argument("--over", type=float, default=100)
     a = ap.parse_args()
+
+    if a.cmd == "loaded":
+        for p in a.traces:
+            r = after_loaded(load_events(p), a.over)
+            if r is None:
+                print(f"{p}: no journey:tap mark (traced before the mark existed?)")
+                continue
+            lg = r["longest"]
+            print(f"{os.path.basename(p)}: ms_ready {r['ms_ready']}, stalls > {a.over:g} ms after "
+                  f"site_loaded {len(r['stalls'])}, longest {lg['ms'] if lg else 0} ms"
+                  f" ({lg['phase'] if lg else '-'})")
+            for s in r["stalls"]:
+                top = ", ".join(f"{n} {ms}" for n, ms in s["top"])
+                print(f"   {s['at_s']:7.2f} s  {s['phase']:<9} {s['ms']:5d} ms  {top}")
+        return
 
     if a.cmd == "stalls":
         for r in stalls(load_events(a.trace), a.over):

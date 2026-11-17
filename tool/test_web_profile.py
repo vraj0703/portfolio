@@ -62,3 +62,28 @@ class RemoteInput(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def _trace(tasks, marks, nav=0):
+    """A minimal trace: the renderer main thread, its tasks (start ms, length ms), user marks."""
+    ev = [{"ph": "M", "name": "thread_name", "pid": 1, "tid": 1, "args": {"name": "CrRendererMain"}},
+          {"ph": "R", "name": "navigationStart", "pid": 1, "tid": 1, "ts": nav * 1000}]
+    ev += [{"ph": "X", "name": "RunTask", "pid": 1, "tid": 1, "ts": a * 1000, "dur": d * 1000}
+           for a, d in tasks]
+    ev += [{"ph": "R", "name": f"journey:{n}", "pid": 1, "tid": 1, "ts": t * 1000} for n, t in marks]
+    return ev
+
+
+class AfterLoaded(unittest.TestCase):
+    def test_counts_only_what_follows_the_accepted_tap(self):
+        # Two taps; the logo accepted the second (site_loaded). The 300 ms task before it is
+        # loading, which is allowed to be heavy; the 250 ms one after it is a stall.
+        ev = _trace(tasks=[(1000, 300), (5000, 40), (6000, 250), (7000, 120), (8000, 90)],
+                    marks=[("tap", 4000), ("tap", 5500), ("title", 5600)])
+        r = wp.after_loaded(ev, 100)
+        self.assertEqual(r["ms_ready"], 5500)
+        self.assertEqual([s["ms"] for s in r["stalls"]], [250, 120])
+        self.assertEqual(r["longest"]["ms"], 250)
+
+    def test_none_without_a_tap_mark(self):
+        self.assertIsNone(wp.after_loaded(_trace([(0, 200)], []), 100))
