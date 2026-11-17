@@ -599,14 +599,20 @@ class MyGame extends FlameGame
     RehearsalPass.active = true;
     try {
       for (final actor in _rehearsalCast) {
-        // Centred on the pixel: a draw whose bounds miss the clip is dropped
-        // before the GPU. A translation leaves the program as it is.
-        final centre = actor.absoluteCenter;
-        canvas
-          ..save()
-          ..translate(-centre.x, -centre.y);
-        actor.renderTree(canvas);
-        canvas.restore();
+        // Moved so a pixel it inks lands on the clip: a draw whose bounds miss
+        // the clip is rejected before the GPU. A translation leaves the
+        // program as it is.
+        final points = switch (actor) {
+          final Rehearsable cast => cast.rehearsalPoints,
+          _ => <Vector2>[actor.absoluteCenter],
+        };
+        for (final point in points) {
+          canvas
+            ..save()
+            ..translate(-point.x, -point.y);
+          actor.renderTree(canvas);
+          canvas.restore();
+        }
       }
     } finally {
       RehearsalPass.active = false;

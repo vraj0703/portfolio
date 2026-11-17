@@ -182,6 +182,31 @@ class TitleLayerComponent extends PositionComponent
   void _rehearse(SceneState state) {
     _primary.rehearsing = state.rehearsesTitle;
     _secondary.rehearsing = state.rehearsesTitle;
+
+    // The name waits at scale zero for its entrance, and a draw of no size
+    // is rejected before the GPU. Rehearsed at its rest size instead; the
+    // entrance sets the scale from its timeline on its first frame
+    // (`_drivePrimary`), and the name is not drawn until then.
+    if (state.rehearsesTitle) {
+      _primary.scale = Vector2.all(
+        TitleConfig.primaryFit(
+          naturalWidth: _primary.size.x,
+          viewportWidth: _viewportWidth,
+        ),
+      );
+    }
+  }
+
+  /// Across the name's middle, where its letters are, and the centre of each
+  /// glyph of the line beneath.
+  @override
+  List<Vector2> get rehearsalPoints {
+    final box = _primary.toAbsoluteRect();
+    return <Vector2>[
+      for (var i = 1; i < 12; i++)
+        Vector2(box.left + box.width * i / 12, box.center.dy),
+      ..._secondary.glyphCentres,
+    ];
   }
 
   void _rewind() {

@@ -101,6 +101,11 @@ class SecondaryTitleComponent extends PositionComponent {
   bool get glyphsMounted =>
       isMounted && _glyphs.isNotEmpty && _glyphs.every((g) => g.isMounted);
 
+  /// The centre of each glyph, in game coordinates: ink, for most letters.
+  List<Vector2> get glyphCentres => <Vector2>[
+    for (final glyph in _glyphs) glyph.absoluteCenter,
+  ];
+
   /// Passed down from the title layer: see [MetallicTextComponent.rehearsing].
   set rehearsing(bool value) {
     for (final glyph in _glyphs) {

@@ -1,3 +1,5 @@
+import 'package:flame/components.dart';
+
 /// Marks the draws `MyGame.rehearseInto` makes through `RehearsalPixel`.
 ///
 /// The scene's rule (`SceneState.rehearsesTitle`) says *whether* the title
@@ -26,4 +28,13 @@ abstract final class RehearsalPass {
 /// profile, 2026-11-17: the metallic program still linked on the title).
 abstract interface class Rehearsable {
   bool get readyToRehearse;
+
+  /// Points, in game coordinates, that the rehearsal pixel is moved onto,
+  /// one draw each.
+  ///
+  /// Each must be a pixel the member actually inks: Skia rejects a draw, and
+  /// text glyph by glyph, whose bounds miss the clip, before any program is
+  /// built. A box's centre is the space between two words or the hole in
+  /// an O.
+  List<Vector2> get rehearsalPoints;
 }
