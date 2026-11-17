@@ -90,11 +90,47 @@ class AfterLoaded(unittest.TestCase):
 
 
 class ScreenSampling(unittest.TestCase):
-    def test_mean_colour_never_clips_the_capture(self):
+    def test_mean_colour_samples_a_screencast_frame_not_a_screenshot(self):
         # A clipped capture resizes the phone's viewport for the shot, and the app under test
         # pays for each flip (resizeCanvas, render targets reallocated): the tool made stalls.
+        # A whole-screen capture is heavier. One tiny screencast frame is neither.
+        import base64, io
+        from PIL import Image
+        buf = io.BytesIO()
+        Image.new("RGB", (4, 8), (200, 160, 112)).save(buf, "JPEG")
+        frame = {"method": "Page.screencastFrame",
+                 "params": {"sessionId": 7, "data": base64.b64encode(buf.getvalue()).decode()}}
         cdp = FakeCdp()
-        asyncio.run(wp.mean_colour(cdp))
-        shots = [p for m, p in cdp.calls if m == "Page.captureScreenshot"]
-        self.assertEqual(len(shots), 1)
-        self.assertNotIn("clip", shots[0])
+        cdp.events = [frame, dict(frame)]
+
+        async def wait_event(name, timeout=120):
+            return cdp.events.pop(0)
+        cdp.wait_event = wait_event
+
+        r, g, b = asyncio.run(wp.mean_colour(cdp))
+        methods = [m for m, _ in cdp.calls]
+        self.assertNotIn("Page.captureScreenshot", methods)
+        self.assertEqual(methods, ["Page.startScreencast", "Page.screencastFrameAck", "Page.stopScreencast"])
+        self.assertGreater(r, 150)
+        self.assertEqual(cdp.events, [], "a stale frame was left to be read next time")
+
+
+class EnterFromLogo(unittest.TestCase):
+    def test_one_tap_when_the_fade_is_slow(self):
+        # The fade reads ~143 red 1.5 s after the accepted tap and ~121 later. A second tap in
+        # that window opens the contact menu on the title and the screen never goes dark.
+        reads = iter([(217, 172, 112), (143, 105, 66), (143, 105, 66), (121, 83, 53)])
+        taps = []
+
+        async def colour(cdp):
+            return next(reads)
+
+        async def tap(cdp, x, y):
+            taps.append((x, y))
+
+        with mock.patch.object(wp, "mean_colour", colour), \
+                mock.patch.object(wp, "touch_tap", tap), \
+                mock.patch.object(asyncio, "sleep", mock.AsyncMock()):
+            entered = asyncio.run(wp.enter_from_logo(FakeCdp()))
+        self.assertTrue(entered)
+        self.assertEqual(len(taps), 1)

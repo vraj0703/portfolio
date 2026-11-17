@@ -73,19 +73,48 @@ class Cdp:
         raise TimeoutError(name)
 
 
+async def enter_from_logo(cdp, mark=True, tries=10, watch_s=5.0):
+    """Tap "TAP TO ENTER" until the logo's tan leaves the screen.
+
+    After each tap, watch for the change for up to `watch_s` before tapping again. The fade
+    still reads about 143 red 1.5 s after an accepted tap and about 121 a second later; a
+    second tap in that window lands on the title, where the contact menu now stands, and the
+    screen never goes dark (seen 2026-11-17: 30 taps, 70 s, on the ROG). The last
+    `journey:tap` mark is the tap the logo accepted, which is `site_loaded`."""
+    for _ in range(tries):
+        if mark:
+            await phase(cdp, "tap")
+        await touch_tap(cdp, W / 2, H * 0.89)
+        end = time.monotonic() + watch_s
+        while time.monotonic() < end:
+            await asyncio.sleep(0.5)
+            r, g, b = await mean_colour(cdp)
+            if r < 140:
+                return True
+    return False
+
+
 async def mean_colour(cdp):
     """Mean RGB of the screen: enough to tell the logo's tan from the title's dark.
 
     Never with a `clip`: on Android Chrome a clipped capture resizes the viewport for the shot
     (412x764 to 980x1819 and back, seen 2026-11-17 on the ROG), and the app under test pays for
-    every flip: CanvasKit's resizeCanvas, and flutter_scene reallocating its render targets. The
-    whole screen at low quality, scaled down here, costs the page nothing."""
+    every flip: CanvasKit's resizeCanvas, and flutter_scene reallocating its render targets. One
+    tiny screencast frame instead: no resize, about 30 ms and 300 bytes on the ROG, against
+    100 ms and 14 kB for a whole-screen capture."""
     try:
-        r = await cdp("Page.captureScreenshot", format="jpeg", quality=20)
-    except RuntimeError:
+        await cdp("Page.startScreencast", format="jpeg", quality=20, maxWidth=40, maxHeight=80)
+        try:
+            ev = await cdp.wait_event("Page.screencastFrame", timeout=5)
+            await cdp("Page.screencastFrameAck", sessionId=ev["params"]["sessionId"])
+        finally:
+            await cdp("Page.stopScreencast")
+    except (RuntimeError, TimeoutError, asyncio.TimeoutError):
         # Between navigation and the first frame there is no page to capture yet.
         return (0, 0, 0)
-    data = base64.b64decode(r.get("data", ""))
+    # Frames queued after the one read belong to no one: drop them so they do not pile up.
+    cdp.events = [e for e in getattr(cdp, "events", []) if e.get("method") != "Page.screencastFrame"]
+    data = base64.b64decode(ev["params"].get("data", ""))
     if not data:
         return (0, 0, 0)
     from PIL import Image
@@ -276,15 +305,7 @@ async def record_one(url, scenario, path, remote=None):
                 raise TimeoutError("logo screen never showed")
             if from_load:
                 await phase(cdp, "logo")
-            for _ in range(30):
-                # The tap the logo accepts is `site_loaded`; the last `journey:tap` mark is it.
-                if from_load:
-                    await phase(cdp, "tap")
-                await touch_tap(cdp, W / 2, H * 0.89)
-                await asyncio.sleep(1.5)
-                r, g, b = await mean_colour(cdp)
-                if r < 140:
-                    break
+            await enter_from_logo(cdp, mark=from_load)
             if from_load:
                 await phase(cdp, "title")
             await asyncio.sleep(12)  # the title's entrance, at 4x CPU
