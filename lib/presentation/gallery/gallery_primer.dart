@@ -34,13 +34,15 @@ import 'package:portfolio/presentation/gallery/scene_axes.dart';
 /// device's own pixel ratio, through the same full-screen box, the targets
 /// the corridor needs already exist when it arrives.
 ///
-/// **The whole walk.** `flutter_scene` culls against the view frustum, so a
-/// node the camera cannot see is never submitted and never warmed. Parked at
-/// the entrance this warmed the first wall and nothing else, and the hitch
-/// moved down the corridor to the second or third picture. So the camera
-/// walks the visitor's own path, one viewpoint per frame, counted in frames
-/// rather than time: a phone that draws slowly under the curtain still sees
-/// every stretch of wall.
+/// **Both ends, and no more.** `flutter_scene` culls against the view
+/// frustum, so a node the camera cannot see is never submitted and never
+/// warmed; parked at the entrance alone, an earlier warm-up moved the hitch
+/// down the corridor. So the primer draws the entrance and the far end, one
+/// frame each, counted in frames rather than time. A full-size frame is
+/// expensive on a phone: a 28-frame walk added 9.5 s of loading on the ROG
+/// (ms_ready 27.5 s to 37.0 s median), and two frames left no arrival stall
+/// either (2026-11-17: no render target allocated after the tap in a GL
+/// census, none in 3 device journeys, ms_ready 16.5 to 20.8 s).
 ///
 /// **It must genuinely paint.** `Offstage`, a zero-size box, or an `Opacity`
 /// of nothing all skip the raster stage, which is the whole of what is being
@@ -55,16 +57,15 @@ class GalleryPrimer extends StatefulWidget {
   /// curtain that never lifts.
   final Queuer queuer;
 
-  /// Frames spent walking the corridor, entrance to the board, one
-  /// viewpoint each.
-  static const int walkFrames = 24;
+  /// Frames along the corridor, entrance to the board, one viewpoint each:
+  /// the two ends.
+  static const int walkFrames = 2;
 
   /// Frames back at the entrance after the walk.
   ///
-  /// The arrival's own view, drawn last: it is the frame the visitor sees
-  /// first, and a compile's tail should land here, under the curtain, and
-  /// not on the raster thread as the curtain lifts.
-  static const int settleFrames = 4;
+  /// None: the entrance is already the walk's first frame, and every extra
+  /// full-size frame is loading the visitor waits through (see above).
+  static const int settleFrames = 0;
 
   /// How many frames count as warmed.
   static const int warmFrames = walkFrames + settleFrames;
@@ -99,7 +100,7 @@ class GalleryPrimer extends StatefulWidget {
   static PerspectiveCamera entryCameraFor(
     GalleryShape shape, {
     double aspect = GalleryCameraPath.landscape,
-  }) => cameraFor(shape, warmFrames - 1, aspect: aspect);
+  }) => cameraFor(shape, 0, aspect: aspect);
 
   @override
   State<GalleryPrimer> createState() => _GalleryPrimerState();

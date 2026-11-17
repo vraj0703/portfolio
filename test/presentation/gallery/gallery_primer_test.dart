@@ -46,10 +46,9 @@ void main() {
       );
     });
 
-    test('it walks the whole path, then stands at the entrance', () {
-      // Parked at the entrance it warmed the first wall and nothing else:
-      // the scene culls against the frustum, so the hitch moved down the
-      // corridor. The last frames are the arrival's own view.
+    test('it draws both ends of the path, entrance first', () {
+      // Parked at the entrance alone, an earlier warm-up warmed the first
+      // wall and nothing else: the scene culls against the frustum.
       expect(GalleryPrimer.progressFor(0), 0);
       expect(GalleryPrimer.progressFor(GalleryPrimer.walkFrames - 1), 1);
       for (var f = 1; f < GalleryPrimer.walkFrames; f++) {
@@ -58,8 +57,21 @@ void main() {
           greaterThan(GalleryPrimer.progressFor(f - 1)),
         );
       }
-      expect(GalleryPrimer.progressFor(GalleryPrimer.warmFrames - 1), 0);
-      expect(GalleryPrimer.settleFrames, greaterThan(1));
+    });
+
+    test('in two frames, because each one is loading time on a phone', () {
+      // 28 full-size frames added 9.5 s to loading on the ROG; two left no
+      // arrival stall (2026-11-17). More frames need a device measurement
+      // that shows a stall these two leave behind.
+      expect(GalleryPrimer.warmFrames, 2);
+      expect(GalleryPrimer.settleFrames, 0);
+    });
+
+    test('the entry camera is the entrance, whatever the frame count', () {
+      final entry = GalleryPrimer.entryCameraFor(GalleryShape.desktop);
+      final first = GalleryPrimer.cameraFor(GalleryShape.desktop, 0);
+      expect(entry.position, first.position);
+      expect(entry.target, first.target);
     });
 
     test('a portrait phone walks the portrait path', () {
