@@ -79,6 +79,45 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
   });
 
+  testWidgets('the rehearsal is covered: an opaque curtain over all of it', (
+    tester,
+  ) async {
+    // The title stage draws its real draws while loading
+    // (SceneState.rehearsesTitle). Nothing of it may show: the curtain has
+    // to cover every pixel, in a colour with no transparency, for as long
+    // as the state rehearses.
+    await tester.pumpWidget(host());
+    expect(created!.state.rehearsesTitle, isTrue);
+
+    final clipPath = tester.widget<ClipPath>(find.byType(ClipPath).first);
+    final box = tester.getSize(find.byType(ClipPath).first);
+    final clip = clipPath.clipper!.getClip(box);
+    for (final point in <Offset>[
+      const Offset(0.5, 0.5),
+      Offset(box.width - 0.5, 0.5),
+      Offset(0.5, box.height - 0.5),
+      Offset(box.width - 0.5, box.height - 0.5),
+      box.center(Offset.zero),
+      box.center(Offset.zero) + const Offset(0, 0.25),
+    ]) {
+      expect(clip.contains(point), isTrue, reason: 'uncovered at $point');
+    }
+
+    final cloth = tester.widget<ColoredBox>(
+      find.descendant(
+        of: find.byType(ClipPath).first,
+        matching: find.byType(ColoredBox),
+      ),
+    );
+    expect(
+      cloth.color.a,
+      1,
+      reason: 'a see-through curtain shows the rehearsal',
+    );
+
+    await tester.pump(const Duration(seconds: 2));
+  });
+
   testWidgets('hosts the game beneath the curtain', (tester) async {
     await tester.pumpWidget(host());
     await tester.pump();

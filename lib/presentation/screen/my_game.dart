@@ -531,4 +531,44 @@ class MyGame extends FlameGame
   void _report(double value) => queuer.queue(
     event: SceneEvent.loadingProgressed(phase: LoadingPhase.game, value: value),
   );
+
+  /* -- Rehearsal ------------------------------------------------------- */
+
+  /// Frames the title stage's real draws are made under the curtain
+  /// ([SceneState.rehearsesTitle]).
+  ///
+  /// One compiles every program; the second is where a compile's tail lands,
+  /// still under the curtain rather than on the first visible frame.
+  static const int rehearsalFrames = 2;
+
+  /// How far [LoadingPhase.rehearsal] has got after [frames] rehearsed.
+  static double rehearsalProgress(int frames) =>
+      (frames / rehearsalFrames).clamp(0.0, 1.0);
+
+  int _rehearsed = 0;
+
+  /// The components whose draws are rehearsed. A frame counts only once all
+  /// of them are mounted, because a frame they were not in compiled nothing.
+  List<Component> get _rehearsalCast => <Component>[_backdrop];
+
+  @override
+  void render(ui.Canvas canvas) {
+    super.render(canvas);
+    _countRehearsal();
+  }
+
+  /// Counted after the frame is drawn: the rehearsal is what was just drawn.
+  void _countRehearsal() {
+    if (_rehearsed >= rehearsalFrames) return;
+    if (!bloc.state.rehearsesTitle) return;
+    if (!isLoaded || !_rehearsalCast.every((c) => c.isMounted)) return;
+
+    _rehearsed++;
+    queuer.queue(
+      event: SceneEvent.loadingProgressed(
+        phase: LoadingPhase.rehearsal,
+        value: rehearsalProgress(_rehearsed),
+      ),
+    );
+  }
 }
