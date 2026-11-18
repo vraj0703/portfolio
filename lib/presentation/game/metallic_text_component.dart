@@ -36,6 +36,10 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
   final Color baseColor;
   final ui.FragmentShader _shader;
 
+  /// A shooting aid (`?pc-noname`): laid out and animated, never drawn, so a
+  /// screenshot shows the backdrop behind it.
+  bool hidden = false;
+
   double _elapsed = 0;
 
   /// Fades the glyphs, `0`..`1`.
@@ -66,6 +70,7 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
 
   @override
   void render(Canvas canvas) {
+    if (hidden) return;
     final shown = RehearsalPass.strength(
       rehearsing: rehearsing,
       otherwise: fade,
