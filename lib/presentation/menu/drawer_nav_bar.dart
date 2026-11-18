@@ -28,6 +28,11 @@ class DrawerNavBar extends StatelessWidget {
   static const double target = 48;
   static const double glyph = 24;
 
+  /// The active indicator, Material 3 style, and the other icons' ink.
+  static const double indicatorWidth = 64;
+  static const double indicatorHeight = 32;
+  static const double restingInk = 0.6;
+
   static const Map<NavDestination, String> icons = <NavDestination, String>{
     NavDestination.home: 'assets/vectors/home.svg',
     NavDestination.gallery: 'assets/vectors/gallery.svg',
@@ -87,35 +92,35 @@ class DrawerNavBar extends StatelessWidget {
                   radius: target / 2,
                   onTap: () => unawaited(_go(context, d, current)),
                   child: SizedBox(
-                    width: target,
+                    width: indicatorWidth,
                     height: target,
                     child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          SvgPicture.asset(
-                            icons[d]!,
-                            height: glyph,
-                            colorFilter: ColorFilter.mode(
-                              d == current
-                                  ? colors.menuText
-                                  : colors.menuTextSoft,
-                              BlendMode.srcIn,
-                            ),
+                      // A Material 3 style active indicator: a soft pill
+                      // behind the current icon, the icon at full ink; the
+                      // others at [restingInk]. The same in every scene.
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: indicatorWidth,
+                        height: indicatorHeight,
+                        decoration: BoxDecoration(
+                          color: d == current
+                              ? colors.menuNavIndicator
+                              : colors.menuNavIndicator.withValues(alpha: 0),
+                          borderRadius: BorderRadius.circular(
+                            indicatorHeight / 2,
                           ),
-                          const SizedBox(height: 4),
-                          // The current one, marked under its icon.
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: d == current
-                                  ? colors.menuText
-                                  : colors.menuText.withValues(alpha: 0),
-                            ),
+                        ),
+                        alignment: Alignment.center,
+                        child: SvgPicture.asset(
+                          icons[d]!,
+                          height: glyph,
+                          colorFilter: ColorFilter.mode(
+                            d == current
+                                ? colors.menuText
+                                : colors.menuText.withValues(alpha: restingInk),
+                            BlendMode.srcIn,
                           ),
-                        ],
+                        ),
                       ),
                     ),
                   ),

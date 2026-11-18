@@ -44,6 +44,11 @@ abstract class AppColors {
   Color get menuPanel;
   Color get menuScrim;
   Color get menuEdge;
+
+  /// The drawer bar's active indicator: an opaque deep warm brown, so the
+  /// current destination reads the same on every scene's ground, and the
+  /// full ink on it clears 3:1 (PORTFOLIO-24).
+  Color get menuNavIndicator;
   Color get menuText;
   Color get menuTextSoft;
 
@@ -213,6 +218,9 @@ class DefaultAppColors implements AppColors {
   /// The hairline down the drawer's leading edge.
   @override
   Color get menuEdge => loadingAccent.withValues(alpha: 0.35);
+
+  @override
+  Color get menuNavIndicator => const Color(0xFF5A3A20);
 
   @override
   Color get menuText => _menuInk;

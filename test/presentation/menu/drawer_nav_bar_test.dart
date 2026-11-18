@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart' hide Title;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,6 +8,7 @@ import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
+import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
@@ -192,5 +195,20 @@ void main() {
     test('nav_selected is in the typed list', () {
       expect(SiteEvents.names, contains('nav_selected'));
     });
+  });
+
+  test('the current icon reads on its pill: 3:1 or better', () {
+    double lum(Color c) {
+      double lin(double v) => v <= 0.04045
+          ? v / 12.92
+          : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+      return 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+    }
+
+    const colors = DefaultAppColors();
+    final a = lum(colors.menuText);
+    final b = lum(colors.menuNavIndicator);
+    final ratio = (math.max(a, b) + 0.05) / (math.min(a, b) + 0.05);
+    expect(ratio, greaterThanOrEqualTo(3));
   });
 }

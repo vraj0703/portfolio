@@ -110,7 +110,11 @@ sealed class SceneState with _$SceneState {
   ///
   /// And in the gallery (Vishal, 2026-11-18): the same three icons in the
   /// same corner, the drawer holding the radio and the way out.
-  bool get showsMenu => this is Title || this is Active || this is Gallery;
+  ///
+  /// And on the contact page (PORTFOLIO-24), so the drawer, and its bar's
+  /// way home and to the gallery, is reachable from every section.
+  bool get showsMenu =>
+      this is Title || this is Active || this is Gallery || this is Contact;
 
   /// The title's Connect and Menu buttons: on the stages that show the
   /// menu, and only while their feature flag (carried by every state, see
