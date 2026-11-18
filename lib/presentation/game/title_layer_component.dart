@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/domain/config/title_contrast.dart';
 import 'package:portfolio/presentation/game/metallic_text_component.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/presentation/game/secondary_title_component.dart';
@@ -83,14 +84,49 @@ class TitleLayerComponent extends PositionComponent
     await super.onLoad();
     anchor = Anchor.center;
 
-    _primary = MetallicTextComponent(
-      text: palette.primaryTitle,
-      style: palette.titlePrimaryStyle,
-      program: program,
-      baseColor: palette.titleBase,
-      anchor: Anchor.center,
-      priority: 8,
-    )..scale = Vector2.all(TitleConfig.primaryStartScale);
+    // How the name holds its own against the backdrop (PORTFOLIO-22): (B)
+    // and (D) darken its metal, give it a soft dark shadow and more weight.
+    final way = TitleContrastConfig.current;
+    final darker =
+        way == TitleContrast.darkerName || way == TitleContrast.dimAndDarker;
+    final light = way == TitleContrast.dimAndDarker;
+    final nameStyle = darker
+        ? palette.titlePrimaryStyle.copyWith(
+            fontWeight: FontWeight.w700,
+            shadows: <Shadow>[
+              Shadow(
+                color: Color.fromRGBO(
+                  0,
+                  0,
+                  0,
+                  light
+                      ? TitleContrastConfig.shadowAlphaLight
+                      : TitleContrastConfig.shadowAlpha,
+                ),
+                blurRadius: TitleContrastConfig.shadowBlur,
+              ),
+            ],
+          )
+        : palette.titlePrimaryStyle;
+    final nameBase = darker
+        ? Color(
+            light
+                ? TitleContrastConfig.darkerBaseLight
+                : TitleContrastConfig.darkerBase,
+          )
+        : palette.titleBase;
+
+    _primary =
+        MetallicTextComponent(
+            text: palette.primaryTitle,
+            style: nameStyle,
+            program: program,
+            baseColor: nameBase,
+            anchor: Anchor.center,
+            priority: 8,
+          )
+          ..scale = Vector2.all(TitleConfig.primaryStartScale)
+          ..hidden = TitleContrastConfig.hideName;
 
     // Same metal as the name, so the two read as one object catching one
     // light rather than a shaded title with a plain caption under it. Built
@@ -112,7 +148,12 @@ class TitleLayerComponent extends PositionComponent
   @override
   void onGameResize(Vector2 size) {
     super.onGameResize(size);
-    position = size / 2;
+    // (C) lifts the name off the bright band; the others leave it centred.
+    position = Vector2(
+      size.x / 2,
+      size.y / 2 -
+          TitleContrastConfig.riseFor(TitleContrastConfig.current) * size.y,
+    );
     _viewportWidth = size.x;
   }
 
