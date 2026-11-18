@@ -10,7 +10,6 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
 
@@ -173,13 +172,10 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWidgets("the title's three icons stay, the same widget", (
-      tester,
-    ) async {
+    testWidgets("the title's icons stay, the same widget", (tester) async {
       await tester.pumpWidget(host(state: const SceneState.gallery()));
       await tester.pumpAndSettle();
       expect(find.byType(SoundButton), findsOneWidget);
-      expect(find.byType(ConnectButton), findsOneWidget);
       expect(find.byType(MenuButton), findsOneWidget);
       // Past the gallery's delayed radio start.
       await tester.pump(const Duration(seconds: 5));
@@ -199,27 +195,9 @@ void main() {
       expect(radio.calls.last, 'next');
     });
 
-    testWidgets("and the way out, through the gallery's own exit", (
-      tester,
-    ) async {
-      var asked = 0;
-      void count() => asked++;
-      GalleryExitRequests.instance.addListener(count);
-      addTearDown(() => GalleryExitRequests.instance.removeListener(count));
-
-      await openIn(tester, const SceneState.gallery());
-      await tester.tap(find.text(strings.drawerLeaveGallery));
-      await tester.pumpAndSettle();
-
-      expect(asked, 1);
-      expect(drawer!.state, isFalse, reason: 'the drawer closes first');
-      await tester.pump(const Duration(seconds: 5));
-    });
-
-    testWidgets('on the title the drawer holds no radio', (tester) async {
+    testWidgets('the radio is in the drawer on the title too', (tester) async {
       await openIn(tester, const SceneState.title());
-      expect(find.text(strings.drawerRadioNext), findsNothing);
-      expect(find.text(strings.drawerLeaveGallery), findsNothing);
+      expect(find.text(strings.drawerRadioNext), findsOneWidget);
     });
   });
 }

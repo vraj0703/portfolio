@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/config/title_chrome.dart';
@@ -109,7 +111,6 @@ class TitleActions extends StatelessWidget {
     return BlocBuilder<SceneBloc, SceneState>(
       buildWhen: (previous, current) =>
           previous.showsMenu != current.showsMenu ||
-          previous.showsConnect != current.showsConnect ||
           previous.showsMenuButton != current.showsMenuButton,
       builder: (context, state) {
         if (!state.showsMenu) return const SizedBox.shrink();
@@ -133,17 +134,13 @@ class TitleActions extends StatelessWidget {
                   order: 0,
                   child: SoundButton(glyph: glyph, target: target),
                 ),
-                // Each behind its feature flag, read from the state (see
-                // [SceneState.showsConnect]): a flag is a rule on the state,
-                // not a branch here.
-                if (state.showsConnect)
-                  TitleActionEntry(
-                    order: 1,
-                    child: ConnectButton(glyph: glyph, target: target),
-                  ),
+                // Behind its feature flag, read from the state (see
+                // [SceneState.showsMenuButton]): a flag is a rule on the
+                // state, not a branch here. The heart that stood between
+                // them went to the drawer's bar (PORTFOLIO-23).
                 if (state.showsMenuButton)
                   TitleActionEntry(
-                    order: 2,
+                    order: 1,
                     child: MenuButton(glyph: glyph, target: target),
                   ),
               ],
@@ -245,36 +242,6 @@ class SoundButton extends StatelessWidget {
   }
 }
 
-/// The way to the contact screen.
-///
-/// The same event the drawer's row raised, and the same sound: it leaves this
-/// screen for another, which is a larger thing than a click can say.
-class ConnectButton extends StatelessWidget {
-  const ConnectButton({super.key, required this.glyph, required this.target});
-
-  static const String icon = 'assets/vectors/heart.svg';
-
-  final double glyph;
-  final double target;
-
-  @override
-  Widget build(BuildContext context) {
-    return _ActionIcon(
-      icon: icon,
-      label: context.strings.menuConnect,
-      tint: context.colors.menuMark,
-      glyph: glyph,
-      target: target,
-      onTap: () {
-        context.audio.play(AudioCue.pageTurn);
-        context.read<SceneBloc>().queue(
-          event: const SceneEvent.contactRequested(),
-        );
-      },
-    );
-  }
-}
-
 /// The control that opens the drawer.
 class MenuButton extends StatelessWidget {
   const MenuButton({super.key, required this.glyph, required this.target});
@@ -296,6 +263,7 @@ class MenuButton extends StatelessWidget {
         // A step further in, answered by `previous` on the way out.
         context.audio.play(AudioCue.next);
         context.read<MenuDrawerCubit>().open();
+        locate<SiteEvents>().menuOpened();
       },
     );
   }

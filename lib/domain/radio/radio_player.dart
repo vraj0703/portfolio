@@ -1,13 +1,28 @@
 import 'package:portfolio/domain/radio/radio_station.dart';
 
-/// What the radio is doing.
+/// Whether the visitor put the radio on themselves (PORTFOLIO-23).
+///
+/// The radio is in the drawer on every screen now, so it can be started on
+/// the title. The gallery still puts it on air by itself and takes it off
+/// when the visitor leaves; a radio the visitor chose is theirs, and keeps
+/// playing across screens until they stop it.
+abstract final class RadioChoice {
+  static bool visitorOn = false;
+}
+
 /// The radio's two buttons, wherever they are pressed (the wall, the
 /// drawer): one meaning for each, said once.
 extension RadioRemote on RadioPlayer {
-  /// Stops a radio that is on air or tuning; otherwise plays.
-  Future<void> toggle() => state.isPlaying || state.isTuning ? stop() : play();
+  /// Stops a radio that is on air or tuning; otherwise plays. Either way
+  /// the choice is now the visitor's ([RadioChoice]).
+  Future<void> toggle() {
+    final on = state.isPlaying || state.isTuning;
+    RadioChoice.visitorOn = !on;
+    return on ? stop() : play();
+  }
 }
 
+/// What the radio is doing.
 enum RadioStatus {
   /// Silent, and not trying to be otherwise.
   off,

@@ -31,12 +31,12 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // an initialising formal here — the lint's suggestion does not compile.
     // ignore: prefer_initializing_formals
     : _radio = radio,
-      _flags = flags,
-      _audio = audio,
-      // Seeded from the audio backend, which outlives any one bloc: a
-      // remount of the scene keeps the site as silent as it was.
-      _muted = audio?.isMuted ?? false,
-      super(SceneState.loading(flags: flags, muted: audio?.isMuted ?? false)) {
+       _flags = flags,
+       _audio = audio,
+       // Seeded from the audio backend, which outlives any one bloc: a
+       // remount of the scene keeps the site as silent as it was.
+       _muted = audio?.isMuted ?? false,
+       super(SceneState.loading(flags: flags, muted: audio?.isMuted ?? false)) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
@@ -155,6 +155,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // must not leave a timer that turns it on over the screen after it.
     _tuningIn?.cancel();
     _tuningIn = null;
+
+    // A radio the visitor put on (from the drawer, on any screen, or the
+    // wall) is theirs: it keeps playing until they stop it.
+    if (RadioChoice.visitorOn) return;
 
     if (_radio.state.status == RadioStatus.off) return;
     unawaited(_radio.stop());
