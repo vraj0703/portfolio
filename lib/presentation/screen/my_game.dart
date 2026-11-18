@@ -478,10 +478,12 @@ class MyGame extends FlameGame
     _dragTravelled = 0;
     _dragStroked = false;
     // A finger or a pen strokes, when the scene's rule says so; a mouse
-    // drag scrolls, as it always has.
+    // drag scrolls, as it always has. Asked as "not a mouse": some touch
+    // reaches Flutter web with an unknown kind (seen with adb and CDP touch),
+    // and a finger must not fall back to the mouse's drag.
     _dragStrokes =
-        (event.deviceKind == PointerDeviceKind.touch ||
-            event.deviceKind == PointerDeviceKind.stylus) &&
+        event.deviceKind != PointerDeviceKind.mouse &&
+        event.deviceKind != PointerDeviceKind.trackpad &&
         bloc.state.swipesByStroke;
   }
 
