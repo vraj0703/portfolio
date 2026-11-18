@@ -68,25 +68,4 @@ void main() {
       expect(speed, closeTo(WalkControl.maxSpeed / 2, 1e-9));
     });
   });
-
-  group('looking around', () {
-    test('a drag turns the head, within the limit either way', () {
-      expect(WalkControl.look(100, 400), greaterThan(0));
-      expect(WalkControl.look(-100, 400), lessThan(0));
-      expect(WalkControl.look(4000, 400), WalkControl.maxLook);
-      expect(WalkControl.look(-4000, 400), -WalkControl.maxLook);
-    });
-
-    test('and eases back to straight ahead when let go', () {
-      var yaw = WalkControl.maxLook;
-      for (var i = 0; i < 120; i++) {
-        yaw = WalkControl.lookReturn(yaw, 1 / 60);
-      }
-      expect(yaw, 0);
-      expect(
-        WalkControl.lookReturn(0.3, 1 / 60),
-        allOf(lessThan(0.3), greaterThan(0)),
-      );
-    });
-  });
 }

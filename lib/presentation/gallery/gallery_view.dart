@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
+import 'package:portfolio/domain/gallery/swipe_map.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
 import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
@@ -216,9 +217,14 @@ class _GalleryViewState extends State<GalleryView> {
   bool _haltedAtWall = false;
   double _push = 0;
   double _walkSpeed = 0;
-  int? _lookPointer;
-  double _lookDx = 0;
-  double _yaw = 0;
+
+  /// A swipe above the stick ([SwipeMap]): the finger, where it set off,
+  /// what it turned out to mean, and the way of travel on screen when it
+  /// began. Replaces the look drag (Vishal, 2026-11-18).
+  int? _swipePointer;
+  Offset? _swipeFrom;
+  SwipeIntent _swipeIntent = SwipeIntent.none;
+  ScreenAxis _swipeAxis = (x: 0, y: 1);
 
   /// Where the stick is drawn: where the thumb landed, and the knob.
   final ValueNotifier<(Offset, Offset)?> _stick =
@@ -231,7 +237,6 @@ class _GalleryViewState extends State<GalleryView> {
       (event.kind == PointerDeviceKind.touch ||
           event.kind == PointerDeviceKind.stylus) &&
       !_inHall &&
-      _focused == null &&
       context.read<SceneBloc>().state.walksByStick;
 
   /// Where the camera actually is, as opposed to where it is wanted.
@@ -835,8 +840,10 @@ class _GalleryViewState extends State<GalleryView> {
                     _stickOrigin = event.localPosition;
                     _stick.value = (event.localPosition, event.localPosition);
                   } else {
-                    _lookPointer = event.pointer;
-                    _lookDx = 0;
+                    _swipePointer = event.pointer;
+                    _swipeFrom = event.localPosition;
+                    _swipeIntent = SwipeIntent.none;
+                    _swipeAxis = _travelAxisNow();
                   }
                 },
                 onPointerMove: (event) {
@@ -847,6 +854,12 @@ class _GalleryViewState extends State<GalleryView> {
                   // The stick sets a rate, it does not move anything: the
                   // frame walks by it ([WalkControl]).
                   if (event.pointer == _stickPointer) {
+                    // The stick leaves a focused frame, once it is a push
+                    // rather than a tap (the frame's own buttons may sit
+                    // where the stick is held).
+                    if (_focused != null && _dragDistance > _tapSlop) {
+                      _focus(null);
+                    }
                     final origin = _stickOrigin!;
                     final d = event.localPosition - origin;
                     final push = WalkControl.push(d.dy);
@@ -859,9 +872,8 @@ class _GalleryViewState extends State<GalleryView> {
                     );
                     return;
                   }
-                  if (event.pointer == _lookPointer) {
-                    _lookDx += event.delta.dx;
-                    _yaw = WalkControl.look(_lookDx, _viewSize.width);
+                  if (event.pointer == _swipePointer) {
+                    _swiped(event);
                     return;
                   }
 
@@ -1040,9 +1052,6 @@ class _GalleryViewState extends State<GalleryView> {
             _haltedAtWall = true;
           }
         }
-        if (_lookPointer == null) {
-          _yaw = WalkControl.lookReturn(_yaw, deltaSeconds);
-        }
 
         if (_focused == null) {
           _scroll.update(deltaSeconds, tight: _stickDriving);
@@ -1117,7 +1126,7 @@ class _GalleryViewState extends State<GalleryView> {
           // The camera crosses the same boundary as the room, or it would
           // pan away from the wall it is meant to be tracking.
           position: SceneAxes.position(_eye ?? _targetPose().position),
-          target: SceneAxes.position(_lookedAt()),
+          target: SceneAxes.position(_look ?? _targetPose().target),
         );
         _lastCamera = camera;
         return camera;
@@ -1177,18 +1186,73 @@ class _GalleryViewState extends State<GalleryView> {
       _push = 0;
       _stick.value = null;
     }
-    if (pointer == _lookPointer) _lookPointer = null;
+    if (pointer == _swipePointer) {
+      _swipePointer = null;
+      _swipeFrom = null;
+    }
   }
 
-  /// Where the camera looks: the path's look point, turned about the eye by
-  /// the head's turn ([_yaw]) while walking.
-  Vector3 _lookedAt() {
-    final eye = _eye ?? _targetPose().position;
-    final look = _look ?? _targetPose().target;
-    if (_yaw == 0 || _focused != null) return look;
-    final dir = look - eye;
-    final c = math.cos(_yaw), sn = math.sin(_yaw);
-    return eye + Vector3(dir.x * c - dir.z * sn, dir.y, dir.x * sn + dir.z * c);
+  /// The way of travel on screen, here: from the path a step ahead and
+  /// where the camera is looking.
+  ScreenAxis _travelAxisNow() {
+    final progress = _scroll.progress;
+    final here = GalleryCameraPath.poseAt(progress, aspect: _aspect);
+    final ahead = GalleryCameraPath.poseAt(
+      math.min(1, progress + 0.002),
+      aspect: _aspect,
+    );
+    return SwipeMap.travelAxis(
+      ahead.position - here.position,
+      here.target - here.position,
+    );
+  }
+
+  /// A swipe's move: decided once it has gone far enough, then followed.
+  void _swiped(PointerMoveEvent event) {
+    final from = _swipeFrom;
+    if (from == null) return;
+
+    if (_swipeIntent == SwipeIntent.none) {
+      final d = event.localPosition - from;
+      _swipeIntent = SwipeMap.classify(d.dx, d.dy, _swipeAxis);
+      switch (_swipeIntent) {
+        case SwipeIntent.none:
+          return;
+        case SwipeIntent.travel:
+          // Everything so far, then every move after it.
+          if (_focused != null) _focus(null);
+          _travel(d.dx, d.dy);
+          return;
+        case SwipeIntent.focusLeft:
+        case SwipeIntent.focusRight:
+          _focusSide(right: _swipeIntent == SwipeIntent.focusRight);
+          return;
+      }
+    }
+    if (_swipeIntent == SwipeIntent.travel) {
+      _travel(event.delta.dx, event.delta.dy);
+    }
+  }
+
+  void _travel(double dx, double dy) {
+    if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+    _scroll.scrollBy(SwipeMap.onward(dx, dy, _swipeAxis));
+  }
+
+  /// A sideways swipe in the corridor: the nearest frame on that side comes
+  /// into focus, or, if a frame on the other side is focused, the swipe back
+  /// leaves it.
+  void _focusSide({required bool right}) {
+    final current = _focused;
+    if (current != null) {
+      if (current.position.x.isNegative == right) _focus(null);
+      return;
+    }
+    final z = (_eye ?? _targetPose().position).z;
+    final frame = _order.nearestOn(right: right, z: z);
+    if (frame == null) return;
+    _sound(AudioCue.click);
+    _focus(frame);
   }
 
   /// Moves the camera toward where it wants to be.

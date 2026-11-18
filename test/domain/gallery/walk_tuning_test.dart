@@ -28,23 +28,6 @@ void main() {
     expect(WalkControl.stopSeconds, lessThanOrEqualTo(0.15));
   });
 
-  test(
-    'the look reaches 35 degrees at a full-width drag, after a dead zone',
-    () {
-      const width = 400.0;
-      expect(WalkControl.look(WalkControl.lookDeadZone, width), 0);
-      expect(
-        WalkControl.look(width + WalkControl.lookDeadZone, width),
-        closeTo(WalkControl.maxLook, 1e-9),
-      );
-      expect(
-        WalkControl.look(width / 3, width),
-        lessThan(WalkControl.maxLook / 2),
-      );
-      expect(WalkControl.maxLook, closeTo(35 * math.pi / 180, 1e-12));
-    },
-  );
-
   test('a tight update puts the offset on the target, with no glide', () {
     final driver = ScrollDriver(extent: 8000, progressExtent: 8000);
     driver.scrollBy(500);
