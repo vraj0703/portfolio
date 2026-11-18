@@ -32,11 +32,12 @@ void main() {
         ).firstWhere((p) => p.kind == kind && p.position.z > -2);
 
     test(
-      'on a portrait phone the BACK sign and the radio start out of view',
+      'a portrait phone now starts far enough back to see both on arrival',
       () {
-        // Reported on Vishal's phone: neither could be seen, so neither could
-        // be pressed. They hang 39 degrees off the corridor's line; a portrait
-        // camera sees about 24 either side.
+        // From the old start (z = 3) they sat 39 degrees off the corridor's
+        // line and a portrait camera sees ~24 either side, so neither was
+        // ever on screen (Vishal's phone). The portrait walk now starts at
+        // portraitStartZ, where both are in view.
         const shape = GalleryShape.portrait;
         for (final kind in <SurfaceKind>[
           SurfaceKind.exitSign,
@@ -44,10 +45,15 @@ void main() {
         ]) {
           expect(
             inViewAtStart(entrance(shape, kind), shape, phone),
-            isFalse,
+            isTrue,
             reason: '$kind',
           );
         }
+        expect(
+          GalleryCameraPath.startZFor(phone),
+          GalleryCameraPath.portraitStartZ,
+        );
+        expect(GalleryCameraPath.startZFor(laptop), GalleryCameraPath.startZ);
       },
     );
 
