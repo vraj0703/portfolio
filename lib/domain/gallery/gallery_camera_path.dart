@@ -255,6 +255,17 @@ abstract final class GalleryCameraPath {
     );
   }
 
+  /// The way the path heads at [progress], as a visitor steers it: down the
+  /// corridor (-z), then along the wall and on into the hall (+x).
+  ///
+  /// Nominal, not the camera's exact motion. The pan's step-in to the alley
+  /// and the approach's ease back onto its centre line are framing, not
+  /// directions: read from the camera's motion, the steep step-in on a
+  /// portrait screen counted as "up", and a stick held up at the back wall
+  /// crept off it along the step (seen on the Pixel profile, 2026-11-18).
+  static Vector3 headingAt(double progress) =>
+      progress < walkFraction ? Vector3(0, 0, -1) : Vector3(1, 0, 0);
+
   /// The pose at [progress], `0`..`1`.
   static CameraPose poseAt(double progress, {double aspect = landscape}) {
     final p = progress.clamp(0.0, 1.0);

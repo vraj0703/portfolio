@@ -33,7 +33,6 @@ import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
-import 'package:portfolio/domain/utils/strokes.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
@@ -219,12 +218,16 @@ class _GalleryViewState extends State<GalleryView> {
   late final List<double> _wallSteps = WallSteps.points(
     GalleryView.scrollExtent,
   );
-  int _nextStickStepMs = 0;
 
-  /// Whether a held stick has stopped at the back wall: it stays stopped,
-  /// onward, until it is let go.
-  bool _haltedAtWall = false;
-  double _push = 0;
+  /// Whether a stick let go on the wall is still to settle onto a card.
+  bool _settleDue = false;
+
+  /// Whether the stick may pick a frame by pushing sideways: once per push,
+  /// re-armed when it comes back toward the middle.
+  bool _sideArmed = true;
+
+  /// The stick's push, two axes ([WalkControl.stick]).
+  ({double x, double y}) _push = (x: 0, y: 0);
   double _walkSpeed = 0;
 
   /// A swipe above the stick ([SwipeMap]): the finger, where it set off,
@@ -867,16 +870,9 @@ class _GalleryViewState extends State<GalleryView> {
                   // The stick sets a rate, it does not move anything: the
                   // frame walks by it ([WalkControl]).
                   if (event.pointer == _stickPointer) {
-                    // The stick leaves a focused frame, once it is a push
-                    // rather than a tap (the frame's own buttons may sit
-                    // where the stick is held).
-                    if (_focused != null && _dragDistance > _tapSlop) {
-                      _focus(null);
-                    }
                     final origin = _stickOrigin!;
                     final d = event.localPosition - origin;
-                    final push = WalkControl.push(d.dy);
-                    _push = _haltedAtWall && push > 0 ? 0 : push;
+                    _push = WalkControl.stick(d.dx, d.dy);
                     final reach = WalkControl.stickRadius;
                     _stick.value = (
                       origin,
@@ -1040,39 +1036,7 @@ class _GalleryViewState extends State<GalleryView> {
         // The scroll keeps running while a piece is focused, but it drives
         // nothing — so leaving focus hands the visitor back to exactly the
         // spot they left rather than to wherever the wheel wandered.
-        // The stick's walk: eased toward the push, and fed to the same
-        // scroll the wheel and the old drag move, through the same gate.
-        // On the testimonial wall a held stick steps card by card.
-        final stepping =
-            _stickPointer != null &&
-            _focused == null &&
-            !_inHall &&
-            !_haltedAtWall &&
-            _stickStep(WallSteps.stickDirection(_push));
-        _walkSpeed = WalkControl.speedTowards(
-          _walkSpeed,
-          _focused == null && !stepping ? _push : 0,
-          deltaSeconds,
-        );
-        if (stepping) _walkSpeed = 0;
-        if (_walkSpeed != 0 &&
-            _focused == null &&
-            _gate.accept(_clock.elapsedMilliseconds)) {
-          final want = _walkSpeed * deltaSeconds;
-          final step = WalkControl.stepToStop(
-            _scroll.target,
-            want,
-            GalleryView.backWallStop,
-          );
-          _scroll.scrollBy(step);
-          // Arrived at the back wall: stop there, framed, until the stick is
-          // let go and pushed again (or pulled back).
-          if (step != want) {
-            _walkSpeed = 0;
-            _push = 0;
-            _haltedAtWall = true;
-          }
-        }
+        _driveStick(deltaSeconds);
 
         if (_focused == null) {
           _scroll.update(deltaSeconds, tight: _stickDriving);
@@ -1205,8 +1169,9 @@ class _GalleryViewState extends State<GalleryView> {
   void _letGo(int pointer) {
     if (pointer == _stickPointer) {
       _stickPointer = null;
-      _haltedAtWall = false;
-      _push = 0;
+      _settleDue = true;
+      _sideArmed = true;
+      _push = (x: 0, y: 0);
       _stick.value = null;
     }
     if (pointer == _swipePointer) {
@@ -1277,24 +1242,84 @@ class _GalleryViewState extends State<GalleryView> {
     return true;
   }
 
-  /// A held stick's step along the wall in [direction]: true while the
-  /// stick is stepping (moving, or resting on a card), false where the wall
-  /// has no step that way and the stick walks as usual.
-  bool _stickStep(int direction) {
-    if (direction == 0) return false;
-    final at = _scroll.target;
-    if (!WallSteps.onWall(at, _wallSteps)) return false;
-    final to = direction > 0
-        ? WallSteps.next(at, _wallSteps)
-        : WallSteps.previous(at, _wallSteps);
-    if (_scroll.isMoving) return true;
-    if (to == null) return false;
-    final now = _clock.elapsedMilliseconds;
-    if (now < _nextStickStepMs) return true;
-    _scroll.moveTo(to);
-    _nextStickStepMs =
-        now + ((Strokes.moveSeconds + WallSteps.restSeconds) * 1000).round();
-    return true;
+  /// The stick, every frame: in the corridor a sideways push turns to the
+  /// nearest frame on that side; everywhere it walks by rate along the way
+  /// of travel (up the corridor, along the wall), eased in and out; let go
+  /// on the wall, it settles onto the nearest whole card.
+  void _driveStick(double dt) {
+    final held = _stickPointer != null;
+    final push = held ? _push : (x: 0.0, y: 0.0);
+    final (ahead, behind) = _axesNow();
+
+    // Sideways in the corridor: a frame. Pushing the other way, or up or
+    // down, leaves it and carries on.
+    if (held && !_inHall) {
+      final side = WalkControl.side(push, ahead);
+      final current = _focused;
+      if (current != null) {
+        final otherWay =
+            side != 0 && current.position.x.isNegative == (side > 0);
+        if (otherWay || push.y.abs() > 0.5) _focus(null);
+      } else if (side != 0 && _sideArmed) {
+        _sideArmed = false;
+        _focusSide(right: side > 0);
+      }
+      if (push.x.abs() < WalkControl.sideRearm) _sideArmed = true;
+    }
+
+    final rate = _focused == null ? WalkControl.rate(push, ahead, behind) : 0.0;
+    _walkSpeed = WalkControl.speedTowards(_walkSpeed, rate, dt);
+    if (_walkSpeed != 0 &&
+        _focused == null &&
+        _gate.accept(_clock.elapsedMilliseconds)) {
+      final want = _walkSpeed * dt;
+      final step = WalkControl.stepToStop(
+        _scroll.target,
+        want,
+        GalleryView.backWallStop,
+      );
+      _scroll.scrollBy(step);
+      // Arrived at the back wall walking up the corridor: the walk stops
+      // there unless the push already runs along the wall (a diagonal), in
+      // which case it glides straight on.
+      if (step != want) {
+        final (aheadAtWall, behindAtWall) = _axesAt(GalleryView.backWallStop);
+        if (WalkControl.rate(push, aheadAtWall, behindAtWall) <= 0) {
+          _walkSpeed = 0;
+        }
+      }
+    }
+
+    // Let go on the wall: once the walk has eased out, a soft settle onto the
+    // nearest whole card. Never while the stick is held.
+    if (!held &&
+        _settleDue &&
+        _walkSpeed == 0 &&
+        !_scroll.isMoving &&
+        _focused == null) {
+      _settleDue = false;
+      final to = WalkControl.settleOn(_scroll.target, _wallSteps);
+      if (to != null && (to - _scroll.target).abs() > 1) {
+        _scroll.moveTo(to, seconds: WalkControl.settleSeconds);
+      }
+    }
+  }
+
+  /// The way of travel on screen ahead of the visitor and behind them, here.
+  (ScreenAxis, ScreenAxis) _axesNow() =>
+      _axesAt(_scroll.progress * GalleryView.scrollExtent);
+
+  /// The same at scroll position [at].
+  (ScreenAxis, ScreenAxis) _axesAt(double at) {
+    const step = 1.0; // scroll units: a hair either side of the point
+    double p(double units) =>
+        (units / GalleryView.scrollExtent).clamp(0.0, 1.0);
+    final here = GalleryCameraPath.poseAt(p(at), aspect: _aspect);
+    final look = here.target - here.position;
+    return (
+      SwipeMap.travelAxis(GalleryCameraPath.headingAt(p(at + step)), look),
+      SwipeMap.travelAxis(GalleryCameraPath.headingAt(p(at - step)), look),
+    );
   }
 
   void _travel(double dx, double dy) {

@@ -87,6 +87,7 @@ class ScrollDriver {
   double? _moveFrom;
   double _moveTo = 0;
   double _moveElapsed = 0;
+  double _moveSeconds = Strokes.moveSeconds;
 
   /// Whether a move between pauses is playing.
   bool get isMoving => _moveFrom != null;
@@ -145,11 +146,14 @@ class ScrollDriver {
     _moveTowards(previous ?? 0);
   }
 
-  /// A timed move to [point], as a stroke makes: for a caller that has its
-  /// own steps (the testimonial wall's cards, [WallSteps]).
-  void moveTo(double point) => _moveTowards(point);
+  /// A timed move to [point], as a stroke makes, over [seconds]: for a
+  /// caller that has its own steps (the testimonial wall's cards,
+  /// [WallSteps]) or its own settle (the stick's, [WalkControl.settleOn]).
+  void moveTo(double point, {double seconds = Strokes.moveSeconds}) =>
+      _moveTowards(point, seconds: seconds);
 
-  void _moveTowards(double to) {
+  void _moveTowards(double to, {double seconds = Strokes.moveSeconds}) {
+    _moveSeconds = seconds;
     _moveFrom = _target;
     _moveTo = to.clamp(0.0, extent);
     _moveElapsed = 0;
@@ -192,8 +196,10 @@ class ScrollDriver {
     final from = _moveFrom;
     if (from != null) {
       _moveElapsed += dt.clamp(0.0, 0.1);
-      _target = from + (_moveTo - from) * Strokes.eased(_moveElapsed);
-      if (_moveElapsed >= Strokes.moveSeconds) {
+      _target =
+          from +
+          (_moveTo - from) * Strokes.eased(_moveElapsed, seconds: _moveSeconds);
+      if (_moveElapsed >= _moveSeconds) {
         _target = _moveTo;
         _moveFrom = null;
       }

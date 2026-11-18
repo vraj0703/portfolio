@@ -1,23 +1,13 @@
 import 'gallery_camera_path.dart';
 import 'gallery_dimensions.dart';
 
-/// The testimonial wall walked card by card.
+/// The testimonial wall's whole-card stops: the back wall's statement, then
+/// each card centred.
 ///
-/// Swiping or pushing the stick freely left the camera resting between two
-/// cards, both cut by the screen's edge (mantr, 2026-11-18, on PR 19). On
-/// the wall a sideways swipe, or a push of the stick, is a step: a timed
-/// move (the title's strokes, [Strokes]) to the next card, centred and
-/// whole; the other way is the previous card, and before the first card,
-/// the back wall's statement.
+/// A sideways swipe on the wall steps between them (a timed move, as the
+/// title's strokes are). The stick glides along the wall by rate and, let
+/// go, settles softly onto the nearest of them ([WalkControl.settleOn]).
 abstract final class WallSteps {
-  // -- The tuning, in one place. --------------------------------------------
-
-  /// How far the stick has to be pushed to step.
-  static const double stickThreshold = 0.5;
-
-  /// How long a held stick rests on a card before stepping to the next.
-  static const double restSeconds = 0.35;
-
   // -- The rules. -----------------------------------------------------------
 
   /// The scroll positions the wall is stepped through, for a gallery scroll
@@ -61,11 +51,4 @@ abstract final class WallSteps {
     }
     return null;
   }
-
-  /// The way a stick pushed by [push] (`-1`..`1`) steps: `1`, `-1`, or `0`.
-  static int stickDirection(double push) => push >= stickThreshold
-      ? 1
-      : push <= -stickThreshold
-      ? -1
-      : 0;
 }

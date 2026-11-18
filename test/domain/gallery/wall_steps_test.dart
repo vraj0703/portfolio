@@ -59,12 +59,6 @@ void main() {
     expect(WallSteps.onWall(points.last + 100, points), isFalse);
   });
 
-  test('the stick steps once it is pushed past half', () {
-    expect(WallSteps.stickDirection(0.3), 0);
-    expect(WallSteps.stickDirection(0.8), 1);
-    expect(WallSteps.stickDirection(-0.8), -1);
-  });
-
   test('a step is the strokes\' timed move, landing on the card', () {
     final driver = ScrollDriver(
       extent: extent,

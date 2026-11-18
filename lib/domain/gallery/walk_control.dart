@@ -1,3 +1,7 @@
+import 'dart:math' as math;
+
+import 'swipe_map.dart';
+
 /// The corridor walked like a game corridor, on a touch screen.
 ///
 /// Input never moves the visitor directly. A thumb stick sets a walking
@@ -42,6 +46,87 @@ abstract final class WalkControl {
   /// camera adds well under a tenth of a second to a stop.
   static const double stickChase = 60;
 
+  // -- The stick in two axes (Vishal, 2026-11-18: one continuous joystick).
+
+  /// How far sideways (of a full push) the stick goes before the corridor
+  /// turns to the nearest frame on that side, and how far back toward the
+  /// middle it must come before it can pick again.
+  static const double sideThreshold = 0.6;
+  static const double sideRearm = 0.3;
+
+  /// A sideways push must be this many times its up-or-down to pick a side,
+  /// so a diagonal walk does not turn to a frame.
+  static const double sideDominance = 1.5;
+
+  /// The soft settle onto the nearest whole card after the stick is let go
+  /// on the wall: how long it takes, and how far short of the back wall's
+  /// stop still counts as at it.
+  static const double settleSeconds = 0.25;
+  static const double settleReach = 30;
+
+  /// The stick's push from where the thumb landed, ([dx], [dy]) logical
+  /// pixels: `x` right and `y` up, each -1..1, with a round dead zone so a
+  /// resting thumb does nothing and a full push is 1 in any direction.
+  static ({double x, double y}) stick(double dx, double dy) {
+    final x = dx / stickRadius;
+    final y = -dy / stickRadius;
+    final length = math.sqrt(x * x + y * y);
+    if (length <= deadZone + 1e-9) return (x: 0, y: 0);
+    final scaled = (math.min(length, 1) - deadZone) / (1 - deadZone) / length;
+    return (x: x * scaled, y: y * scaled);
+  }
+
+  /// The walking rate (-1..1, onward positive) for a stick push [s], with the
+  /// path's way of travel on screen [ahead] of the visitor and [behind]
+  /// them ([SwipeMap.travelAxis]: `y` into the screen, `x` across it).
+  ///
+  /// Onward is the push along the way ahead; back is the push against the
+  /// way behind. They differ only at a corner, and that is the point: at
+  /// the back wall the way ahead runs along the wall and the way behind runs
+  /// up the corridor, so pushing up there holds (nothing ahead is up),
+  /// pushing sideways glides along the wall, and pulling down walks back.
+  static double rate(
+    ({double x, double y}) s,
+    ScreenAxis ahead,
+    ScreenAxis behind,
+  ) {
+    final onward = s.x * ahead.x + s.y * ahead.y;
+    if (onward > 1e-9) return onward;
+    final back = s.x * behind.x + s.y * behind.y;
+    if (back < -1e-9) return back;
+    return 0;
+  }
+
+  /// The side a push [s] turns to in the corridor: `1` right, `-1` left, or
+  /// `0`. Only where the way [ahead] runs into the screen (on the wall,
+  /// sideways is the way of travel), and only for a push well past
+  /// [sideThreshold] and mostly sideways.
+  static int side(({double x, double y}) s, ScreenAxis ahead) {
+    if (ahead.y.abs() <= ahead.x.abs()) return 0;
+    if (s.x.abs() < sideThreshold) return 0;
+    if (s.x.abs() < s.y.abs() * sideDominance) return 0;
+    return s.x > 0 ? 1 : -1;
+  }
+
+  /// Where to settle after the stick is let go at [at] (scroll units): the
+  /// nearest of the wall's whole-card stops [points] (the back wall's stop
+  /// first), or null off the wall (the corridor, or on past the last card
+  /// into the alley).
+  static double? settleOn(double at, List<double> points) {
+    if (points.isEmpty) return null;
+    final spacing = points.length > 1
+        ? points.last - points[points.length - 2]
+        : 0;
+    if (at < points.first - settleReach || at > points.last + spacing / 2) {
+      return null;
+    }
+    var best = points.first;
+    for (final point in points) {
+      if ((point - at).abs() < (best - at).abs()) best = point;
+    }
+    return best;
+  }
+
   /// What a touch at height [y] on a screen [height] tall does: the stick in
   /// the lower part everywhere, the hall included (it walks the approach to
   /// the board; mantr, 2026-11-18); above it, a swipe in the corridor and
@@ -54,17 +139,6 @@ abstract final class WalkControl {
   /// Whether a touch at height [y] on a screen [height] tall holds the stick.
   static bool holdsStick(double y, double height) =>
       height > 0 && y >= height * stickZone;
-
-  /// The push, -1 (walk back) to 1 (walk forward), for a thumb that moved
-  /// [dy] logical pixels from where it landed (negative is up). Up walks
-  /// forward. Inside the dead zone, nothing; beyond it, rescaled so the
-  /// edge of the dead zone is a standstill, not a jump.
-  static double push(double dy) {
-    final raw = (-dy / stickRadius).clamp(-1.0, 1.0);
-    final size = raw.abs();
-    if (size <= deadZone + 1e-9) return 0;
-    return raw.sign * (size - deadZone) / (1 - deadZone);
-  }
 
   /// The walking speed after [dt] seconds, moving from [current] toward the
   /// speed [push] asks for: no faster than full speed in [accelerateSeconds]
