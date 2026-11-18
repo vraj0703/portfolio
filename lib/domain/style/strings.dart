@@ -27,8 +27,8 @@ abstract class AppStrings {
   /// The two signs painted on the gallery's marble.
   String get galleryBack;
 
-  /// What the phone's fixed row says to a screen reader: the radio's play or
-  /// stop, and its next station. Its third control reads [galleryBack].
+  /// The drawer's gallery half: the radio's heading, play, stop and next
+  /// station, and the way out of the gallery.
   String get drawerRadio;
   String get drawerRadioPlay;
   String get drawerRadioStop;
