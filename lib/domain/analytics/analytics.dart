@@ -166,6 +166,7 @@ class SiteEvents {
     'menu_opened',
     'radio_toggled',
     'radio_station_changed',
+    'nav_selected',
   };
 
   Map<String, Object?> _common() {
@@ -264,6 +265,17 @@ class SiteEvents {
   }) => _send('radio_station_changed', <String, Object?>{
     'station': station,
     'surface': surface,
+  });
+
+  /// The drawer's bar (PORTFOLIO-24): where to, from which scene, and
+  /// whether it was where the visitor already was (a tap that only closes).
+  void navSelected({
+    required String destination,
+    required bool alreadyCurrent,
+  }) => _send('nav_selected', <String, Object?>{
+    'destination': destination,
+    'from_scene': _scene,
+    'already_current': alreadyCurrent,
   });
 
   // Flags. `title_connect_button` is gone with the title's heart

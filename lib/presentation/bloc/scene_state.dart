@@ -130,6 +130,17 @@ sealed class SceneState with _$SceneState {
   /// about that looks wrong in the code that added the stage.
   bool get playsRadio => this is Gallery;
 
+  /// Which of the drawer's bar destinations the visitor is at (PORTFOLIO-24):
+  /// the title's stages are home, the gallery is the gallery, the contact
+  /// page is contact; anything else (loading, the logo) none. The bar keeps
+  /// no state of its own; it reads this.
+  NavDestination? get navCurrent => switch (this) {
+    TitleLoading() || Title() || Active() => NavDestination.home,
+    Gallery() => NavDestination.gallery,
+    Contact() => NavDestination.contact,
+    _ => null,
+  };
+
   /// Whether the screen's chrome (the title's icons) sits on a light scene
   /// and wants the dark ink: the gallery's ceiling, not the title's dusk.
   bool get chromeOnLight => this is Gallery;
@@ -140,3 +151,6 @@ sealed class SceneState with _$SceneState {
   /// turning the touch controls off restores the old drag everywhere.
   bool get swipesByStroke => flags.walkStick;
 }
+
+/// The drawer's bar: where it can take the visitor.
+enum NavDestination { home, gallery, contact }

@@ -30,6 +30,8 @@ abstract class AppStrings {
   /// The drawer's gallery half: the radio's heading, play, stop and next
   /// station, and the way out of the gallery.
   String get drawerRadio;
+  String get navHome;
+  String get navGallery;
   String get drawerRadioPlay;
   String get drawerRadioStop;
   String get drawerRadioNext;
@@ -130,6 +132,10 @@ class DefaultAppStrings implements AppStrings {
   String get galleryBack => 'BACK';
   @override
   String get drawerRadio => 'Radio';
+  @override
+  String get navHome => 'home';
+  @override
+  String get navGallery => 'gallery';
   @override
   String get drawerRadioPlay => 'play';
   @override

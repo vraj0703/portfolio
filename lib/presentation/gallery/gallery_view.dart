@@ -292,7 +292,7 @@ class _GalleryViewState extends State<GalleryView> {
   void initState() {
     super.initState();
     // The drawer's way out takes the same fade as the BACK sign.
-    GalleryExitRequests.instance.addListener(_exitGallery);
+    GalleryExitRequests.instance.addListener(_onExitRequest);
 
     // Taken synchronously when the loading screen already built it, which is
     // the normal case. Awaiting even a completed future costs a frame, and
@@ -445,7 +445,16 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
-  /// The way out: from the BACK sign or the drawer ([GalleryExitRequests]).
+  /// The drawer's bar asking to leave (home or contact), through the same
+  /// lights-down as the BACK sign.
+  void _onExitRequest() {
+    final event = GalleryExitRequests.instance.take();
+    if (event == null) return;
+    _sound(AudioCue.pageTurn);
+    _leave(event);
+  }
+
+  /// The way out: from the BACK sign.
   void _exitGallery() {
     _sound(AudioCue.pageTurn);
     _leave(const SceneEvent.galleryExited());
@@ -806,7 +815,7 @@ class _GalleryViewState extends State<GalleryView> {
     _radio?.cancel();
     _leaving.dispose();
     _stick.dispose();
-    GalleryExitRequests.instance.removeListener(_exitGallery);
+    GalleryExitRequests.instance.removeListener(_onExitRequest);
     _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it

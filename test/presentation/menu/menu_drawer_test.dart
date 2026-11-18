@@ -121,12 +121,12 @@ void main() {
   });
 
   group('what the panel no longer holds', () {
-    testWidgets('neither the sound switch nor the way to contact', (
+    testWidgets("no sound switch; contact only as the bar's heart", (
       tester,
     ) async {
-      // Both moved up beside the control that opens the panel. A copy left
-      // behind in here would be two switches for one mute, and the one in
-      // the panel would be the one nobody finds.
+      // The sound switch lives beside the control that opens the panel; a
+      // copy in here would be two switches for one mute. The way to contact
+      // came back in as the bar's heart (PORTFOLIO-24), an icon, not text.
       await open(tester);
 
       final panel = find.byType(MenuDrawer);
@@ -143,10 +143,10 @@ void main() {
         );
       }
 
+      // The only drawings in the panel are the bar's three.
       expect(
         find.descendant(of: panel, matching: find.byType(SvgPicture)),
-        findsNothing,
-        reason: 'the panel still draws a row mark',
+        findsNWidgets(3),
       );
       expect(
         find.descendant(of: panel, matching: find.text(strings.menuClose)),

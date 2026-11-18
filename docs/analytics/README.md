@@ -118,6 +118,15 @@ whether the wall radio and the drawer both earn their place.
 The title's heart (the way to the contact page) left the top row for the drawer's bar
 (PORTFOLIO-24); it had no event of its own, so none is removed.
 
+### The drawer's bar (PORTFOLIO-24)
+
+- `nav_selected` (`destination`: `home` | `gallery` | `contact`, `from_scene`, `already_current`): a tap on the
+  drawer's bottom bar. `already_current` is a tap that only closes the drawer: a visitor looking for somewhere
+  they already are.
+
+There is no separate "contact opened" event: arriving on the contact page is its own `$pageview`
+(`/#/contact`), and a `nav_selected` with `destination: contact` just before it says it came from the bar.
+
 ## What is deliberately not collected
 
 - No names, emails or text typed by visitors. The testimonial text never leaves the page through analytics.
