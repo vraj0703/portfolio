@@ -1,5 +1,7 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
+import 'package:portfolio/domain/gallery/gallery_detail.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
@@ -148,7 +150,12 @@ class GalleryScene {
       // built to flatter a product on a turntable; this is a dim room, and
       // what it needs from its ambient term is the original's flat warm wash,
       // not a photographic key and rim.
-      ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient);
+      ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient)
+      // A phone renders at a fraction of the view's size: the corridor is
+      // fill-rate bound there (GalleryDetail).
+      ..renderScale = GalleryDetail.forDevice(
+        phone: Browser.isPhone(),
+      ).renderScale;
     final artwork = <ui.Image>[];
     final textures = <TextureSource>[];
     final testimonials = TestimonialCards();
@@ -353,14 +360,16 @@ class GalleryScene {
       ..add(normal)
       ..add(rough);
 
-    final normalTexture = await BuildTiming.upload('gallery_scene_builder.normal', normal, () => GpuUpload.image(
+    final normalTexture = await BuildTiming.upload(
+      'gallery_scene_builder.normal',
       normal,
-      content: TextureContent.normal,
-    ));
-    final roughTexture = await BuildTiming.upload('gallery_scene_builder.rough', rough, () => GpuUpload.image(
+      () => GpuUpload.image(normal, content: TextureContent.normal),
+    );
+    final roughTexture = await BuildTiming.upload(
+      'gallery_scene_builder.rough',
       rough,
-      content: TextureContent.data,
-    ));
+      () => GpuUpload.image(rough, content: TextureContent.data),
+    );
     textures
       ..add(normalTexture)
       ..add(roughTexture);
@@ -558,24 +567,31 @@ class GalleryScene {
     const width = 1600;
     const height = 640;
 
-    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
-      width: width,
-      height: height,
-      lines: <EngravedLine>[
-        EngravedLine(TextSpan(text: strings.wallName, style: type.wallName)),
-        EngravedLine(
-          TextSpan(text: strings.wallStatement, style: type.wallStatement),
-        ),
-      ],
-      // Space between the name and the paragraph, as a measurement rather
-      // than as a newline hidden on the end of the copy. Written into the
-      // string it is invisible to whoever rewrites the sentence, and the
-      // first thing they do is lose it.
-      gap: statementGap,
-    ));
+    final image = await BuildTiming.span(
+      BuildPhase.bake,
+      () => WallText.render(
+        width: width,
+        height: height,
+        lines: <EngravedLine>[
+          EngravedLine(TextSpan(text: strings.wallName, style: type.wallName)),
+          EngravedLine(
+            TextSpan(text: strings.wallStatement, style: type.wallStatement),
+          ),
+        ],
+        // Space between the name and the paragraph, as a measurement rather
+        // than as a newline hidden on the end of the copy. Written into the
+        // string it is invisible to whoever rewrites the sentence, and the
+        // first thing they do is lose it.
+        gap: statementGap,
+      ),
+    );
     images.add(image);
 
-    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+    final texture = await BuildTiming.upload(
+      'gallery_scene_builder.image',
+      image,
+      () => GpuUpload.image(image),
+    );
     textures.add(texture);
 
     // Sized from the image's own proportions, so retyping the statement
@@ -645,14 +661,21 @@ class GalleryScene {
     final width = (piece.extents.x * signPixelsPerUnit).round();
     final height = (piece.extents.y * signPixelsPerUnit).round();
 
-    final image = await BuildTiming.span(BuildPhase.bake, () => WallText.render(
-      width: width,
-      height: height,
-      lines: <EngravedLine>[EngravedLine(TextSpan(text: text, style: style))],
-    ));
+    final image = await BuildTiming.span(
+      BuildPhase.bake,
+      () => WallText.render(
+        width: width,
+        height: height,
+        lines: <EngravedLine>[EngravedLine(TextSpan(text: text, style: style))],
+      ),
+    );
     images.add(image);
 
-    final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+    final texture = await BuildTiming.upload(
+      'gallery_scene_builder.image',
+      image,
+      () => GpuUpload.image(image),
+    );
     textures.add(texture);
 
     scene.add(
@@ -713,14 +736,21 @@ class GalleryScene {
       final pending = locate<RecommendationStore>().load();
       final width = artworkSize;
       final height = (artworkSize * cardHeight / cardWidth).round();
-      final image = await BuildTiming.span(BuildPhase.bake, () => TestimonialCard.render(
-        slot: TestimonialWall.slotFor(slot, pending: pending),
-        pending: pending,
-        width: width,
-        height: height,
-      ));
+      final image = await BuildTiming.span(
+        BuildPhase.bake,
+        () => TestimonialCard.render(
+          slot: TestimonialWall.slotFor(slot, pending: pending),
+          pending: pending,
+          width: width,
+          height: height,
+        ),
+      );
       images.add(image);
-      final texture = await BuildTiming.upload('gallery_scene_builder.image', image, () => GpuUpload.image(image));
+      final texture = await BuildTiming.upload(
+        'gallery_scene_builder.image',
+        image,
+        () => GpuUpload.image(image),
+      );
       textures.add(texture);
 
       final material = UnlitMaterial(colorTexture: texture);
