@@ -45,6 +45,14 @@ void main() {
     expect(WallSteps.previous(between, points), points[2]);
   });
 
+  test('a walk still arriving at the back wall is not on the wall', () {
+    // Found on the Pixel profile: the last unit of the walk counted as on
+    // the wall, and the stick stepped past the statement to the first card.
+    expect(WallSteps.onWall(points.first - 0.5, points), isFalse);
+    expect(WallSteps.next(points.first - 0.5, points), isNull);
+    expect(WallSteps.onWall(points.first, points), isTrue);
+  });
+
   test('off the wall, nothing steps', () {
     expect(WallSteps.onWall(points.first - 100, points), isFalse);
     expect(WallSteps.next(points.first - 100, points), isNull);

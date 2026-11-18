@@ -1043,6 +1043,7 @@ class _GalleryViewState extends State<GalleryView> {
             _stickPointer != null &&
             _focused == null &&
             !_inHall &&
+            !_haltedAtWall &&
             _stickStep(WallSteps.stickDirection(_push));
         _walkSpeed = WalkControl.speedTowards(
           _walkSpeed,

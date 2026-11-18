@@ -526,8 +526,10 @@ class MyGame extends FlameGame
   /// When a stroke from the title began waiting for the arrow, if it is.
   int? _strokeWaitingMs;
 
-  /// How long a stroke from the title waits for the arrow before it lapses.
-  static const int strokeWaitMs = 1500;
+  /// How long a stroke from the title waits for the arrow before it lapses:
+  /// long enough for the title to finish arriving on a slow phone (1.5 s
+  /// lost the stroke on the Pixel profile); leaving the title cancels it.
+  static const int strokeWaitMs = 6000;
 
   void _retryWaitingStroke() {
     final since = _strokeWaitingMs;

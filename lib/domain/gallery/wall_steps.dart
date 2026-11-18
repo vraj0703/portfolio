@@ -38,9 +38,11 @@ abstract final class WallSteps {
       x / GalleryCameraPath.panEndX * GalleryCameraPath.panFraction;
 
   /// Whether [at] (scroll units) is on the wall: from the back wall's stop
-  /// to the last card.
+  /// (exactly: a walk still arriving there is not on the wall yet, or it
+  /// would step past the statement instead of stopping at it) to the last
+  /// card.
   static bool onWall(double at, List<double> points) =>
-      at >= points.first - 1 && at <= points.last + 1;
+      at >= points.first - 1e-6 && at <= points.last + 1;
 
   /// The next step after [at], or null past the last card (or off the wall).
   static double? next(double at, List<double> points) {
