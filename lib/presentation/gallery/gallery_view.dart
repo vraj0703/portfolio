@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/swipe_map.dart';
+import 'package:portfolio/domain/gallery/wall_steps.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
 import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
@@ -32,6 +33,7 @@ import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
 import 'package:portfolio/domain/utils/frame_watch.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
+import 'package:portfolio/domain/utils/strokes.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
@@ -211,6 +213,13 @@ class _GalleryViewState extends State<GalleryView> {
   /// head and eases back when let go.
   int? _stickPointer;
   Offset? _stickOrigin;
+
+  /// The testimonial wall's steps ([WallSteps]), and when a held stick may
+  /// take the next one (it rests on each card).
+  late final List<double> _wallSteps = WallSteps.points(
+    GalleryView.scrollExtent,
+  );
+  int _nextStickStepMs = 0;
 
   /// Whether a held stick has stopped at the back wall: it stays stopped,
   /// onward, until it is let go.
@@ -1029,11 +1038,18 @@ class _GalleryViewState extends State<GalleryView> {
         // spot they left rather than to wherever the wheel wandered.
         // The stick's walk: eased toward the push, and fed to the same
         // scroll the wheel and the old drag move, through the same gate.
+        // On the testimonial wall a held stick steps card by card.
+        final stepping =
+            _stickPointer != null &&
+            _focused == null &&
+            !_inHall &&
+            _stickStep(WallSteps.stickDirection(_push));
         _walkSpeed = WalkControl.speedTowards(
           _walkSpeed,
-          _focused == null && !_inHall ? _push : 0,
+          _focused == null && !_inHall && !stepping ? _push : 0,
           deltaSeconds,
         );
+        if (stepping) _walkSpeed = 0;
         if (_walkSpeed != 0 &&
             _focused == null &&
             _gate.accept(_clock.elapsedMilliseconds)) {
@@ -1175,7 +1191,8 @@ class _GalleryViewState extends State<GalleryView> {
   /// Whether the thumb stick is moving the visitor: held, or still easing
   /// out. While it is, the scroll and the camera follow it tightly, so a
   /// release stops the walk instead of letting it glide.
-  bool get _stickDriving => _stickPointer != null || _walkSpeed != 0;
+  bool get _stickDriving =>
+      _stickPointer != null || _walkSpeed != 0 || _scroll.isMoving;
 
   /// Lets go of whatever [pointer] was holding: the stick stops pushing
   /// (the walk eases out) and the look eases back in the frame.
@@ -1219,8 +1236,14 @@ class _GalleryViewState extends State<GalleryView> {
         case SwipeIntent.none:
           return;
         case SwipeIntent.travel:
-          // Everything so far, then every move after it.
           if (_focused != null) _focus(null);
+          // On the wall, one swipe is one step to the next card (or back).
+          if (_swipeStep(SwipeMap.onward(d.dx, d.dy, _swipeAxis))) {
+            _swipeIntent = SwipeIntent.none;
+            _swipeFrom = null;
+            return;
+          }
+          // Everything so far, then every move after it.
           _travel(d.dx, d.dy);
           return;
         case SwipeIntent.focusLeft:
@@ -1234,7 +1257,43 @@ class _GalleryViewState extends State<GalleryView> {
     }
   }
 
+  /// A swipe's step along the testimonial wall, if it is on the wall and
+  /// there is a card that way: true if it took it (or one is playing).
+  bool _swipeStep(double onward) {
+    final at = _scroll.target;
+    if (!WallSteps.onWall(at, _wallSteps)) return false;
+    if (_scroll.isMoving) return true;
+    final to = onward > 0
+        ? WallSteps.next(at, _wallSteps)
+        : WallSteps.previous(at, _wallSteps);
+    if (to == null) return false;
+    _scroll.moveTo(to);
+    return true;
+  }
+
+  /// A held stick's step along the wall in [direction]: true while the
+  /// stick is stepping (moving, or resting on a card), false where the wall
+  /// has no step that way and the stick walks as usual.
+  bool _stickStep(int direction) {
+    if (direction == 0) return false;
+    final at = _scroll.target;
+    if (!WallSteps.onWall(at, _wallSteps)) return false;
+    final to = direction > 0
+        ? WallSteps.next(at, _wallSteps)
+        : WallSteps.previous(at, _wallSteps);
+    if (_scroll.isMoving) return true;
+    if (to == null) return false;
+    final now = _clock.elapsedMilliseconds;
+    if (now < _nextStickStepMs) return true;
+    _scroll.moveTo(to);
+    _nextStickStepMs =
+        now + ((Strokes.moveSeconds + WallSteps.restSeconds) * 1000).round();
+    return true;
+  }
+
   void _travel(double dx, double dy) {
+    // A step playing on the wall is not interrupted by the rest of a swipe.
+    if (_scroll.isMoving) return;
     if (!_gate.accept(_clock.elapsedMilliseconds)) return;
     _scroll.scrollBy(SwipeMap.onward(dx, dy, _swipeAxis));
   }

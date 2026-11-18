@@ -145,6 +145,10 @@ class ScrollDriver {
     _moveTowards(previous ?? 0);
   }
 
+  /// A timed move to [point], as a stroke makes: for a caller that has its
+  /// own steps (the testimonial wall's cards, [WallSteps]).
+  void moveTo(double point) => _moveTowards(point);
+
   void _moveTowards(double to) {
     _moveFrom = _target;
     _moveTo = to.clamp(0.0, extent);
