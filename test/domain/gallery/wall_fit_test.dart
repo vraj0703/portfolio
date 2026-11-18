@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/gallery_dimensions.dart';
+import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/wall_fit.dart';
 
@@ -73,7 +74,7 @@ void main() {
               width:
                   GalleryDimensions.statementWidth * (1 + 2 * WallFit.margin),
               // Vector3 is float32: the pose is the standoff to ~1e-7.
-            distance: distance + 1e-4,
+              distance: distance + 1e-4,
               aspect: aspect,
               fovY: fovFor(aspect),
             ),
@@ -145,6 +146,61 @@ void main() {
           reason: 'aspect $aspect',
         );
       }
+    });
+  });
+
+  group('the testimonial wall', () {
+    test('a desktop pans on the alley centre line, as it always did', () {
+      expect(
+        GalleryCameraPath.testimonialStandoff(16 / 9),
+        GalleryDimensions.wallLockDistance,
+      );
+    });
+
+    for (final aspect in aspects) {
+      test('a whole card is in view at ${aspect.toStringAsFixed(2)}', () {
+        // At each card's own x, square-on, from where the pan runs.
+        for (var i = 0; i < GalleryDimensions.testimonialCount; i++) {
+          final x =
+              GalleryDimensions.testStartX + i * GalleryDimensions.testSpacing;
+          final distance =
+              GalleryCameraPath.panZ(x, aspect) -
+              (GalleryDimensions.backWallZ + GalleryLayout.testimonialStandoff);
+          // The tallest screens (a 21:9 phone with no browser bars) would
+          // need to stand outside the alley for the whole card; there the
+          // card is at least 90% in view, and from 0.46 up it is whole.
+          final shown = aspect < 0.45 ? 0.9 : 1.0;
+          expect(
+            WallFit.fits(
+              width: GalleryLayout.frameWidth * shown,
+              distance: distance + 1e-4,
+              aspect: aspect,
+              fovY: fovFor(aspect),
+            ),
+            isTrue,
+            reason: 'card $i',
+          );
+        }
+      });
+
+      test(
+        'the pan stays inside the alley at ${aspect.toStringAsFixed(2)}',
+        () {
+          expect(
+            GalleryCameraPath.testimonialStandoff(aspect),
+            lessThanOrEqualTo(
+              GalleryDimensions.wingWidth - GalleryCameraPath.alleyClearance,
+            ),
+          );
+        },
+      );
+    }
+
+    test('a portrait phone stands back further than a desktop', () {
+      expect(
+        GalleryCameraPath.testimonialStandoff(0.46),
+        greaterThan(GalleryCameraPath.testimonialStandoff(16 / 9) + 2),
+      );
     });
   });
 }

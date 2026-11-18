@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
+import 'gallery_layout.dart';
 import 'gallery_shape.dart';
 import 'keyboard_layout.dart';
 import 'wall_fit.dart';
@@ -106,9 +107,27 @@ abstract final class GalleryCameraPath {
     ),
   );
 
-  /// How far from the back wall the pan along the testimonials runs.
-  static double testimonialStandoff(double aspect) =>
-      GalleryDimensions.wallLockDistance;
+  /// How far from the back wall the pan along the testimonials runs on a
+  /// screen of [aspect]: a card fitted the same way as the statement, never
+  /// nearer than the centre line, and never further back than the alley
+  /// allows ([alleyClearance] short of its front wall). On a portrait phone
+  /// the alley is the limit: a card's full margin wants ~6 units and the
+  /// alley is 6 deep, so the card fits with a slimmer margin there.
+  static double testimonialStandoff(double aspect) => math.min(
+    GalleryDimensions.wingWidth - alleyClearance,
+    math.max(
+      GalleryDimensions.wallLockDistance,
+      WallFit.distance(
+        width: GalleryLayout.frameWidth,
+        height: GalleryDimensions.frameMaxHeight,
+        aspect: aspect,
+        fovY: GalleryShape.forAspect(aspect).fovRadians,
+      ),
+    ),
+  );
+
+  /// How close the camera may come to the alley's front wall, behind it.
+  static const double alleyClearance = 0.4;
 
   /// How far along the pan the camera has stepped in from the statement's
   /// distance to the testimonials': before it reaches the corridor's side
