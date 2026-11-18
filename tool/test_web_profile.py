@@ -134,3 +134,37 @@ class EnterFromLogo(unittest.TestCase):
             entered = asyncio.run(wp.enter_from_logo(FakeCdp()))
         self.assertTrue(entered)
         self.assertEqual(len(taps), 1)
+
+
+class JourneyScreens(unittest.TestCase):
+    """tool/check_journey.py's readings of the screen, on made-up screens."""
+
+    def setUp(self):
+        global cj, Image
+        import check_journey as cj  # noqa: E402
+        from PIL import Image
+
+    def test_logo_tan_and_dark_title(self):
+        self.assertTrue(cj.logo_like(Image.new("RGB", (64, 40), (200, 150, 110))))
+        self.assertFalse(cj.logo_like(Image.new("RGB", (64, 40), (60, 30, 20))))
+
+    def test_gallery_is_grey_and_bold_is_bright(self):
+        self.assertEqual(cj.scene(Image.new("RGB", (64, 40), (180, 175, 165))), "gallery")
+        self.assertEqual(cj.scene(Image.new("RGB", (64, 40), (230, 190, 90))), "bold")
+
+    def test_a_brown_card_in_front(self):
+        im = Image.new("RGB", (400, 800), (180, 175, 165))
+        im.paste((110, 60, 25), (80, 260, 320, 460))
+        self.assertTrue(cj.cards_in_front(im))
+        self.assertFalse(cj.cards_in_front(Image.new("RGB", (400, 800), (180, 175, 165))))
+
+    def test_the_phone_drawer_is_one_warm_panel(self):
+        self.assertTrue(cj.drawer_open(Image.new("RGB", (400, 800), (180, 130, 80))))
+        im = Image.new("RGB", (400, 800), (180, 175, 165))
+        im.paste((20, 20, 20), (0, 400, 400, 600))
+        self.assertFalse(cj.drawer_open(im))
+
+    def test_a_frozen_screen_has_not_moved(self):
+        a = Image.new("RGB", (64, 40), (100, 100, 100))
+        self.assertFalse(cj.moved(a, a.copy()))
+        self.assertTrue(cj.moved(a, Image.new("RGB", (64, 40), (140, 100, 100))))

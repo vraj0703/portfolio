@@ -1,5 +1,7 @@
 /// Off the web there is no browser to ask; every answer is "not told".
 abstract final class Browser {
+  static void mark(String name) {}
+
   static final Stopwatch _clock = Stopwatch()..start();
 
   static double now() => _clock.elapsedMicroseconds / 1000;
