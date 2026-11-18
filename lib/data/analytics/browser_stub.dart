@@ -8,6 +8,8 @@ abstract final class Browser {
   static double? memoryGb() => null;
   static String? connection() => null;
   static String? renderer() => null;
+  static bool isPhone() => false;
+  static const int phoneShortSide = 600;
   static bool get visible => true;
 
   static void watch({

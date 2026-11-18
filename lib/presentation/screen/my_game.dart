@@ -8,7 +8,9 @@ import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier;
+import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/domain/audio/app_audio.dart';
+import 'package:portfolio/domain/config/backdrop_detail.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
@@ -131,6 +133,9 @@ class MyGame extends FlameGame
     // a crossfade that replaces the lit floor as the title takes over.
     _backdrop = BackdropComponent(
       shader: backdropProgram.fragmentShader(),
+      // Phones march fewer, longer steps: the backdrop was the whole title
+      // frame there (8.4 fps at DPR 2.0 on the ROG, 34.7 with this).
+      detail: BackdropDetail.forDevice(phone: Browser.isPhone()),
       priority: SceneLayers.backdrop,
     )..size = size;
 

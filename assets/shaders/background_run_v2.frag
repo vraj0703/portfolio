@@ -4,6 +4,12 @@ precision highp float;
 
 uniform vec2 uResolution;
 uniform float uTime;
+// How much work per pixel (BackdropDetail): marches, octaves per march, and
+// how much longer and heavier each march is. Desktop passes 80, 7, 1.0, which
+// leaves the arithmetic exactly as it was; phones pass fewer, longer steps.
+uniform float uSteps;
+uniform float uOctaves;
+uniform float uStepScale;
 
 out vec4 fragColor;
 
@@ -36,11 +42,13 @@ void main() {
     // 2. Raymarching Loop
     // Reduced to 80 iterations for better mobile performance without losing detail
     for(int i = 0; i < 80; i++) {
+        if (float(i) >= uSteps) break;
         p = vec3(uv * d, d + t);
         q = p;
 
         s = 0.03;
         for (int k = 0; k < 7; k++) {
+            if (float(k) >= uOctaves) break;
             // Subtle shift: added a slight sine wobble to simulate heat rising
             p += vec3(abs(dot(sin(p * s * 4.0 + t * 0.1), vec3(0.035))) / s);
             s += s;
@@ -54,9 +62,9 @@ void main() {
         float valY = minVal.y;
 
         s = 0.04 + 0.6 * abs(valY);
-        d += s;
+        d += s * uStepScale;
 
-        o += 1.0 / s;
+        o += uStepScale / s;
     }
 
     // 3. Cinematic Color Grading
