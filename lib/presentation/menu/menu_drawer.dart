@@ -8,12 +8,9 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
-import 'package:portfolio/data/di/dependency_manager.dart';
-import 'package:portfolio/domain/analytics/analytics.dart';
-import 'package:portfolio/domain/radio/radio_player.dart';
-import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/menu/drawer_nav_bar.dart';
+import 'package:portfolio/presentation/menu/drawer_radio.dart';
 
 /// The panel the title screen's control opens.
 ///
@@ -182,7 +179,10 @@ class _Panel extends StatelessWidget {
                 _CloseRow(onClose: onClose),
 
                 // The first half: the radio, on every screen (PORTFOLIO-23).
-                const Expanded(child: _RadioHalf()),
+                // The radio, directly under the close button, looking like
+                // the wall's (PORTFOLIO-25).
+                const DrawerRadio(),
+                const Expanded(child: SizedBox.shrink()),
 
                 // Where the projects and the writing will go. Empty on
                 // purpose: the sound switch and the way to the contact screen
@@ -232,80 +232,6 @@ class _CloseRow extends StatelessWidget {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// The drawer's radio, on every screen: its station, what it is doing, play
-/// or stop, and the next station.
-class _RadioHalf extends StatelessWidget {
-  const _RadioHalf();
-
-  @override
-  Widget build(BuildContext context) {
-    final radio = locate<RadioPlayer>();
-    final strings = context.strings;
-    final colors = context.colors;
-    final type = context.typography;
-    final action = type.menuAction.copyWith(color: colors.menuText);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      child: StreamBuilder<RadioState>(
-        stream: radio.changes,
-        initialData: radio.state,
-        builder: (context, snapshot) {
-          final state = snapshot.data ?? radio.state;
-          final on = state.isPlaying || state.isTuning;
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              Text(
-                strings.drawerRadio.toUpperCase(),
-                style: type.menuAction.copyWith(color: colors.menuTextSoft),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '${state.tuned.name}  \u00b7  ${state.readout}',
-                style: action,
-              ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                children: <Widget>[
-                  TextButton(
-                    onPressed: () {
-                      context.audio.play(AudioCue.click);
-                      unawaited(radio.toggle());
-                      locate<SiteEvents>().radioToggled(
-                        on: !on,
-                        surface: 'drawer',
-                      );
-                    },
-                    child: Text(
-                      on ? strings.drawerRadioStop : strings.drawerRadioPlay,
-                      style: action,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      context.audio.play(AudioCue.click);
-                      unawaited(radio.next());
-                      locate<SiteEvents>().radioStationChanged(
-                        station: RadioDial.at(
-                          RadioDial.next(state.station),
-                        ).name,
-                        surface: 'drawer',
-                      );
-                    },
-                    child: Text(strings.drawerRadioNext, style: action),
-                  ),
-                ],
-              ),
-            ],
-          );
-        },
       ),
     );
   }

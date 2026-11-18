@@ -183,21 +183,21 @@ void main() {
 
     testWidgets('the drawer holds the radio: play, stop, next', (tester) async {
       await openIn(tester, const SceneState.gallery());
-      expect(find.text(strings.drawerRadioNext), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
 
-      await tester.tap(find.text(strings.drawerRadioPlay));
+      await tester.tap(find.text('PLAY'));
       await tester.pumpAndSettle();
       expect(radio.calls, <String>['play']);
-      expect(find.text(strings.drawerRadioStop), findsOneWidget);
+      expect(find.text('STOP'), findsOneWidget);
 
-      await tester.tap(find.text(strings.drawerRadioNext));
+      await tester.tap(find.text('NEXT'));
       await tester.pumpAndSettle();
       expect(radio.calls.last, 'next');
     });
 
     testWidgets('the radio is in the drawer on the title too', (tester) async {
       await openIn(tester, const SceneState.title());
-      expect(find.text(strings.drawerRadioNext), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
     });
   });
 }
