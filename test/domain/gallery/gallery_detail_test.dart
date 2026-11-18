@@ -16,13 +16,21 @@ void main() {
     expect(GalleryDetail.phone.bakeLighting, isTrue);
   });
 
-  test('baked, the builder hangs no live lamp and gives the floor the map', () {
+  test('baked, the builder hangs no live lamp and maps every lit surface', () {
     final source = File(
       'lib/presentation/gallery/gallery_scene_builder.dart',
     ).readAsStringSync();
     expect(source, contains('if (!detail.bakeLighting) _light(scene, shape);'));
-    expect(source, contains('..lightmapTexture = floorLightmap.texture'));
     expect(source, contains('..lightmapRgbm = true'));
+    // Floor and ceiling by region, walls by their room-facing side, and the
+    // small lit things one texel each.
+    expect(source, contains('SurfaceKind.floor => _bakeLevel('));
+    expect(source, contains('SurfaceKind.ceiling => _bakeLevel('));
+    expect(source, contains('_ => _bakeFace(piece, lamps)'));
+    expect(
+      source,
+      contains('if (lamps != null) _bakeTheRest(scene.root, lamps);'),
+    );
   });
 
   test('the scene builder applies it, chosen by the browser', () {

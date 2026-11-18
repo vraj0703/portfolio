@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
@@ -163,7 +164,7 @@ class GalleryScene {
     final textures = <TextureSource>[];
     final testimonials = TestimonialCards();
 
-    final floorLightmap = detail.bakeLighting ? _bakeFloor(shape) : null;
+    final lamps = detail.bakeLighting ? _bakeLamps(shape) : null;
 
     await _populate(
       scene,
@@ -173,7 +174,7 @@ class GalleryScene {
       artworkSize,
       onProgress,
       testimonials,
-      floorLightmap,
+      lamps,
     );
     // Baked, the pools are already in the surfaces: no lamp is hung.
     if (!detail.bakeLighting) _light(scene, shape);
@@ -231,6 +232,8 @@ class GalleryScene {
     // final rebuild still sees no scene — and for anything waiting on one,
     // there is no later change to wait for. The warm-up under the curtain
     // did exactly that and held the bar at 89% permanently.
+    if (lamps != null) _bakeTheRest(scene.root, lamps);
+
     final ready = _ready = GalleryScene._(
       scene,
       arrow,
@@ -358,7 +361,7 @@ class GalleryScene {
     int artworkSize,
     void Function(double)? onProgress,
     TestimonialCards testimonials,
-    _Lightmap? floorLightmap,
+    List<BakeLamp>? lamps,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -498,12 +501,14 @@ class GalleryScene {
       }
 
       final material = _surfaceOf(piece, normalTexture, roughTexture, surfaces);
-      if (piece.kind == SurfaceKind.floor && floorLightmap != null) {
-        material
-          ..lightmapTexture = floorLightmap.texture
-          ..lightmapTextureTransform = floorLightmap.transform
-          ..lightmapTextureTexCoord = 0
-          ..lightmapRgbm = true;
+      // Baked (phones): the lamps' pools in a lightmap, the lamps not hung.
+      if (lamps != null) {
+        final map = switch (piece.kind) {
+          SurfaceKind.floor => _bakeLevel(piece, lamps, facingUp: true),
+          SurfaceKind.ceiling => _bakeLevel(piece, lamps, facingUp: false),
+          _ => _bakeFace(piece, lamps),
+        };
+        _bind(material, map);
       }
 
       final geometry = switch (piece.kind) {
@@ -523,33 +528,42 @@ class GalleryScene {
     }
   }
 
-  /// The floor's lamp pools, baked from the lamps [_light] would hang.
-  ///
-  /// The same [GalleryLighting] list, converted to engine space the same
-  /// way, through LightmapBake's copy of the renderer's own arithmetic. The
-  /// texture covers only the region the lamps reach (clamped at its edges to
-  /// the ambient), mapped onto the floor plane's 0..1 UVs by a transform.
-  static _Lightmap _bakeFloor(GalleryShape shape) {
-    final lamps = <BakeLamp>[
-      for (final light in GalleryLighting.build(shape: shape))
-        BakeLamp(
-          position: SceneAxes.position(light.position),
-          radiance:
-              Vector3(light.colour.r, light.colour.g, light.colour.b) *
-              light.intensity,
-          range: light.range,
-          direction: light.direction == null
-              ? null
-              : SceneAxes.position(light.direction!),
-          innerCone: light.innerCone,
-          outerCone: light.outerCone,
-        ),
-    ];
-    final floor = GalleryLayout.build(
-      shape: shape,
-    ).firstWhere((p) => p.kind == SurfaceKind.floor);
-    final centre = SceneAxes.position(floor.position);
-    final w = floor.extents.x, d = floor.extents.z;
+  /// The lamps [_light] would hang, as the bake sees them: the same
+  /// [GalleryLighting] list, converted to engine space the same way, so the
+  /// baked pools and the live ones cannot drift apart.
+  static List<BakeLamp> _bakeLamps(GalleryShape shape) => <BakeLamp>[
+    for (final light in GalleryLighting.build(shape: shape))
+      BakeLamp(
+        position: SceneAxes.position(light.position),
+        radiance:
+            Vector3(light.colour.r, light.colour.g, light.colour.b) *
+            light.intensity,
+        range: light.range,
+        direction: light.direction == null
+            ? null
+            : SceneAxes.position(light.direction!),
+        innerCone: light.innerCone,
+        outerCone: light.outerCone,
+      ),
+  ];
+
+  /// Texels a world unit, and the most along either side of a map.
+  static const int _texelsPerUnit = 8;
+  static const int _maxTexels = 1024;
+
+  /// The floor's top, or the ceiling's underside: a level surface far larger
+  /// than the rooms (the slabs run 200 units), so only the region the lamps
+  /// reach is baked, and laid onto the face's 0..1 UVs by a transform; the
+  /// rest clamps to the ambient at the region's edge. The plane's top and a
+  /// box's underside share one UV layout: u over x from -w/2, v over z.
+  static _Lightmap _bakeLevel(
+    Placement piece,
+    List<BakeLamp> lamps, {
+    required bool facingUp,
+  }) {
+    final centre = SceneAxes.position(piece.position);
+    final w = piece.extents.x, d = piece.extents.z;
+    final y = facingUp ? centre.y : centre.y - piece.extents.y / 2;
 
     var x0 = double.infinity, x1 = -double.infinity;
     var z0 = double.infinity, z1 = -double.infinity;
@@ -564,40 +578,170 @@ class GalleryScene {
     z0 = math.max(z0, centre.z - d / 2);
     z1 = math.min(z1, centre.z + d / 2);
 
-    const texelsPerUnit = 8;
-    final width = ((x1 - x0) * texelsPerUnit).ceil().clamp(1, 1024);
-    final height = ((z1 - z0) * texelsPerUnit).ceil().clamp(1, 1024);
-    final rgb = LightmapBake.level(
+    final width = ((x1 - x0) * _texelsPerUnit).ceil().clamp(1, _maxTexels);
+    final height = ((z1 - z0) * _texelsPerUnit).ceil().clamp(1, _maxTexels);
+    final rgb = LightmapBake.face(
       lamps: lamps,
       ambient: GalleryLighting.ambient,
-      x0: x0,
-      z0: z0,
-      x1: x1,
-      z1: z1,
-      y: centre.y,
+      origin: Vector3(x0, y, z0),
+      uAxis: Vector3(x1 - x0, 0, 0),
+      vAxis: Vector3(0, 0, z1 - z0),
+      normal: Vector3(0, facingUp ? 1 : -1, 0),
       width: width,
       height: height,
     );
-    final texture = Texture2D.fromPixels(
-      LightmapBake.rgbm(rgb),
-      width,
-      height,
-      content: TextureContent.data,
-      sampling: const TextureSampling(
-        addressMode: gpu.SamplerAddressMode.clampToEdge,
+
+    final u0 = (x0 - (centre.x - w / 2)) / w;
+    final u1 = (x1 - (centre.x - w / 2)) / w;
+    final v0 = (z0 - (centre.z - d / 2)) / d;
+    final v1 = (z1 - (centre.z - d / 2)) / d;
+    return _Lightmap(
+      _texture(rgb, width, height),
+      TextureTransform(
+        scale: Vector2(1 / (u1 - u0), 1 / (v1 - v0)),
+        offset: Vector2(-u0 / (u1 - u0), -v0 / (v1 - v0)),
       ),
     );
+  }
 
-    // The plane's u runs 0..1 over x from centre - w/2, v over z likewise.
-    final u0 = (x0 - (centre.x - w / 2)) / w,
-        u1 = (x1 - (centre.x - w / 2)) / w;
-    final v0 = (z0 - (centre.z - d / 2)) / d,
-        v1 = (z1 - (centre.z - d / 2)) / d;
-    final transform = TextureTransform(
-      scale: Vector2(1 / (u1 - u0), 1 / (v1 - v0)),
-      offset: Vector2(-u0 / (u1 - u0), -v0 / (v1 - v0)),
+  /// A box's four sides, as flutter_scene lays out their UVs: the corners at
+  /// uv (0,0), (1,0) and (0,1) in the box's own frame, and the outward normal
+  /// (buildCuboidArrays: v = 0 at the top of a face).
+  static List<(Vector3, Vector3, Vector3, Vector3)> _sides(Vector3 e) =>
+      <(Vector3, Vector3, Vector3, Vector3)>[
+        (
+          Vector3(-e.x, e.y, -e.z),
+          Vector3(e.x, e.y, -e.z),
+          Vector3(-e.x, -e.y, -e.z),
+          Vector3(0, 0, -1),
+        ),
+        (
+          Vector3(e.x, e.y, -e.z),
+          Vector3(e.x, e.y, e.z),
+          Vector3(e.x, -e.y, -e.z),
+          Vector3(1, 0, 0),
+        ),
+        (
+          Vector3(e.x, e.y, e.z),
+          Vector3(-e.x, e.y, e.z),
+          Vector3(e.x, -e.y, e.z),
+          Vector3(0, 0, 1),
+        ),
+        (
+          Vector3(-e.x, e.y, e.z),
+          Vector3(-e.x, e.y, -e.z),
+          Vector3(-e.x, -e.y, e.z),
+          Vector3(-1, 0, 0),
+        ),
+      ];
+
+  /// A wall: its side that looks at the nearest lamp, baked whole. One map
+  /// serves the whole box, so its other sides read the same values; they
+  /// face away from the rooms, where nobody stands.
+  static _Lightmap _bakeFace(Placement piece, List<BakeLamp> lamps) {
+    final transform = Matrix4.translation(SceneAxes.position(piece.position));
+    if (piece.rotationY != 0) {
+      transform.rotateY(SceneAxes.rotationY(piece.rotationY));
+    }
+    final centre = transform.transform3(Vector3.zero());
+    final nearest = lamps.reduce(
+      (a, b) => (a.position - centre).length2 <= (b.position - centre).length2
+          ? a
+          : b,
     );
-    return _Lightmap(texture, transform);
+
+    (Vector3, Vector3, Vector3, Vector3)? best;
+    var bestFacing = -double.infinity;
+    for (final side in _sides(piece.extents / 2)) {
+      final normal = transform.rotated3(side.$4.clone())..normalize();
+      final mid = transform.transform3((side.$2 + side.$3) / 2);
+      final facing = normal.dot((nearest.position - mid).normalized());
+      if (facing > bestFacing) {
+        bestFacing = facing;
+        best = (
+          transform.transform3(side.$1.clone()),
+          transform.transform3(side.$2.clone()),
+          transform.transform3(side.$3.clone()),
+          normal,
+        );
+      }
+    }
+    final (origin, uEnd, vEnd, normal) = best!;
+    final uAxis = uEnd - origin, vAxis = vEnd - origin;
+    final width = (uAxis.length * _texelsPerUnit).ceil().clamp(1, _maxTexels);
+    final height = (vAxis.length * _texelsPerUnit).ceil().clamp(1, _maxTexels);
+    final rgb = LightmapBake.face(
+      lamps: lamps,
+      ambient: GalleryLighting.ambient,
+      origin: origin,
+      uAxis: uAxis,
+      vAxis: vAxis,
+      normal: normal,
+      width: width,
+      height: height,
+    );
+    return _Lightmap(_texture(rgb, width, height), TextureTransform());
+  }
+
+  /// Everything else lit and unbaked (the frames' mouldings, the keys, the
+  /// wall controls, the arrow) gets one texel: the light at its position,
+  /// facing its brightest lamp. Small objects, where a single value reads as
+  /// the pool they stand in.
+  static void _bakeTheRest(Node node, List<BakeLamp> lamps) {
+    final mesh = node.mesh;
+    if (mesh != null) {
+      final at = node.globalTransform.transform3(Vector3.zero());
+      for (final primitive in mesh.primitives) {
+        final material = primitive.material;
+        if (material is! PhysicallyBasedMaterial) continue;
+        if (material.lightmapTexture != null) continue;
+        var brightest = Vector3.zero();
+        for (final lamp in lamps) {
+          final toLamp = lamp.position - at;
+          if (toLamp.length2 < 1e-8) continue;
+          final facing = LightmapBake.radianceAt(
+            lamps,
+            at,
+            toLamp.normalized(),
+          );
+          if (facing.length2 > brightest.length2) brightest = facing;
+        }
+        final value = brightest..add(GalleryLighting.ambient);
+        _bind(
+          material,
+          _Lightmap(
+            _texture(
+              Float32List.fromList(<double>[value.x, value.y, value.z]),
+              1,
+              1,
+            ),
+            TextureTransform(),
+          ),
+        );
+      }
+    }
+    for (final child in node.children) {
+      _bakeTheRest(child, lamps);
+    }
+  }
+
+  static Texture2D _texture(Float32List rgb, int width, int height) =>
+      Texture2D.fromPixels(
+        LightmapBake.rgbm(rgb),
+        width,
+        height,
+        content: TextureContent.data,
+        sampling: const TextureSampling(
+          addressMode: gpu.SamplerAddressMode.clampToEdge,
+        ),
+      );
+
+  static void _bind(PhysicallyBasedMaterial material, _Lightmap map) {
+    material
+      ..lightmapTexture = map.texture
+      ..lightmapTextureTransform = map.transform
+      ..lightmapTextureTexCoord = 0
+      ..lightmapRgbm = true;
   }
 
   /// Hangs the lights described by [GalleryLighting].

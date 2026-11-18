@@ -88,4 +88,38 @@ void main() {
       }
     }
   });
+
+  test('a face bakes along its own axes, facing its own way', () {
+    // A wall facing +x, 4 wide along z and 2 tall, a lamp in front of its
+    // u = 0.25 end: the texels nearer the lamp are brighter.
+    final lamp = BakeLamp(
+      position: Vector3(1, 1, 1),
+      radiance: Vector3.all(20),
+      range: 10,
+    );
+    final grid = LightmapBake.face(
+      lamps: [lamp],
+      ambient: Vector3.zero(),
+      origin: Vector3(0, 2, 0),
+      uAxis: Vector3(0, 0, 4),
+      vAxis: Vector3(0, -2, 0),
+      normal: Vector3(1, 0, 0),
+      width: 4,
+      height: 2,
+    );
+    double at(int i, int j) => grid[(j * 4 + i) * 3];
+    expect(at(0, 0), greaterThan(at(3, 0)));
+    // Facing away from the lamp, nothing.
+    final back = LightmapBake.face(
+      lamps: [lamp],
+      ambient: Vector3.zero(),
+      origin: Vector3(0, 2, 0),
+      uAxis: Vector3(0, 0, 4),
+      vAxis: Vector3(0, -2, 0),
+      normal: Vector3(-1, 0, 0),
+      width: 4,
+      height: 2,
+    );
+    expect(back.every((x) => x == 0), isTrue);
+  });
 }

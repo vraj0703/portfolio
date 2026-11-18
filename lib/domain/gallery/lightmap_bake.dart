@@ -78,6 +78,36 @@ abstract final class LightmapBake {
     return out;
   }
 
+  /// Radiance over a rectangular face: the texel at (u, v) sits at
+  /// `origin + uAxis * u + vAxis * v`, facing [normal]; [width] by [height]
+  /// texels, rows along v, three floats a texel. For a wall, a ceiling, any
+  /// flat side of a box.
+  static Float32List face({
+    required List<BakeLamp> lamps,
+    required Vector3 ambient,
+    required Vector3 origin,
+    required Vector3 uAxis,
+    required Vector3 vAxis,
+    required Vector3 normal,
+    required int width,
+    required int height,
+  }) {
+    final out = Float32List(width * height * 3);
+    for (var j = 0; j < height; j++) {
+      final v = (j + 0.5) / height;
+      for (var i = 0; i < width; i++) {
+        final u = (i + 0.5) / width;
+        final p = origin + uAxis * u + vAxis * v;
+        final e = radianceAt(lamps, p, normal)..add(ambient);
+        final k = (j * width + i) * 3;
+        out[k] = e.x;
+        out[k + 1] = e.y;
+        out[k + 2] = e.z;
+      }
+    }
+    return out;
+  }
+
   /// The lamps' diffuse contribution at [point] for a surface facing
   /// [normal], before the surface's own colour.
   static Vector3 radianceAt(
