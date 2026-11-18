@@ -62,6 +62,7 @@ class FlameScene extends StatelessWidget {
           flags: ButtonFlags(
             connect: events.showsConnect(),
             menu: events.showsMenu(),
+            walkStick: events.walksByStick(),
           ),
         ),
       );
@@ -80,8 +81,8 @@ class FlameScene extends StatelessWidget {
   /// The window's width over height, read off the engine: the warm-up runs
   /// outside any widget's build. A laptop's when there is no view yet.
   static double _screenAspect() {
-    final size = WidgetsBinding.instance.platformDispatcher.implicitView
-        ?.physicalSize;
+    final size =
+        WidgetsBinding.instance.platformDispatcher.implicitView?.physicalSize;
     if (size == null || size.isEmpty) return GalleryCameraPath.landscape;
     return size.width / size.height;
   }

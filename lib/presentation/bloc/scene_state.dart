@@ -90,6 +90,11 @@ sealed class SceneState with _$SceneState {
 
   bool get isScrollable => this is Active || this is Gallery;
 
+  /// Whether a touch in the gallery walks with a thumb stick and looks
+  /// around with a drag (WalkControl), rather than dragging the corridor
+  /// like a page. The gallery's rule, behind its flag; the view reads it.
+  bool get walksByStick => this is Gallery && flags.walkStick;
+
   bool get isInteractable => this is Logo || this is Title;
 
   /// Whether the title screen's menu control belongs on screen.
