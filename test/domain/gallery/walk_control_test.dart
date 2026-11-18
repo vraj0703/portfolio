@@ -68,4 +68,22 @@ void main() {
       expect(speed, closeTo(WalkControl.maxSpeed / 2, 1e-9));
     });
   });
+
+  group('what a touch does', () {
+    const height = 800.0;
+
+    test('the stick, low on the screen, in the corridor and in the hall', () {
+      expect(WalkControl.roleFor(700, height, inHall: false), TouchRole.stick);
+      // The hall too: the stick walks the approach to the board.
+      expect(WalkControl.roleFor(700, height, inHall: true), TouchRole.stick);
+    });
+
+    test('above it, a swipe; in the hall, the board turns', () {
+      expect(WalkControl.roleFor(200, height, inHall: false), TouchRole.swipe);
+      expect(
+        WalkControl.roleFor(200, height, inHall: true),
+        TouchRole.boardDrag,
+      );
+    });
+  });
 }

@@ -239,13 +239,12 @@ class _GalleryViewState extends State<GalleryView> {
   final ValueNotifier<(Offset, Offset)?> _stick =
       ValueNotifier<(Offset, Offset)?>(null);
 
-  /// Whether [event] walks by stick or looks: a finger or a pen, in the
-  /// corridor (the hall turns its board with a drag), nothing focused, and
-  /// the scene's rule on.
+  /// Whether [event] is read by the stick and the swipes: a finger or a pen,
+  /// with the scene's rule on. Where it lands decides which
+  /// ([WalkControl.roleFor]).
   bool _walksByStick(PointerEvent event) =>
       (event.kind == PointerDeviceKind.touch ||
           event.kind == PointerDeviceKind.stylus) &&
-      !_inHall &&
       context.read<SceneBloc>().state.walksByStick;
 
   /// Where the camera actually is, as opposed to where it is wanted.
@@ -841,18 +840,23 @@ class _GalleryViewState extends State<GalleryView> {
                   _dragFrom = event.localPosition;
                   _dragDistance = 0;
                   if (!_walksByStick(event)) return;
-                  if (WalkControl.holdsStick(
+                  switch (WalkControl.roleFor(
                     event.localPosition.dy,
                     _viewSize.height,
+                    inHall: _inHall,
                   )) {
-                    _stickPointer = event.pointer;
-                    _stickOrigin = event.localPosition;
-                    _stick.value = (event.localPosition, event.localPosition);
-                  } else {
-                    _swipePointer = event.pointer;
-                    _swipeFrom = event.localPosition;
-                    _swipeIntent = SwipeIntent.none;
-                    _swipeAxis = _travelAxisNow();
+                    case TouchRole.stick:
+                      _stickPointer = event.pointer;
+                      _stickOrigin = event.localPosition;
+                      _stick.value = (event.localPosition, event.localPosition);
+                    case TouchRole.swipe:
+                      _swipePointer = event.pointer;
+                      _swipeFrom = event.localPosition;
+                      _swipeIntent = SwipeIntent.none;
+                      _swipeAxis = _travelAxisNow();
+                    case TouchRole.boardDrag:
+                      // Left to the board's own drag below.
+                      break;
                   }
                 },
                 onPointerMove: (event) {
@@ -1047,7 +1051,7 @@ class _GalleryViewState extends State<GalleryView> {
             _stickStep(WallSteps.stickDirection(_push));
         _walkSpeed = WalkControl.speedTowards(
           _walkSpeed,
-          _focused == null && !_inHall && !stepping ? _push : 0,
+          _focused == null && !stepping ? _push : 0,
           deltaSeconds,
         );
         if (stepping) _walkSpeed = 0;
@@ -1116,7 +1120,8 @@ class _GalleryViewState extends State<GalleryView> {
           // the visitor out facing the way they came, rather than sideways
           // from wherever they had wandered round to.
           _orbit.settle(deltaSeconds);
-        } else if (_dragFrom == null) {
+        } else if (_dragFrom == null || _stickPointer != null) {
+          // The stick walking to the board is not a hand on the board.
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);

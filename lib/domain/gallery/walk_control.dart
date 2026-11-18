@@ -42,6 +42,15 @@ abstract final class WalkControl {
   /// camera adds well under a tenth of a second to a stop.
   static const double stickChase = 60;
 
+  /// What a touch at height [y] on a screen [height] tall does: the stick in
+  /// the lower part everywhere, the hall included (it walks the approach to
+  /// the board; mantr, 2026-11-18); above it, a swipe in the corridor and
+  /// along the wall ([SwipeMap]), and the board's own drag in the hall.
+  static TouchRole roleFor(double y, double height, {required bool inHall}) {
+    if (holdsStick(y, height)) return TouchRole.stick;
+    return inHall ? TouchRole.boardDrag : TouchRole.swipe;
+  }
+
   /// Whether a touch at height [y] on a screen [height] tall holds the stick.
   static bool holdsStick(double y, double height) =>
       height > 0 && y >= height * stickZone;
@@ -81,3 +90,6 @@ abstract final class WalkControl {
     return step;
   }
 }
+
+/// What a touch in the gallery does ([WalkControl.roleFor]).
+enum TouchRole { stick, swipe, boardDrag }
