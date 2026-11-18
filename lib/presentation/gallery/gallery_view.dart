@@ -34,6 +34,7 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
+import 'package:portfolio/presentation/gallery/gallery_phone_controls.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
@@ -358,6 +359,33 @@ class _GalleryViewState extends State<GalleryView> {
   ///
   /// Ignores a second request: the visitor pressing the sign twice while the
   /// room is going dark should not restart the fade or queue two events.
+  /// The radio's play or stop: from the wall's button or the phone's row.
+  void _toggleRadio() {
+    _sound(AudioCue.click);
+    final radio = locate<RadioPlayer>();
+
+    // Not awaited, and said so. Opening a stream takes seconds; a tap
+    // handler that waited on it would hold the corridor still while the
+    // radio dialled out.
+    unawaited(
+      radio.state.isPlaying || radio.state.isTuning
+          ? radio.stop()
+          : radio.play(),
+    );
+  }
+
+  /// The radio's next station: from the wall's button or the phone's row.
+  void _nextStation() {
+    _sound(AudioCue.click);
+    unawaited(locate<RadioPlayer>().next());
+  }
+
+  /// The way out: from the BACK sign or the phone's row.
+  void _exitGallery() {
+    _sound(AudioCue.pageTurn);
+    _leave(const SceneEvent.galleryExited());
+  }
+
   void _leave(SceneEvent event) {
     if (_leavingFor != null) return;
     setState(() => _leavingFor = event);
@@ -491,29 +519,17 @@ class _GalleryViewState extends State<GalleryView> {
     }
 
     if (hit?.kind == SurfaceKind.radioPlay) {
-      _sound(AudioCue.click);
-      final radio = locate<RadioPlayer>();
-
-      // Not awaited, and said so. Opening a stream takes seconds; a tap
-      // handler that waited on it would hold the corridor still while the
-      // radio dialled out.
-      unawaited(
-        radio.state.isPlaying || radio.state.isTuning
-            ? radio.stop()
-            : radio.play(),
-      );
+      _toggleRadio();
       return;
     }
 
     if (hit?.kind == SurfaceKind.radioNext) {
-      _sound(AudioCue.click);
-      unawaited(locate<RadioPlayer>().next());
+      _nextStation();
       return;
     }
 
     if (hit?.kind == SurfaceKind.exitSign) {
-      _sound(AudioCue.pageTurn);
-      _leave(const SceneEvent.galleryExited());
+      _exitGallery();
       return;
     }
 
@@ -839,6 +855,16 @@ class _GalleryViewState extends State<GalleryView> {
                 mirrored: !(_focused?.position.x.isNegative ?? true),
                 asFallback: _gallery?.controls == null,
               ),
+
+              // On a portrait screen the BACK sign and the radio are never in
+              // view (see GalleryPhoneControls): their actions, fixed to the
+              // corner, through the same handlers as the wall pieces.
+              if (_shape == GalleryShape.portrait)
+                GalleryPhoneControls(
+                  onBack: _exitGallery,
+                  onRadio: _toggleRadio,
+                  onRadioNext: _nextStation,
+                ),
 
               // Over the room *and* over its controls. A ✕ still lit on a
               // corridor that has gone dark reads as the page having failed
