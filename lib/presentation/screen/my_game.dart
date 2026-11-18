@@ -19,6 +19,7 @@ import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/domain/utils/cursor_tracker.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
+import 'package:portfolio/domain/utils/strokes.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/backdrop_component.dart';
 import 'package:portfolio/presentation/game/bold_text_component.dart';
@@ -266,6 +267,7 @@ class MyGame extends FlameGame
   /// rather than by a second copy of the same arithmetic.
   void _rewindBoldTextStage() {
     _boldTextActive = false;
+    _strokePending = false;
     _boldTextHandedOver = false;
     _tingPlayed = false;
     _scroll.reset();
@@ -366,6 +368,8 @@ class MyGame extends FlameGame
         if (_boldTextActive) return;
         _boldTextActive = true;
         _scroll.reset();
+        if (_strokePending) _scroll.advanceToNextPause();
+        _strokePending = false;
       },
       orElse: () {},
     );
@@ -444,52 +448,71 @@ class MyGame extends FlameGame
     queuer.queue(event: const SceneEvent.logoExitCompleted());
   }
 
-  /// How far a finger moves the intro, against how far it travels.
-  ///
-  /// A wheel notch reports about a hundred units; a finger reports the pixels
-  /// it crossed. Left at one-to-one the stage still works, but reading a
-  /// paragraph takes a handful of full-screen swipes, which is not what the
-  /// same gesture costs anywhere else on a phone.
-  static const double dragScrollGain = 2;
-
   @override
   void onScroll(PointerScrollInfo info) {
     super.onScroll(info);
-    // Scrolling and clicking the arrow are the same request; the bloc decides
-    // whether it means anything yet.
-    _advanceBy(info.scrollDelta.global.y);
+    // One flick of the wheel is one stroke ([Strokes]): the first event of a
+    // burst decides it, the rest of the burst is the same gesture.
+    final now = _strokeClock.elapsedMilliseconds;
+    final starts = Strokes.wheelStartsStroke(now, _lastWheelMs);
+    _lastWheelMs = now;
+    if (starts) _stroke(Strokes.wheelDirection(info.scrollDelta.global.y));
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    _dragTravelled = 0;
+    _dragStroked = false;
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
-
-    // A finger moving *up* is a wheel turning down: both mean "onward". The
-    // content follows the finger, which is the only mapping a phone reads as
-    // direct rather than inverted.
-    _advanceBy(-event.localDelta.y * dragScrollGain);
+    // One swipe is one stroke, decided once it has gone far enough to say
+    // which way; the rest of the swipe is the same gesture.
+    if (_dragStroked) return;
+    _dragTravelled += event.localDelta.y;
+    final direction = Strokes.dragDirection(_dragTravelled);
+    if (direction == 0) return;
+    _dragStroked = true;
+    _stroke(direction);
   }
 
-  /// Moves the intro on by [delta], however that was asked for.
-  ///
-  /// Shared, because a wheel and a finger are the same request arriving by
-  /// different hardware — and because the three guards below are the whole
-  /// of the stage's input rules. Duplicated for touch, they would be three
-  /// more chances for the two to drift apart.
-  void _advanceBy(double delta) {
+  /// The wheel's and the finger's stroke state.
+  final Stopwatch _strokeClock = Stopwatch()..start();
+  int? _lastWheelMs;
+  double _dragTravelled = 0;
+  bool _dragStroked = false;
+
+  /// A stroke onward from the title, made before the stage was running:
+  /// the stage plays it as soon as it opens, so the one stroke carries the
+  /// visitor from the title to the bold text.
+  bool _strokePending = false;
+
+  /// One stroke, onward ([direction] `1`) or back (`-1`): a timed move to
+  /// the next or the previous pause.
+  void _stroke(int direction) {
     // Once the stage has handed over, its scroll is spent. Continuing to
     // accept input here keeps driving a sequence the visitor has already left
     // and competes with the gallery for the same gesture.
-    if (_boldTextHandedOver) return;
+    if (_boldTextHandedOver || direction == 0) return;
 
     if (_boldTextActive) {
-      _scroll.scrollBy(delta);
+      // A stroke while one is playing is the same request again.
+      if (_scroll.isMoving) return;
+      if (direction > 0) {
+        _scroll.advanceToNextPause();
+      } else {
+        _scroll.retreatToPreviousPause();
+      }
       return;
     }
 
-    // Before the stage, a downward scroll is just another way of asking to
-    // move on — the same request the arrow makes.
-    if (delta <= 0) return;
+    // Before the stage, a stroke onward is the arrow's request, and the
+    // stage carries it on to the bold text once it opens.
+    if (direction < 0) return;
+    _strokePending = true;
     _scrollCue.requestAdvance();
   }
 
