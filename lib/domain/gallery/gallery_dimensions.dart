@@ -26,8 +26,7 @@ abstract final class GalleryDimensions {
   static const double spacing = 5;
 
   /// Corridor runs the length of the left wall's frames plus a run-out.
-  static double get corridorLength =>
-      GalleryProjects.left.length * spacing + 8;
+  static double get corridorLength => GalleryProjects.left.length * spacing + 8;
 
   /// The back wall sits 3 units short of the corridor's full length.
   static double get backWallZ => -(corridorLength - 3);
@@ -72,6 +71,13 @@ abstract final class GalleryDimensions {
   /// dogleg through it.
   static const double wallLockDistance = wingWidth / 2;
   static double get wallLockZ => backWallZ + wallLockDistance;
+
+  /// The name and statement on the back wall: its size on the wall and the
+  /// height of its centre. The camera's stop is fitted to it
+  /// ([GalleryCameraPath.statementStandoff]).
+  static const double statementWidth = 6;
+  static const double statementHeight = statementWidth * 640 / 1600;
+  static const double statementY = 0.9;
 
   /* -- Testimonial wing ------------------------------ */
 
@@ -119,12 +125,14 @@ abstract final class GalleryDimensions {
 
   /// The hall opens 8 units past the final testimonial card.
   static double get kbX => testPanEndX + 8 + kbDepth / 2;
+
   /// The hall's centre line, which is the alley's, which is the pan's.
   ///
   /// Derived rather than restated so the three cannot drift apart — the
   /// straight run from the end of the pan into the hall depends on all of
   /// them being the same number.
   static double get kbZ => wallLockZ;
+
   /// How high the instruction is cut on the hall's far wall.
   ///
   /// Above the board, which hangs at [KeyboardLayout.hoverHeight] and tilts

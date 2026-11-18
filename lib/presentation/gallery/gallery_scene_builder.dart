@@ -832,8 +832,9 @@ class GalleryScene {
 
     // Sized from the image's own proportions, so retyping the statement
     // cannot silently stretch it.
-    const worldWidth = 6.0;
+    const worldWidth = GalleryDimensions.statementWidth;
     const worldHeight = worldWidth * height / width;
+    assert(worldHeight == GalleryDimensions.statementHeight);
 
     scene.add(
       Node(
@@ -845,7 +846,7 @@ class GalleryScene {
           SceneAxes.position(
             Vector3(
               0,
-              0.9,
+              GalleryDimensions.statementY,
               // Clear of the slab, not merely nudged toward the room: the
               // wall is 0.2 thick and centred on this plane, so a smaller
               // offset leaves the lettering buried inside it.

@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import 'package:vector_math/vector_math.dart';
 
 import 'gallery_dimensions.dart';
+import 'gallery_shape.dart';
 import 'keyboard_layout.dart';
+import 'wall_fit.dart';
 
 /// Where the camera is and what it is looking at, at a point in the walk.
 class CameraPose {
@@ -89,6 +91,39 @@ abstract final class GalleryCameraPath {
 
   /// Where the camera stops along the back wall.
   static double get panEndX => GalleryDimensions.testPanEndX;
+
+  /// How far from the back wall the walk stops on a screen of [aspect]:
+  /// far enough that the whole statement fits with a margin ([WallFit]),
+  /// and never nearer than the alley's centre line, where it always stopped
+  /// on a desktop. A portrait phone stops about nine units back.
+  static double statementStandoff(double aspect) => math.max(
+    GalleryDimensions.wallLockDistance,
+    WallFit.distance(
+      width: GalleryDimensions.statementWidth,
+      height: GalleryDimensions.statementHeight,
+      aspect: aspect,
+      fovY: GalleryShape.forAspect(aspect).fovRadians,
+    ),
+  );
+
+  /// How far from the back wall the pan along the testimonials runs.
+  static double testimonialStandoff(double aspect) =>
+      GalleryDimensions.wallLockDistance;
+
+  /// How far along the pan the camera has stepped in from the statement's
+  /// distance to the testimonials': before it reaches the corridor's side
+  /// wall, which the alley opens off at the alley's own depth.
+  static const double stepInX = 2.5;
+
+  /// The pan's depth at [x] along it: the statement's standoff, eased to
+  /// the testimonials' by [stepInX].
+  static double panZ(double x, double aspect) {
+    final u = (x / stepInX).clamp(0.0, 1.0);
+    final ease = u * u * (3 - 2 * u);
+    final from = statementStandoff(aspect);
+    final to = testimonialStandoff(aspect);
+    return GalleryDimensions.backWallZ + from + (to - from) * ease;
+  }
 
   /// How far short of the board the approach stops.
   ///
@@ -205,7 +240,7 @@ abstract final class GalleryCameraPath {
   static CameraPose poseAt(double progress, {double aspect = landscape}) {
     final p = progress.clamp(0.0, 1.0);
     if (p < walkFraction) return _walk(p, aspect);
-    if (p < panEnd) return _pan(p);
+    if (p < panEnd) return _pan(p, aspect);
     return _approach(p, aspect);
   }
 
@@ -218,7 +253,8 @@ abstract final class GalleryCameraPath {
   static CameraPose _walk(double p, double aspect) {
     final t = p / walkFraction;
     final start = startZFor(aspect);
-    final z = start - t * (start - GalleryDimensions.wallLockZ);
+    final stop = GalleryDimensions.backWallZ + statementStandoff(aspect);
+    final z = start - t * (start - stop);
 
     final proximity = ((t - (1 - approachShare)) / approachShare).clamp(
       0.0,
@@ -244,12 +280,12 @@ abstract final class GalleryCameraPath {
   ///
   /// Position and target share an x, so the wall is always viewed
   /// square-on. Letting the target lag would skew every card as it passed.
-  static CameraPose _pan(double p) {
+  static CameraPose _pan(double p, double aspect) {
     final t = (p - walkFraction) / panFraction;
     final x = t * panEndX;
 
     return CameraPose(
-      position: Vector3(x, panEyeHeight, GalleryDimensions.wallLockZ),
+      position: Vector3(x, panEyeHeight, panZ(x, aspect)),
       target: Vector3(x, panEyeHeight, GalleryDimensions.backWallZ),
     );
   }
@@ -270,6 +306,8 @@ abstract final class GalleryCameraPath {
     final double x;
     final double eyeY;
     final double turn;
+    // Back onto the alley's centre line by the doorway, which is cut on it.
+    var z = GalleryDimensions.wallLockZ;
 
     if (t < doorwayShare) {
       // To the doorway, turning from the wall to face into the hall as they
@@ -280,6 +318,8 @@ abstract final class GalleryCameraPath {
       x = panEndX + (entry - panEndX) * ease;
       eyeY = panEyeHeight;
       turn = u * u * (3 - 2 * u);
+      final from = GalleryDimensions.backWallZ + testimonialStandoff(aspect);
+      z = from + (GalleryDimensions.wallLockZ - from) * ease;
     } else if (t < revealEnd) {
       // Held at the threshold while the board rises.
       x = entry;
@@ -298,10 +338,7 @@ abstract final class GalleryCameraPath {
     final wallAhead = Vector3(x, eyeY, GalleryDimensions.backWallZ);
     final look = wallAhead + (board - wallAhead) * turn;
 
-    return CameraPose(
-      position: Vector3(x, eyeY, GalleryDimensions.wallLockZ),
-      target: look,
-    );
+    return CameraPose(position: Vector3(x, eyeY, z), target: look);
   }
 
   /// How far the board has risen at [progress], `0`..`1`.
