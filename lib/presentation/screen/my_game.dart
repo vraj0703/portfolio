@@ -7,6 +7,7 @@ import 'package:flame/events.dart';
 import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame_bloc/flame_bloc.dart';
+import 'package:flutter/foundation.dart' show ValueNotifier;
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
@@ -22,6 +23,7 @@ import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/contact_dim_component.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/title_layer_component.dart';
 
@@ -531,4 +533,98 @@ class MyGame extends FlameGame
   void _report(double value) => queuer.queue(
     event: SceneEvent.loadingProgressed(phase: LoadingPhase.game, value: value),
   );
+
+  /* -- Rehearsal ------------------------------------------------------- */
+
+  /// Frames the title stage's real draws are rehearsed while loading
+  /// ([SceneState.rehearsesTitle]), through `RehearsalPixel`.
+  ///
+  /// One compiles every program; the second is where a compile's tail lands,
+  /// still behind the loading screen rather than on the first visible frame.
+  static const int rehearsalFrames = 2;
+
+  /// How far [LoadingPhase.rehearsal] has got after [frames] rehearsed.
+  static double rehearsalProgress(int frames) =>
+      (frames / rehearsalFrames).clamp(0.0, 1.0);
+
+  int _rehearsed = 0;
+
+  /// The components whose draws are rehearsed. A frame counts only once all
+  /// of them are mounted, because a frame they were not in compiled nothing.
+  List<PositionComponent> get _rehearsalCast => <PositionComponent>[
+    _backdrop,
+    _title,
+    _scrollCue,
+    _boldText,
+  ];
+
+  /// The game `RehearsalPixel` draws from, while it is mounted.
+  ///
+  /// The pixel is a widget over the loading screen and the game sits under
+  /// it; this is the one line between them.
+  static final ValueNotifier<MyGame?> stage = ValueNotifier<MyGame?>(null);
+
+  @override
+  void onMount() {
+    super.onMount();
+    stage.value = this;
+  }
+
+  @override
+  void onRemove() {
+    if (stage.value == this) stage.value = null;
+    super.onRemove();
+  }
+
+  static bool _readyToRehearse(Component actor) => switch (actor) {
+    final Rehearsable cast => cast.readyToRehearse,
+    _ => actor.isMounted,
+  };
+
+  /// Draws the rehearsal cast into [canvas], which the caller has clipped,
+  /// and counts the frame into [LoadingPhase.rehearsal].
+  ///
+  /// The draws have to be the screen's own and the last in their pixel.
+  /// Under the opaque loading screen they never reached the GPU, and a
+  /// picture rasterised offscreen compiles in another WebGL context than the
+  /// screen's (GL census on the ROG, 2026-11-17: three contexts, screen,
+  /// toImageSync and flutter_scene). Each component decides what to draw
+  /// from the scene's rule, as it does on screen.
+  void rehearseInto(ui.Canvas canvas) {
+    // [rehearsalFrames] and no more: every frame of it is the title stage
+    // drawn in full while the loading it hides behind is still running.
+    if (_rehearsed >= rehearsalFrames) return;
+    if (!bloc.state.rehearsesTitle) return;
+    if (!isLoaded || !_rehearsalCast.every(_readyToRehearse)) return;
+
+    RehearsalPass.active = true;
+    try {
+      for (final actor in _rehearsalCast) {
+        // Moved so a pixel it inks lands on the clip: a draw whose bounds miss
+        // the clip is rejected before the GPU. A translation leaves the
+        // program as it is.
+        final points = switch (actor) {
+          final Rehearsable cast => cast.rehearsalPoints,
+          _ => <Vector2>[actor.absoluteCenter],
+        };
+        for (final point in points) {
+          canvas
+            ..save()
+            ..translate(-point.x, -point.y);
+          actor.renderTree(canvas);
+          canvas.restore();
+        }
+      }
+    } finally {
+      RehearsalPass.active = false;
+    }
+
+    _rehearsed++;
+    queuer.queue(
+      event: SceneEvent.loadingProgressed(
+        phase: LoadingPhase.rehearsal,
+        value: rehearsalProgress(_rehearsed),
+      ),
+    );
+  }
 }

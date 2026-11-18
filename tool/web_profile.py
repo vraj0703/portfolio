@@ -20,7 +20,7 @@ Needs: python3 with `websockets`, Google Chrome at the usual Windows path (CHROM
 override). Everything it knows about a trace is in `summarise()`; see the skill
 .claude/skills/web-profile/SKILL.md for what each number means.
 """
-import argparse, asyncio, base64, io, json, os, statistics, subprocess, sys, tempfile, time, urllib.request
+import argparse, asyncio, base64, bisect, io, json, os, statistics, subprocess, sys, tempfile, time, urllib.request
 from collections import Counter, defaultdict
 
 CHROME = os.environ.get("CHROME", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
@@ -73,15 +73,48 @@ class Cdp:
         raise TimeoutError(name)
 
 
+async def enter_from_logo(cdp, mark=True, tries=10, watch_s=5.0):
+    """Tap "TAP TO ENTER" until the logo's tan leaves the screen.
+
+    After each tap, watch for the change for up to `watch_s` before tapping again. The fade
+    still reads about 143 red 1.5 s after an accepted tap and about 121 a second later; a
+    second tap in that window lands on the title, where the contact menu now stands, and the
+    screen never goes dark (seen 2026-11-17: 30 taps, 70 s, on the ROG). The last
+    `journey:tap` mark is the tap the logo accepted, which is `site_loaded`."""
+    for _ in range(tries):
+        if mark:
+            await phase(cdp, "tap")
+        await touch_tap(cdp, W / 2, H * 0.89)
+        end = time.monotonic() + watch_s
+        while time.monotonic() < end:
+            await asyncio.sleep(0.5)
+            r, g, b = await mean_colour(cdp)
+            if r < 140:
+                return True
+    return False
+
+
 async def mean_colour(cdp):
-    """Mean RGB of the screen, sampled small: enough to tell the logo's tan from the title's dark."""
+    """Mean RGB of the screen: enough to tell the logo's tan from the title's dark.
+
+    Never with a `clip`: on Android Chrome a clipped capture resizes the viewport for the shot
+    (412x764 to 980x1819 and back, seen 2026-11-17 on the ROG), and the app under test pays for
+    every flip: CanvasKit's resizeCanvas, and flutter_scene reallocating its render targets. One
+    tiny screencast frame instead: no resize, about 30 ms and 300 bytes on the ROG, against
+    100 ms and 14 kB for a whole-screen capture."""
     try:
-        r = await cdp("Page.captureScreenshot", format="jpeg", quality=40,
-                      clip={"x": 0, "y": 0, "width": W, "height": H, "scale": 0.05})
-    except RuntimeError:
+        await cdp("Page.startScreencast", format="jpeg", quality=20, maxWidth=40, maxHeight=80)
+        try:
+            ev = await cdp.wait_event("Page.screencastFrame", timeout=5)
+            await cdp("Page.screencastFrameAck", sessionId=ev["params"]["sessionId"])
+        finally:
+            await cdp("Page.stopScreencast")
+    except (RuntimeError, TimeoutError, asyncio.TimeoutError):
         # Between navigation and the first frame there is no page to capture yet.
         return (0, 0, 0)
-    data = base64.b64decode(r.get("data", ""))
+    # Frames queued after the one read belong to no one: drop them so they do not pile up.
+    cdp.events = [e for e in getattr(cdp, "events", []) if e.get("method") != "Page.screencastFrame"]
+    data = base64.b64decode(ev["params"].get("data", ""))
     if not data:
         return (0, 0, 0)
     from PIL import Image
@@ -272,12 +305,7 @@ async def record_one(url, scenario, path, remote=None):
                 raise TimeoutError("logo screen never showed")
             if from_load:
                 await phase(cdp, "logo")
-            for _ in range(30):
-                await touch_tap(cdp, W / 2, H * 0.89)
-                await asyncio.sleep(1.5)
-                r, g, b = await mean_colour(cdp)
-                if r < 140:
-                    break
+            await enter_from_logo(cdp, mark=from_load)
             if from_load:
                 await phase(cdp, "title")
             await asyncio.sleep(12)  # the title's entrance, at 4x CPU
@@ -494,6 +522,7 @@ def stalls(events, over_ms=100):
             samples.append((t, nodes.get((pid_, sid), f"#{sid}"), max(dt, 0)))
         clock[pid_] = t
     samples.sort()
+    sample_ts = [s[0] for s in samples]
 
     out, end = [], -1
     tasks_ = sorted((e for e in events if (e.get("pid"), e.get("tid")) == mt and e.get("ph") == "X"
@@ -513,12 +542,33 @@ def stalls(events, over_ms=100):
             if ts <= a:
                 where = name
         inside = Counter()
-        for t, name, us in samples:
-            if a <= t <= b:
-                inside[name] += us
+        # Samples are sorted by time: slice the task's window rather than scan them all, which
+        # took 20 minutes on a 470 MB phone trace when every task was asked about.
+        lo = bisect.bisect_left(sample_ts, a)
+        for t, name, us in samples[lo:bisect.bisect_right(sample_ts, b)]:
+            inside[name] += us
         top = [(n, round(us / 1000)) for n, us in inside.most_common(4) if n not in ("(program)",)][:3]
         out.append({"at_s": round((a - t_start) / 1e6, 2), "phase": where, "ms": round(dur), "top": top})
     return sorted(out, key=lambda r: r["at_s"])
+
+
+def after_loaded(events, over_ms=100):
+    """What the visitor meets after `site_loaded` (the logo accepting the tap, the last
+    `journey:tap` mark): the stalls over `over_ms`, the longest task, and ms_ready, the time
+    from navigation to that tap, as the app's own `site_loaded` reports it."""
+    taps = sorted(e["ts"] for e in events if e.get("name") == "journey:tap" and e.get("ts"))
+    if not taps:
+        return None
+    t_start = min(e["ts"] for e in events if e.get("ts"))
+    nav = [e["ts"] for e in events if e.get("name") == "navigationStart" and e.get("ts") is not None]
+    at = (taps[-1] - t_start) / 1e6
+    every = stalls(events, 0)
+    after = [r for r in every if r["at_s"] >= at]
+    return {
+        "ms_ready": round((taps[-1] - min(nav)) / 1000) if nav else None,
+        "stalls": [r for r in after if r["ms"] > over_ms],
+        "longest": max(after, key=lambda r: r["ms"], default=None),
+    }
 
 
 def spread(rows, key):
@@ -565,7 +615,25 @@ def main():
     st = sub.add_parser("stalls", help="every main-thread task over --over ms, with its cause")
     st.add_argument("trace")
     st.add_argument("--over", type=float, default=100)
+    ld = sub.add_parser("loaded", help="after site_loaded: stalls over --over ms, longest task, ms_ready")
+    ld.add_argument("traces", nargs="+")
+    ld.add_argument("--over", type=float, default=100)
     a = ap.parse_args()
+
+    if a.cmd == "loaded":
+        for p in a.traces:
+            r = after_loaded(load_events(p), a.over)
+            if r is None:
+                print(f"{p}: no journey:tap mark (traced before the mark existed?)")
+                continue
+            lg = r["longest"]
+            print(f"{os.path.basename(p)}: ms_ready {r['ms_ready']}, stalls > {a.over:g} ms after "
+                  f"site_loaded {len(r['stalls'])}, longest {lg['ms'] if lg else 0} ms"
+                  f" ({lg['phase'] if lg else '-'})")
+            for s in r["stalls"]:
+                top = ", ".join(f"{n} {ms}" for n, ms in s["top"])
+                print(f"   {s['at_s']:7.2f} s  {s['phase']:<9} {s['ms']:5d} ms  {top}")
+        return
 
     if a.cmd == "stalls":
         for r in stalls(load_events(a.trace), a.over):

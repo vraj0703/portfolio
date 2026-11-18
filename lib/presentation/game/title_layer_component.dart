@@ -7,6 +7,7 @@ import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/game/metallic_text_component.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/presentation/game/secondary_title_component.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/domain/config/title_timeline.dart';
@@ -22,7 +23,8 @@ import 'package:portfolio/domain/config/title_timeline.dart';
 /// pause is doing work; compressing them makes the stage read as a single
 /// event rather than an arrival.
 class TitleLayerComponent extends PositionComponent
-    with FlameBlocListenable<SceneBloc, SceneState> {
+    with FlameBlocListenable<SceneBloc, SceneState>
+    implements Rehearsable {
   TitleLayerComponent({
     required this.palette,
     required this.program,
@@ -120,6 +122,7 @@ class TitleLayerComponent extends PositionComponent
   @override
   void onInitialState(SceneState state) {
     super.onInitialState(state);
+    _rehearse(state);
 
     // The stage the game *mounted into* never arrives as a change, so without
     // this the title waits for a transition into a state the scene is already
@@ -145,6 +148,7 @@ class TitleLayerComponent extends PositionComponent
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);
+    _rehearse(state);
 
     state.maybeMap(
       titleLoading: (_) => _elapsed ??= 0,
@@ -164,6 +168,45 @@ class TitleLayerComponent extends PositionComponent
         if (hasBegunBy(state)) _elapsed ??= 0;
       },
     );
+  }
+
+  /// Ready once the name and every glyph of the line beneath are mounted:
+  /// they are added in [onLoad] without waiting, so they arrive after this.
+  @override
+  bool get readyToRehearse =>
+      isMounted && _primary.isMounted && _secondary.glyphsMounted;
+
+  /// The scene's rule ([SceneState.rehearsesTitle]), handed to the glyphs,
+  /// which have no state of their own. Drawing only: the timeline, the cues
+  /// and the report are untouched.
+  void _rehearse(SceneState state) {
+    _primary.rehearsing = state.rehearsesTitle;
+    _secondary.rehearsing = state.rehearsesTitle;
+
+    // The name waits at scale zero for its entrance, and a draw of no size
+    // is rejected before the GPU. Rehearsed at its rest size instead; the
+    // entrance sets the scale from its timeline on its first frame
+    // (`_drivePrimary`), and the name is not drawn until then.
+    if (state.rehearsesTitle) {
+      _primary.scale = Vector2.all(
+        TitleConfig.primaryFit(
+          naturalWidth: _primary.size.x,
+          viewportWidth: _viewportWidth,
+        ),
+      );
+    }
+  }
+
+  /// Across the name's middle, where its letters are, and the centre of each
+  /// glyph of the line beneath.
+  @override
+  List<Vector2> get rehearsalPoints {
+    final box = _primary.toAbsoluteRect();
+    return <Vector2>[
+      for (var i = 1; i < 12; i++)
+        Vector2(box.left + box.width * i / 12, box.center.dy),
+      ..._secondary.glyphCentres,
+    ];
   }
 
   void _rewind() {
@@ -215,7 +258,8 @@ class TitleLayerComponent extends PositionComponent
   /* -- Timeline -------------------------------------------------------- */
 
   void _drivePrimary(double elapsed) {
-    final scale = TitleConfig.primaryStartScale +
+    final scale =
+        TitleConfig.primaryStartScale +
         (1 - TitleConfig.primaryStartScale) *
             TitleTimeline.primaryScale(elapsed);
 
@@ -236,7 +280,6 @@ class TitleLayerComponent extends PositionComponent
           stageOffset +
           Vector2(0, TitleConfig.driftY * TitleTimeline.drift(elapsed));
   }
-
 
   void _driveSecondary(double elapsed) {
     // Only the parallax is driven from here; the entry belongs to the line.

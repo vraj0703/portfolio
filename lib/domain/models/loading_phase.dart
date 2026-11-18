@@ -39,7 +39,14 @@ enum LoadingPhase {
   ///
   /// Weighted well below the others because it is a handful of frames
   /// against seconds of building, and the bar should say so.
-  priming(weight: 0.5);
+  priming(weight: 0.5),
+
+  /// Drawing the title stage's real draws once, behind the curtain
+  /// (`SceneState.rehearsesTitle`), so CanvasKit compiles their programs
+  /// here and not on the visitor's first frames of the title.
+  ///
+  /// A couple of frames, so the lightest share of the bar.
+  rehearsal(weight: 0.25);
 
   const LoadingPhase({required this.weight});
 

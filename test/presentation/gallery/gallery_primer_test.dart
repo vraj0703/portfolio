@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
@@ -44,13 +46,90 @@ void main() {
       );
     });
 
-    test('at a fraction of the pixels, because size is not what is warmed', () {
-      // Which pipelines compile depends on the materials submitted, and
-      // culling depends on the frustum. Neither depends on raster size, so
-      // this can be cheap — but not zero, because a frame that rasterises
-      // nothing does not compile anything either.
-      expect(GalleryPrimer.pixelRatio, greaterThan(0));
-      expect(GalleryPrimer.pixelRatio, lessThan(0.5));
+    test('it draws both ends of the path, entrance first', () {
+      // Parked at the entrance alone, an earlier warm-up warmed the first
+      // wall and nothing else: the scene culls against the frustum.
+      expect(GalleryPrimer.progressFor(0), 0);
+      expect(GalleryPrimer.progressFor(GalleryPrimer.walkFrames - 1), 1);
+      for (var f = 1; f < GalleryPrimer.walkFrames; f++) {
+        expect(
+          GalleryPrimer.progressFor(f),
+          greaterThan(GalleryPrimer.progressFor(f - 1)),
+        );
+      }
+    });
+
+    test('in two frames, because each one is loading time on a phone', () {
+      // 28 full-size frames added 9.5 s to loading on the ROG; two left no
+      // arrival stall (2026-11-17). More frames need a device measurement
+      // that shows a stall these two leave behind.
+      expect(GalleryPrimer.warmFrames, 2);
+      expect(GalleryPrimer.settleFrames, 0);
+    });
+
+    test('the entry camera is the entrance, whatever the frame count', () {
+      final entry = GalleryPrimer.entryCameraFor(GalleryShape.desktop);
+      final first = GalleryPrimer.cameraFor(GalleryShape.desktop, 0);
+      expect(entry.position, first.position);
+      expect(entry.target, first.target);
+    });
+
+    test('a portrait phone walks the portrait path', () {
+      // The board approach is keyed on the screen's aspect (Phone 6); a
+      // landscape camera on a phone would warm a frustum it never sees.
+      const portrait = 1080 / 2340;
+      final last = GalleryPrimer.walkFrames - 1;
+      final pose = GalleryCameraPath.poseAt(1, aspect: portrait);
+      final camera = GalleryPrimer.cameraFor(
+        GalleryShape.portrait,
+        last,
+        aspect: portrait,
+      );
+
+      expect(camera.position, SceneAxes.position(pose.position));
+      expect(camera.target, SceneAxes.position(pose.target));
+    });
+  });
+
+  group('it draws at the size the corridor will draw at', () {
+    test('full screen, at the device pixel ratio, not a fraction', () {
+      // A scene keeps one set of render targets per view and rebuilds them
+      // whenever the drawn size changes. Primed at a twentieth of the pixels
+      // (and again at one pixel during the title), the corridor's first frame
+      // reallocated every full-size target in front of the visitor: a
+      // 0.4-0.9 s stall on the ROG. The primer must ask for the same size the
+      // gallery view asks for: the whole box, at the device's own ratio.
+      final source = File(
+        'lib/presentation/gallery/gallery_primer.dart',
+      ).readAsStringSync();
+      final code = source
+          .split('\n')
+          .where((line) => !line.trimLeft().startsWith('//'))
+          .join('\n');
+      final call = code.substring(code.indexOf('return SceneView('));
+
+      expect(
+        call.substring(0, call.indexOf('onTick')).contains('pixelRatio:'),
+        isFalse,
+        reason: 'the primer overrides the pixel ratio the corridor uses',
+      );
+    });
+
+    test('and nothing else draws the gallery scene at another size', () {
+      // The one-pixel warm render that ran during the title reset the
+      // targets to one pixel, after the primer had made them full size.
+      final users = Directory('lib')
+          .listSync(recursive: true)
+          .whereType<File>()
+          .where((f) => f.path.endsWith('.dart'))
+          .where((f) => f.readAsStringSync().contains('gallery.scene'))
+          .map((f) => f.path.replaceAll(r'\', '/'))
+          .toSet();
+
+      expect(users, {
+        'lib/presentation/gallery/gallery_primer.dart',
+        'lib/presentation/gallery/gallery_view.dart',
+      });
     });
   });
 

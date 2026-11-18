@@ -97,6 +97,22 @@ class SecondaryTitleComponent extends PositionComponent {
     }
   }
 
+  /// Whether every glyph is mounted, and so can be drawn.
+  bool get glyphsMounted =>
+      isMounted && _glyphs.isNotEmpty && _glyphs.every((g) => g.isMounted);
+
+  /// The centre of each glyph, in game coordinates: ink, for most letters.
+  List<Vector2> get glyphCentres => <Vector2>[
+    for (final glyph in _glyphs) glyph.absoluteCenter,
+  ];
+
+  /// Passed down from the title layer: see [MetallicTextComponent.rehearsing].
+  set rehearsing(bool value) {
+    for (final glyph in _glyphs) {
+      glyph.rehearsing = value;
+    }
+  }
+
   /// Starts the entry. Ignored if it is already running.
   void begin() {
     if (_elapsed != null) return;

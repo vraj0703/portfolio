@@ -5,6 +5,7 @@ import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/domain/config/scroll_cue_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -80,9 +81,19 @@ class ScrollCueComponent extends PositionComponent
   /// whatever the stage beneath is doing to it.
   double get visibleAmount => _opacity * stageFade;
 
+  /// Whether this frame rehearses the arrow ([SceneState.rehearsesTitle]).
+  bool _rehearsing = false;
+
+  @override
+  void onInitialState(SceneState state) {
+    super.onInitialState(state);
+    _rehearsing = state.rehearsesTitle;
+  }
+
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);
+    _rehearsing = state.rehearsesTitle;
 
     state.maybeMap(
       // Only offered once the title has finished arriving; before that there
@@ -106,10 +117,7 @@ class ScrollCueComponent extends PositionComponent
     // Anchored on its own centre so the bounce and the hit box stay
     // symmetrical about the resting position.
     anchor = Anchor.center;
-    position = Vector2(
-      size.x / 2,
-      size.y - ScrollCueConfig.bottomMargin,
-    );
+    position = Vector2(size.x / 2, size.y - ScrollCueConfig.bottomMargin);
   }
 
   @override
@@ -153,7 +161,12 @@ class ScrollCueComponent extends PositionComponent
 
   @override
   void render(Canvas canvas) {
-    final shown = visibleAmount;
+    // Rehearsing, at full strength: the shadow's blur and the fill are the
+    // draws the title's first frames would otherwise compile.
+    final shown = RehearsalPass.strength(
+      rehearsing: _rehearsing,
+      otherwise: visibleAmount,
+    );
     if (shown <= 0.001) return;
 
     final scale = ScrollCueConfig.size / ScrollCueConfig.artboard;
@@ -171,9 +184,7 @@ class ScrollCueComponent extends PositionComponent
 
     // Shadow first: without it the arrow disappears against the lighter
     // passages of the animated backdrop.
-    _shadowPaint.color = shadow.withValues(
-      alpha: 0.55 * shown,
-    );
+    _shadowPaint.color = shadow.withValues(alpha: 0.55 * shown);
     canvas.save();
     canvas.translate(0, ScrollCueConfig.shadowOffsetY);
     canvas.drawPath(_path, _shadowPaint);

@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -38,6 +39,7 @@ class BackdropComponent extends PositionComponent
   @override
   void onInitialState(SceneState state) {
     super.onInitialState(state);
+    _rehearsing = state.rehearsesTitle;
 
     // Anything past the logo is a stage this backdrop is already behind, so
     // it starts fully risen rather than waiting for a rise it missed.
@@ -50,6 +52,7 @@ class BackdropComponent extends PositionComponent
   @override
   void onNewState(SceneState state) {
     super.onNewState(state);
+    _rehearsing = state.rehearsesTitle;
 
     state.maybeMap(
       // Starts with the mark's retreat, not with the title, so the two
@@ -95,10 +98,33 @@ class BackdropComponent extends PositionComponent
     }
   }
 
+  /// Whether this frame rehearses the backdrop under the curtain
+  /// ([SceneState.rehearsesTitle]); the scene's rule, read here.
+  bool _rehearsing = false;
+
+  /// The opacities [render] draws at this frame, one pass each.
+  ///
+  /// Rehearsing, both of the real draw's two paths, opaque and faded: they
+  /// are two different GPU programs (seen as two compiles at the tap on a
+  /// phone, 2026-11-17), and the rise after the tap uses both.
+  @visibleForTesting
+  static List<double> passesFor({
+    required bool rehearsing,
+    required double opacity,
+  }) {
+    if (rehearsing) return const <double>[1, 0.5];
+    if (opacity <= 0.001) return const <double>[];
+    return <double>[opacity];
+  }
+
   @override
   void render(Canvas canvas) {
-    if (_opacity <= 0.001) return;
     if (size.x <= 0 || size.y <= 0) return;
+    final passes = passesFor(
+      rehearsing: _rehearsing && RehearsalPass.active,
+      opacity: _opacity,
+    );
+    if (passes.isEmpty) return;
 
     shader
       ..setFloat(0, size.x)
@@ -108,14 +134,20 @@ class BackdropComponent extends PositionComponent
     _paint.shader = shader;
     final rect = size.toRect();
 
-    if (_opacity >= 0.999) {
+    for (final opacity in passes) {
+      _draw(canvas, rect, opacity);
+    }
+  }
+
+  void _draw(Canvas canvas, Rect rect, double opacity) {
+    if (opacity >= 0.999) {
       canvas.drawRect(rect, _paint);
       return;
     }
 
     // saveLayer rather than a Paint alpha: the shader writes its own colour,
     // so the fade has to be applied to the composited result.
-    canvas.saveLayer(rect, Paint()..color = Color.fromRGBO(0, 0, 0, _opacity));
+    canvas.saveLayer(rect, Paint()..color = Color.fromRGBO(0, 0, 0, opacity));
     canvas.drawRect(rect, _paint);
     canvas.restore();
   }
