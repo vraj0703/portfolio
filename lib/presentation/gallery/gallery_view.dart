@@ -1254,7 +1254,12 @@ class _GalleryViewState extends State<GalleryView> {
     // Sideways in the corridor: a frame. Pushing the other way, or up or
     // down, leaves it and carries on.
     if (held && !_inHall) {
-      final side = WalkControl.side(push, ahead);
+      final side = WalkControl.side(
+        push,
+        ahead,
+        at: _scroll.target,
+        backWallStop: GalleryView.backWallStop,
+      );
       final current = _focused;
       if (current != null) {
         final otherWay =
@@ -1267,7 +1272,14 @@ class _GalleryViewState extends State<GalleryView> {
       if (push.x.abs() < WalkControl.sideRearm) _sideArmed = true;
     }
 
-    final rate = _focused == null ? WalkControl.rate(push, ahead, behind) : 0.0;
+    final rate = _focused == null
+        ? WalkControl.rate(
+            push,
+            ahead,
+            behind,
+            pastCorner: _scroll.target > GalleryView.backWallStop + 1,
+          )
+        : 0.0;
     _walkSpeed = WalkControl.speedTowards(_walkSpeed, rate, dt);
     if (_walkSpeed != 0 &&
         _focused == null &&

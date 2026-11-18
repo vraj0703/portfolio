@@ -88,8 +88,14 @@ abstract final class WalkControl {
   static double rate(
     ({double x, double y}) s,
     ScreenAxis ahead,
-    ScreenAxis behind,
-  ) {
+    ScreenAxis behind, {
+    bool pastCorner = false,
+  }) {
+    // Past the back wall (the wall, the alley, the hall) the path is the
+    // only way to go, and both sideways and up keep the visitor travelling
+    // along it: the larger component, right or up onward, left or down
+    // back. No direction goes dead through the turn into the hall.
+    if (pastCorner) return s.x.abs() >= s.y.abs() ? s.x : s.y;
     final onward = s.x * ahead.x + s.y * ahead.y;
     if (onward > 1e-9) return onward;
     final back = s.x * behind.x + s.y * behind.y;
@@ -101,7 +107,17 @@ abstract final class WalkControl {
   /// `0`. Only where the way [ahead] runs into the screen (on the wall,
   /// sideways is the way of travel), and only for a push well past
   /// [sideThreshold] and mostly sideways.
-  static int side(({double x, double y}) s, ScreenAxis ahead) {
+  static int side(
+    ({double x, double y}) s,
+    ScreenAxis ahead, {
+    required double at,
+    required double backWallStop,
+  }) {
+    // The corridor proper only: never on the wall, the alley or the hall,
+    // where the path also runs into the screen and the nearest frame is the
+    // corridor's last (Vishal, 2026-11-18: "it keeps jumping to the last
+    // project").
+    if (at >= backWallStop - 1) return 0;
     if (ahead.y.abs() <= ahead.x.abs()) return 0;
     if (s.x.abs() < sideThreshold) return 0;
     if (s.x.abs() < s.y.abs() * sideDominance) return 0;

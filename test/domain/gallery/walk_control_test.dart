@@ -72,15 +72,75 @@ void main() {
     const wall = (x: 1.0, y: 0.0);
 
     test('a firm, mostly sideways push picks that side', () {
-      expect(WalkControl.side((x: 0.9, y: 0.1), corridor), 1);
-      expect(WalkControl.side((x: -0.9, y: 0.0), corridor), -1);
+      expect(
+        WalkControl.side(
+          (x: 0.9, y: 0.1),
+          corridor,
+          at: 1000,
+          backWallStop: 3480,
+        ),
+        1,
+      );
+      expect(
+        WalkControl.side(
+          (x: -0.9, y: 0.0),
+          corridor,
+          at: 1000,
+          backWallStop: 3480,
+        ),
+        -1,
+      );
     });
 
     test('a soft push, a diagonal, or the wall picks nothing', () {
-      expect(WalkControl.side((x: 0.4, y: 0.0), corridor), 0);
-      expect(WalkControl.side((x: 0.7, y: 0.7), corridor), 0);
-      expect(WalkControl.side((x: 0.9, y: 0.0), wall), 0);
+      expect(
+        WalkControl.side(
+          (x: 0.4, y: 0.0),
+          corridor,
+          at: 1000,
+          backWallStop: 3480,
+        ),
+        0,
+      );
+      expect(
+        WalkControl.side(
+          (x: 0.7, y: 0.7),
+          corridor,
+          at: 1000,
+          backWallStop: 3480,
+        ),
+        0,
+      );
+      expect(
+        WalkControl.side((x: 0.9, y: 0.0), wall, at: 1000, backWallStop: 3480),
+        0,
+      );
     });
+  });
+
+  group('past the back wall the stick only travels', () {
+    test(
+      'sideways and up both carry on along the path; left and down back',
+      () {
+        const ahead = (x: 0.0, y: 1.0);
+        expect(
+          WalkControl.rate((x: 1, y: 0), ahead, ahead, pastCorner: true),
+          1,
+        );
+        expect(
+          WalkControl.rate((x: 0, y: 1), ahead, ahead, pastCorner: true),
+          1,
+        );
+        expect(
+          WalkControl.rate((x: -1, y: 0), ahead, ahead, pastCorner: true),
+          -1,
+        );
+        expect(
+          WalkControl.rate((x: 0.3, y: -0.8), ahead, ahead, pastCorner: true),
+          -0.8,
+        );
+      },
+    );
   });
 
   group('let go on the wall, the stick settles onto a whole card', () {

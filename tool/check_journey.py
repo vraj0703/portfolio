@@ -11,7 +11,10 @@ already open with `pc-profile=1` in its URL). Each profile walks the same journe
   3. gallery     wheel (desktop) or swipes (phone) carry title -> bold text -> gallery
   4. back wall   the walk reaches the far end of the corridor (screen settles there)
   5. testimonial the testimonial wall's cards are in front of the visitor
-  6. drawer      the menu opens the drawer, with the gallery's radio in it
+  6. hall        on along the wall into the skills hall (the stick held SIDEWAYS on the phone),
+                 failing if any project frame is focused on the way (PR 19: the stick's
+                 corridor rule fired past the back wall and jumped to the last project)
+  7. drawer      the menu opens the drawer, with the gallery's radio in it
 
 It fails on a HANG (no step done within its limit, or the screen frozen while input is going in)
 and on any console error or uncaught exception. Prints one JSON line per profile and exits
@@ -30,7 +33,8 @@ from PIL import Image, ImageChops, ImageStat  # noqa: E402
 PORT = 9335
 
 # How long each step may take before it counts as a hang, in seconds.
-LIMITS = {"load": 150, "enter": 30, "gallery": 30, "back wall": 40, "testimonial": 30, "drawer": 10}
+LIMITS = {"load": 150, "enter": 30, "gallery": 30, "back wall": 40, "testimonial": 30, "hall": 40,
+          "drawer": 10}
 # The screen must change at least this often while input is going in.
 FROZEN_S = 6
 
@@ -100,6 +104,14 @@ async def marked(cdp, path):
     r = await cdp("Runtime.evaluate", returnByValue=True,
                   expression=f"performance.getEntriesByName({json.dumps('scene:' + path)}).length > 0")
     return bool(r["result"].get("value"))
+
+
+async def focused_piece(cdp):
+    """The project frame the app marked as focused after the walk began, if any."""
+    r = await cdp("Runtime.evaluate", returnByValue=True, expression=
+                  "(performance.getEntriesByType('mark').map(m => m.name)"
+                  ".filter(n => n.startsWith('scene:/#/gallery/')).pop() || null)")
+    return r["result"].get("value")
 
 
 # --------------------------------------------------------------------------- input
@@ -272,6 +284,29 @@ async def journey(cdp, p, url):
         async def along():
             await wheel(cdp, -100, n=2)
     await until(cdp, "testimonial", cards_in_front, along, steps)
+
+    # On into the hall. On the phone the stick is held sideways the whole way: past the back
+    # wall it must only travel, never focus a frame.
+    t0 = time.monotonic()
+    if p["touch"]:
+        await touch(cdp, "touchStart", W / 2, H * 0.82)
+        for k in range(1, 6):
+            await touch(cdp, "touchMove", W / 2 + 11 * k, H * 0.82)
+            await asyncio.sleep(0.02)
+    while not await marked(cdp, "/#/skills"):
+        if await focused_piece(cdp):
+            raise Hang(f"hall: a project frame was focused on the way ({await focused_piece(cdp)})")
+        if time.monotonic() - t0 > LIMITS["hall"]:
+            raise Hang(f"hall: no '/#/skills' in {LIMITS['hall']} s")
+        if not p["touch"]:
+            await wheel(cdp, -100, n=8)
+        await asyncio.sleep(0.5)
+    if p["touch"]:
+        await touch(cdp, "touchEnd")
+    if await focused_piece(cdp):
+        raise Hang(f"hall: a project frame was focused on the way ({await focused_piece(cdp)})")
+    steps["hall"] = round(time.monotonic() - t0, 1)
+    await asyncio.sleep(1.0)
 
     t0 = time.monotonic()
     if p["touch"]:
