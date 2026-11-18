@@ -85,6 +85,15 @@ abstract final class WalkControl {
     return current + gap.sign * step;
   }
 
+  /// The scroll step a stick walk may take from [at] by [step]: all of it,
+  /// unless walking on would carry it past [stop] (the back wall, where the
+  /// statement is framed), in which case just enough to land on it. The
+  /// stick stops there; letting go and pushing again walks on.
+  static double stepToStop(double at, double step, double stop) {
+    if (step > 0 && at < stop - 0.5 && at + step >= stop) return stop - at;
+    return step;
+  }
+
   /// The head's turn, in radians, for a drag [dx] logical pixels across a
   /// screen [width] wide: nothing inside [lookDeadZone], then [maxLook] at a
   /// drag across the whole width, and no further. Dragging right turns the

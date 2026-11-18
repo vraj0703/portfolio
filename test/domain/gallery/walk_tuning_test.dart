@@ -57,4 +57,16 @@ void main() {
     soft.update(1 / 60);
     expect(soft.offset, lessThan(soft.target));
   });
+
+  test('a held stick stops at the back wall, and walks on after', () {
+    const stop = 3480.0;
+    // Short of it: the whole step.
+    expect(WalkControl.stepToStop(3000, 20, stop), 20);
+    // Crossing it: lands on it.
+    expect(WalkControl.stepToStop(3470, 20, stop), 10);
+    // On it, pushed again: walks on.
+    expect(WalkControl.stepToStop(stop, 20, stop), 20);
+    // Backward is never held.
+    expect(WalkControl.stepToStop(3490, -20, stop), -20);
+  });
 }

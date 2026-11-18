@@ -210,6 +210,10 @@ class _GalleryViewState extends State<GalleryView> {
   /// head and eases back when let go.
   int? _stickPointer;
   Offset? _stickOrigin;
+
+  /// Whether a held stick has stopped at the back wall: it stays stopped,
+  /// onward, until it is let go.
+  bool _haltedAtWall = false;
   double _push = 0;
   double _walkSpeed = 0;
   int? _lookPointer;
@@ -846,7 +850,8 @@ class _GalleryViewState extends State<GalleryView> {
                   if (event.pointer == _stickPointer) {
                     final origin = _stickOrigin!;
                     final d = event.localPosition - origin;
-                    _push = WalkControl.push(d.dy);
+                    final push = WalkControl.push(d.dy);
+                    _push = _haltedAtWall && push > 0 ? 0 : push;
                     final reach = WalkControl.stickRadius;
                     _stick.value = (
                       origin,
@@ -1031,7 +1036,20 @@ class _GalleryViewState extends State<GalleryView> {
         if (_walkSpeed != 0 &&
             _focused == null &&
             _gate.accept(_clock.elapsedMilliseconds)) {
-          _scroll.scrollBy(_walkSpeed * deltaSeconds);
+          final want = _walkSpeed * deltaSeconds;
+          final step = WalkControl.stepToStop(
+            _scroll.target,
+            want,
+            GalleryView.backWallStop,
+          );
+          _scroll.scrollBy(step);
+          // Arrived at the back wall: stop there, framed, until the stick is
+          // let go and pushed again (or pulled back).
+          if (step != want) {
+            _walkSpeed = 0;
+            _push = 0;
+            _haltedAtWall = true;
+          }
         }
         if (_lookPointer == null) {
           _yaw = WalkControl.lookReturn(_yaw, deltaSeconds);
@@ -1166,6 +1184,7 @@ class _GalleryViewState extends State<GalleryView> {
   void _letGo(int pointer) {
     if (pointer == _stickPointer) {
       _stickPointer = null;
+      _haltedAtWall = false;
       _push = 0;
       _stick.value = null;
     }
