@@ -73,10 +73,15 @@ void main() {
         starCol += colChoice * intensity;
         starAlpha += intensity;
 
-        float glowIntensity = (exp(t * 0.00004) - 1.0) + (exp(td * td * 0.006) - 1.0) * (0.015 / length(uv));
-        starCol += mix(C_ORANGE, C_LIGHT, uScrollProgress) * glowIntensity * 0.02;// Increased multiplier from 0.005 to 0.02
-        starAlpha += glowIntensity * 0.1;// Increased alpha contribution
     }
+
+    // The glow does not depend on the star, so it is computed once here and
+    // counted NUM_STARS times, exactly as the loop used to add it once per
+    // star. In the loop it was 200 exp() pairs per pixel per frame: on the
+    // ROG Phone II the scroll ran at 7 fps with it there, 27-28 without.
+    float glowIntensity = (exp(t * 0.00004) - 1.0) + (exp(td * td * 0.006) - 1.0) * (0.015 / length(uv));
+    starCol += mix(C_ORANGE, C_LIGHT, uScrollProgress) * glowIntensity * 0.02 * float(NUM_STARS);
+    starAlpha += glowIntensity * 0.1 * float(NUM_STARS);
 
     float scale = 1.0;
     float blurRadius = 0.0;
