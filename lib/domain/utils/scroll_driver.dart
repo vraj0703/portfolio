@@ -112,7 +112,10 @@ class ScrollDriver {
   void advanceToNextPause() {
     final next = snapPoints
         .where((point) => point > _target + 1)
-        .fold<double?>(null, (best, point) => best == null ? point : math.min(best, point));
+        .fold<double?>(
+          null,
+          (best, point) => best == null ? point : math.min(best, point),
+        );
 
     _snappingTo = next ?? extent;
     _springVelocity = 0;
@@ -137,7 +140,10 @@ class ScrollDriver {
     return null;
   }
 
-  void update(double dt) {
+  /// [tight]: the offset follows the target exactly instead of chasing it,
+  /// for a control that already eases its own motion (the gallery's thumb
+  /// stick); the pause logic, which reads the target, is unchanged.
+  void update(double dt, {bool tight = false}) {
     final step = dt.clamp(0.0, BoldTextConfig.maxStep);
     if (step <= 0) return;
 
@@ -153,6 +159,10 @@ class ScrollDriver {
 
     // Frame-rate independent chase, rather than `+= diff * dt * k`, which
     // moves a different fraction of the way at 60fps than at 120.
+    if (tight) {
+      _offset = _target;
+      return;
+    }
     final t = 1 - math.exp(-BoldTextConfig.inertia * step);
     _offset += (_target - _offset) * t;
   }
@@ -170,9 +180,7 @@ class ScrollDriver {
     // still rather than passing through.
     if (_snappingTo == null && _motion.hasArrived) {
       final point = _pauseNear(_target);
-      if (point != null &&
-          point != _released &&
-          (_target - point).abs() >= 1) {
+      if (point != null && point != _released && (_target - point).abs() >= 1) {
         _snappingTo = point;
         _springVelocity = 0;
       }
@@ -182,7 +190,8 @@ class ScrollDriver {
     if (destination == null) return;
 
     final displacement = _target - destination;
-    final acceleration = -BoldTextConfig.snapStiffness * displacement -
+    final acceleration =
+        -BoldTextConfig.snapStiffness * displacement -
         BoldTextConfig.snapDamping * _springVelocity;
 
     _springVelocity += acceleration * step;

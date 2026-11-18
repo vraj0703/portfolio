@@ -1037,7 +1037,9 @@ class _GalleryViewState extends State<GalleryView> {
           _yaw = WalkControl.lookReturn(_yaw, deltaSeconds);
         }
 
-        if (_focused == null) _scroll.update(deltaSeconds);
+        if (_focused == null) {
+          _scroll.update(deltaSeconds, tight: _stickDriving);
+        }
         final seconds = elapsed.inMicroseconds / 1e6;
         gallery.arrow?.update(seconds, _scroll.progress);
 
@@ -1154,6 +1156,11 @@ class _GalleryViewState extends State<GalleryView> {
     return _targetPose();
   }
 
+  /// Whether the thumb stick is moving the visitor: held, or still easing
+  /// out. While it is, the scroll and the camera follow it tightly, so a
+  /// release stops the walk instead of letting it glide.
+  bool get _stickDriving => _stickPointer != null || _walkSpeed != 0;
+
   /// Lets go of whatever [pointer] was holding: the stick stops pushing
   /// (the walk eases out) and the look eases back in the frame.
   void _letGo(int pointer) {
@@ -1186,7 +1193,11 @@ class _GalleryViewState extends State<GalleryView> {
     final eye = _eye ??= target.position.clone();
     final look = _look ??= target.target.clone();
 
-    final rate = _focused != null ? focusApproach : corridorReturn;
+    final rate = _focused != null
+        ? focusApproach
+        : _stickDriving
+        ? WalkControl.stickChase
+        : corridorReturn;
     final t = 1 - math.exp(-rate * dt.clamp(0.0, 0.1));
 
     eye.setFrom(eye + (target.position - eye) * t);
