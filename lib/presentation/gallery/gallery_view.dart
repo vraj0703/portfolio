@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
+import 'package:portfolio/domain/gallery/frame_cadence.dart';
 import 'package:portfolio/domain/gallery/swipe_map.dart';
 import 'package:portfolio/domain/gallery/wall_steps.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
@@ -224,6 +225,9 @@ class _GalleryViewState extends State<GalleryView> {
   /// `?pc-probe=1` each frame marks the page's timeline with the scroll and
   /// the eye, and the stick marks going down and up. Off otherwise.
   static final bool _probe = Uri.base.queryParameters.containsKey('pc-probe');
+
+  /// EXPERIMENT: which vsync ticks are painted ([FrameCadence]).
+  final FrameCadence _cadence = FrameCadence();
 
   /// Whether the camera is riding the path (the stick drives, no chase).
   bool _riding = false;
@@ -1029,6 +1033,8 @@ class _GalleryViewState extends State<GalleryView> {
 
     return SceneView(
       gallery.scene,
+      // EXPERIMENT: an even cadence when the phone cannot hold 60.
+      paintTick: (elapsed) => _cadence.tick(elapsed.inMicroseconds / 1000),
       // Driven from the render loop rather than from setState. Rebuilding
       // this subtree every frame to move a camera re-runs the whole widget
       // tree sixty times a second for a value the renderer could read

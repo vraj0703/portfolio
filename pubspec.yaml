@@ -167,3 +167,9 @@ flutter:
     - assets/shaders/metallic_text.frag
     - assets/shaders/background_run_v2.frag
     - assets/shaders/bold_text_entrance.frag
+
+# EXPERIMENT ONLY (cadence-experiment branch, never merged): a vendored
+# flutter_scene 0.23.0 whose SceneView lets the app skip a repaint per tick.
+dependency_overrides:
+  flutter_scene:
+    path: third_party/flutter_scene
