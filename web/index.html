@@ -162,6 +162,34 @@
     });
   </script>
 
+  <script>
+    // Phones draw at most 2 physical pixels per CSS pixel.
+    //
+    // The scene is GPU-bound on a phone: full-screen shaders and the gallery's
+    // multisampled targets, every pixel, every frame. At the ROG Phone II's
+    // 2.625 the GPU thread was busy 4.4 s of a 20 s title scroll; capped at
+    // 2.0, 2.9 s, and the type looked the same at 1:1 (2026-11-17).
+    //
+    // Phones only, by what the device is rather than its name: a coarse
+    // pointer and a screen whose short side is a phone's. Desktops and
+    // tablets keep their own ratio. The getter wraps the browser's own, so a
+    // zoom still changes it; it must run before Flutter reads it, so before
+    // flutter_bootstrap.js.
+    (function () {
+      var PHONE_SHORT_SIDE = 600, CAP = 2;
+      var coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+      var shortSide = Math.min(screen.width, screen.height);
+      if (!coarse || shortSide > PHONE_SHORT_SIDE) return;
+      var own = Object.getOwnPropertyDescriptor(window, 'devicePixelRatio') ||
+        Object.getOwnPropertyDescriptor(Window.prototype, 'devicePixelRatio');
+      if (!own || !own.get) return;
+      Object.defineProperty(window, 'devicePixelRatio', {
+        configurable: true,
+        get: function () { return Math.min(own.get.call(window), CAP); }
+      });
+    })();
+  </script>
+
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
