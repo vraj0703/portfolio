@@ -23,8 +23,8 @@ abstract final class WalkControl {
   // -- The tuning, in one place: each value is one line to change. -------
 
   /// Seconds a full push takes to walk the corridor end to end: a walking
-  /// pace (6 s at first read as running).
-  static const double corridorSeconds = 15;
+  /// pace. 6 s read as running; 15 read as slow (Vishal, 2026-11-18).
+  static const double corridorSeconds = 11;
 
   /// The corridor's walk in scroll units: the gallery's scroll extent times
   /// the share of it that is the walk (`GalleryView.scrollExtent` 8000 x

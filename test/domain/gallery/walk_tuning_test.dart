@@ -7,7 +7,7 @@ import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 
 void main() {
-  test('a full push walks the corridor in about 15 s', () {
+  test('a full push walks the corridor in about 11 s', () {
     // The corridor's walk, in the gallery's own scroll units.
     expect(
       WalkControl.corridorUnits,
@@ -17,7 +17,7 @@ void main() {
       WalkControl.corridorUnits / WalkControl.maxSpeed,
       closeTo(WalkControl.corridorSeconds, 1e-9),
     );
-    expect(WalkControl.corridorSeconds, 15);
+    expect(WalkControl.corridorSeconds, 11);
   });
 
   test('letting go stops within a quarter of a second, camera included', () {
