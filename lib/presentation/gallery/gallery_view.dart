@@ -35,7 +35,6 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
-import 'package:portfolio/presentation/gallery/gallery_phone_controls.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
@@ -386,7 +385,7 @@ class _GalleryViewState extends State<GalleryView> {
   ///
   /// Ignores a second request: the visitor pressing the sign twice while the
   /// room is going dark should not restart the fade or queue two events.
-  /// The radio's play or stop: from the wall's button or the phone's row.
+  /// The radio's play or stop: from the wall's button.
   void _toggleRadio() {
     _sound(AudioCue.click);
     final radio = locate<RadioPlayer>();
@@ -401,13 +400,13 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
-  /// The radio's next station: from the wall's button or the phone's row.
+  /// The radio's next station: from the wall's button.
   void _nextStation() {
     _sound(AudioCue.click);
     unawaited(locate<RadioPlayer>().next());
   }
 
-  /// The way out: from the BACK sign or the phone's row.
+  /// The way out: from the BACK sign.
   void _exitGallery() {
     _sound(AudioCue.pageTurn);
     _leave(const SceneEvent.galleryExited());
@@ -936,16 +935,6 @@ class _GalleryViewState extends State<GalleryView> {
                         ),
                 ),
               ),
-
-              // On a portrait screen the BACK sign and the radio are never in
-              // view (see GalleryPhoneControls): their actions, fixed to the
-              // corner, through the same handlers as the wall pieces.
-              if (_shape == GalleryShape.portrait)
-                GalleryPhoneControls(
-                  onBack: _exitGallery,
-                  onRadio: _toggleRadio,
-                  onRadioNext: _nextStation,
-                ),
 
               // Over the room *and* over its controls. A ✕ still lit on a
               // corridor that has gone dark reads as the page having failed
