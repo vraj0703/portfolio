@@ -13,6 +13,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -218,6 +219,14 @@ class _GalleryViewState extends State<GalleryView> {
   late final List<double> _wallSteps = WallSteps.points(
     GalleryView.scrollExtent,
   );
+
+  /// A per-frame probe of the walk, for measuring its feel on a phone: with
+  /// `?pc-probe=1` each frame marks the page's timeline with the scroll and
+  /// the eye, and the stick marks going down and up. Off otherwise.
+  static final bool _probe = Uri.base.queryParameters.containsKey('pc-probe');
+
+  /// Whether the camera is riding the path (the stick drives, no chase).
+  bool _riding = false;
 
   /// Whether a stick let go on the wall is still to settle onto a card.
   bool _settleDue = false;
@@ -850,6 +859,7 @@ class _GalleryViewState extends State<GalleryView> {
                   )) {
                     case TouchRole.stick:
                       _stickPointer = event.pointer;
+                      if (_probe) Browser.mark('g down');
                       _stickOrigin = event.localPosition;
                       _stick.value = (event.localPosition, event.localPosition);
                     case TouchRole.swipe:
@@ -1089,6 +1099,14 @@ class _GalleryViewState extends State<GalleryView> {
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);
+        if (_probe) {
+          final eye = _eye;
+          Browser.mark(
+            'g ${_scroll.offset.toStringAsFixed(2)} '
+            '${seconds.toStringAsFixed(5)} '
+            '${eye?.x.toStringAsFixed(4)} ${eye?.z.toStringAsFixed(4)}',
+          );
+        }
         _advanceLeaving(deltaSeconds);
 
         // Hung off the scroll rather than off a tap, so both have to be
@@ -1168,6 +1186,7 @@ class _GalleryViewState extends State<GalleryView> {
   /// (the walk eases out) and the look eases back in the frame.
   void _letGo(int pointer) {
     if (pointer == _stickPointer) {
+      if (_probe) Browser.mark('g up');
       _stickPointer = null;
       _settleDue = true;
       _sideArmed = true;
@@ -1272,7 +1291,18 @@ class _GalleryViewState extends State<GalleryView> {
       if (push.x.abs() < WalkControl.sideRearm) _sideArmed = true;
     }
 
-    final rate = _focused == null
+    // The camera rides the path while the stick drives. Riding starts once
+    // the camera is on the path (easing out of a focused frame, the walk
+    // waits for it) and holds for as long as the stick drives: the walk moves
+    // the path a little each frame, so "on the path" is a state, not a
+    // distance checked every frame (checked every frame, it stalled the walk
+    // to a crawl on the ROG).
+    if (!_stickDriving || _focused != null) {
+      _riding = false;
+    } else if (!_riding && _cameraGap() < WalkControl.rideGap) {
+      _riding = true;
+    }
+    final rate = _focused == null && _riding
         ? WalkControl.rate(
             push,
             ahead,
@@ -1280,7 +1310,11 @@ class _GalleryViewState extends State<GalleryView> {
             pastCorner: _scroll.target > GalleryView.backWallStop + 1,
           )
         : 0.0;
-    _walkSpeed = WalkControl.speedTowards(_walkSpeed, rate, dt);
+    _walkSpeed = WalkControl.speedTowards(
+      _walkSpeed,
+      WalkControl.response(rate),
+      dt,
+    );
     if (_walkSpeed != 0 &&
         _focused == null &&
         _gate.accept(_clock.elapsedMilliseconds)) {
@@ -1362,16 +1396,26 @@ class _GalleryViewState extends State<GalleryView> {
   /// Frame-rate independent, rather than a fixed fraction per frame: the
   /// latter closes a different amount of the gap at 60fps than at 120, so
   /// the same move reads as a different speed on a different machine.
+  /// How far the camera is from where the path puts it (world units).
+  double _cameraGap() {
+    final eye = _eye;
+    if (eye == null) return 0;
+    return (_cameraTarget().position - eye).length;
+  }
+
   void _advanceCamera(double dt) {
     final target = _cameraTarget();
     final eye = _eye ??= target.position.clone();
     final look = _look ??= target.target.clone();
 
-    final rate = _focused != null
-        ? focusApproach
-        : _stickDriving
-        ? WalkControl.stickChase
-        : corridorReturn;
+    // The stick (and the moves it and a swipe make): the camera is the path,
+    // the walk's own ease the only smoothing. Everything else keeps its chase.
+    if (_riding && _focused == null) {
+      eye.setFrom(target.position);
+      look.setFrom(target.target);
+      return;
+    }
+    final rate = _focused != null ? focusApproach : corridorReturn;
     final t = 1 - math.exp(-rate * dt.clamp(0.0, 0.1));
 
     eye.setFrom(eye + (target.position - eye) * t);

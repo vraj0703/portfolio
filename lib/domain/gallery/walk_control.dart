@@ -24,9 +24,11 @@ abstract final class WalkControl {
 
   // -- The tuning, in one place: each value is one line to change. -------
 
-  /// Seconds a full push takes to walk the corridor end to end: a walking
-  /// pace. 6 s read as running; 15 read as slow (Vishal, 2026-11-18).
-  static const double corridorSeconds = 11;
+  /// Seconds a full push takes to walk the corridor end to end: a brisk
+  /// walk. 6 s read as running; 15 read as slow; 11 still read as dragging
+  /// (Vishal, 2026-11-18), with the response curve below a small push is
+  /// slower than before and a full one a little quicker.
+  static const double corridorSeconds = 9;
 
   /// The corridor's walk in scroll units: the gallery's scroll extent times
   /// the share of it that is the walk (`GalleryView.scrollExtent` 8000 x
@@ -36,15 +38,24 @@ abstract final class WalkControl {
   /// Walking speed at a full push, in scroll units a second.
   static const double maxSpeed = corridorUnits / corridorSeconds;
 
-  /// Seconds from standing to full speed, and from full speed to standing.
-  /// Short to stop: letting go should stop the visitor, not let them glide.
-  static const double accelerateSeconds = 0.3;
-  static const double stopSeconds = 0.15;
+  /// Seconds from standing to full speed, and from full speed to standing:
+  /// the stick's one smoother. Measured on the ROG, 0.3 s to start (plus a
+  /// camera chase) took 320-350 ms to full speed and read as being towed.
+  static const double accelerateSeconds = 0.12;
+  static const double stopSeconds = 0.12;
 
-  /// How tightly the camera follows while the stick drives, per second (the
-  /// wheel and tap-to-frame keep their softer spring). High enough that the
-  /// camera adds well under a tenth of a second to a stop.
-  static const double stickChase = 60;
+  /// How a push maps to speed: a small push walks slowly, a full one
+  /// briskly (speed = push ^ this).
+  static const double responseExponent = 1.6;
+
+  /// While the stick drives, the camera sits on the path, with no chase of
+  /// its own; it only starts once it is this close (world units), so a
+  /// camera still easing back from a focused frame is not snapped.
+  static const double rideGap = 0.03;
+
+  /// The speed a push of [rate] (-1..1) asks for, through the response curve.
+  static double response(double rate) =>
+      rate.sign * math.pow(rate.abs(), responseExponent).toDouble();
 
   // -- The stick in two axes (Vishal, 2026-11-18: one continuous joystick).
 

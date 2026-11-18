@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
@@ -7,7 +5,7 @@ import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 
 void main() {
-  test('a full push walks the corridor in about 11 s', () {
+  test('a full push walks the corridor in about 9 s', () {
     // The corridor's walk, in the gallery's own scroll units.
     expect(
       WalkControl.corridorUnits,
@@ -17,15 +15,25 @@ void main() {
       WalkControl.corridorUnits / WalkControl.maxSpeed,
       closeTo(WalkControl.corridorSeconds, 1e-9),
     );
-    expect(WalkControl.corridorSeconds, 11);
+    expect(WalkControl.corridorSeconds, 9);
   });
 
-  test('letting go stops within a quarter of a second, camera included', () {
-    // The walk's own ease-out, plus the camera's tight chase settling to
-    // within 1% (ln 100 / rate seconds).
-    final cameraSettle = math.log(100) / WalkControl.stickChase;
-    expect(WalkControl.stopSeconds + cameraSettle, lessThanOrEqualTo(0.25));
-    expect(WalkControl.stopSeconds, lessThanOrEqualTo(0.15));
+  test(
+    'one smoother: the stick starts and stops in about a tenth of a second',
+    () {
+      // The camera rides the path while the stick drives, so the walk's own
+      // ease is the whole of the start and the stop.
+      expect(WalkControl.accelerateSeconds, lessThanOrEqualTo(0.15));
+      expect(WalkControl.stopSeconds, lessThanOrEqualTo(0.15));
+    },
+  );
+
+  test('a small push walks slowly, a full one briskly', () {
+    expect(WalkControl.response(1), 1);
+    expect(WalkControl.response(-1), -1);
+    expect(WalkControl.response(0.5), lessThan(0.4));
+    expect(WalkControl.response(0.5), greaterThan(0.25));
+    expect(WalkControl.response(0), 0);
   });
 
   test('a tight update puts the offset on the target, with no glide', () {
