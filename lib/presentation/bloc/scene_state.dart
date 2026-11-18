@@ -107,7 +107,10 @@ sealed class SceneState with _$SceneState {
   /// A rule on the state rather than a check at the widget, like the two
   /// below it: `Title` is also a Flutter widget, and a view that tests for
   /// it directly has to fight its own imports to say so.
-  bool get showsMenu => this is Title || this is Active;
+  ///
+  /// And in the gallery (Vishal, 2026-11-18): the same three icons in the
+  /// same corner, the drawer holding the radio and the way out.
+  bool get showsMenu => this is Title || this is Active || this is Gallery;
 
   /// The title's Connect and Menu buttons: on the stages that show the
   /// menu, and only while their feature flag (carried by every state, see

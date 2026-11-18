@@ -29,8 +29,11 @@ abstract class AppStrings {
 
   /// What the phone's fixed row says to a screen reader: the radio's play or
   /// stop, and its next station. Its third control reads [galleryBack].
-  String get galleryRadio;
-  String get galleryRadioNext;
+  String get drawerRadio;
+  String get drawerRadioPlay;
+  String get drawerRadioStop;
+  String get drawerRadioNext;
+  String get drawerLeaveGallery;
 
   /// The testimonial wall: its first frame's title and invitation, the quiet
   /// line on the frames still empty, and the mark on a visitor's own words.
@@ -127,9 +130,15 @@ class DefaultAppStrings implements AppStrings {
   @override
   String get galleryBack => 'BACK';
   @override
-  String get galleryRadio => 'Radio: play or stop';
+  String get drawerRadio => 'Radio';
   @override
-  String get galleryRadioNext => 'Next station';
+  String get drawerRadioPlay => 'play';
+  @override
+  String get drawerRadioStop => 'stop';
+  @override
+  String get drawerLeaveGallery => 'leave the gallery';
+  @override
+  String get drawerRadioNext => 'next station';
 
   @override
   String get testimonialsTitle => 'Testimonials';
