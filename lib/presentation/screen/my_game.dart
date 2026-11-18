@@ -268,7 +268,6 @@ class MyGame extends FlameGame
   void _rewindBoldTextStage() {
     _boldTextActive = false;
     _strokePending = false;
-    _strokeWaitingMs = null;
     _boldTextHandedOver = false;
     _tingPlayed = false;
     _scroll.reset();
@@ -356,7 +355,10 @@ class MyGame extends FlameGame
       title: (_) {
         audio.play(AudioCue.bouncyArrow);
 
+        final queued = _strokePending;
         _rewindBoldTextStage();
+        _strokePending = queued;
+        _sendQueuedStroke();
       },
       // Arriving in the corridor. Hung off the state rather than off the
       // two things that reach it — the bold text running out, and the
@@ -407,7 +409,6 @@ class MyGame extends FlameGame
     if (!isLoaded) return;
 
     _cursor.update(dt);
-    _retryWaitingStroke();
 
     if (_boldTextActive) {
       _scroll.update(dt);
@@ -511,35 +512,24 @@ class MyGame extends FlameGame
       return;
     }
 
-    // Before the stage, a stroke onward is the arrow's request, and the
-    // stage carries it on to the bold text once it opens.
+    // Before the stage, a stroke onward asks for it, and the stage carries
+    // it on to the bold text once it opens. Only while the title is
+    // arriving or settled: a swipe on the logo screen is not a request to
+    // skip the title.
     if (direction < 0) return;
+    final state = bloc.state;
+    if (state is! TitleLoading && state is! Title) return;
     _strokePending = true;
-    // The arrow takes the request only once it is half in view; a stroke
-    // made as the title arrives waits for it rather than being lost (one
-    // stroke asks once, where a distance scroll used to ask every frame).
-    _strokeWaitingMs = _scrollCue.requestAdvance()
-        ? null
-        : _strokeClock.elapsedMilliseconds;
+    // The bloc takes it in the settled title. Made while the title is still
+    // arriving, it is queued and sent the moment the title settles
+    // ([_sendQueuedStroke]): no waiting on the arrow's fade, no time limit.
+    queuer.queue(event: const SceneEvent.advanceRequested());
   }
 
-  /// When a stroke from the title began waiting for the arrow, if it is.
-  int? _strokeWaitingMs;
-
-  /// How long a stroke from the title waits for the arrow before it lapses:
-  /// long enough for the title to finish arriving on a slow phone (1.5 s
-  /// lost the stroke on the Pixel profile); leaving the title cancels it.
-  static const int strokeWaitMs = 6000;
-
-  void _retryWaitingStroke() {
-    final since = _strokeWaitingMs;
-    if (since == null) return;
-    if (_boldTextActive ||
-        _strokeClock.elapsedMilliseconds - since > strokeWaitMs) {
-      _strokeWaitingMs = null;
-      return;
-    }
-    if (_scrollCue.requestAdvance()) _strokeWaitingMs = null;
+  /// A stroke made while the title was arriving, sent as it settles.
+  void _sendQueuedStroke() {
+    if (!_strokePending) return;
+    queuer.queue(event: const SceneEvent.advanceRequested());
   }
 
   /// Called by the arrow. Before the stage it asks the bloc to move on; once

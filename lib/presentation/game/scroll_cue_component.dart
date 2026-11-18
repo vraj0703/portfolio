@@ -198,11 +198,9 @@ class ScrollCueComponent extends PositionComponent
   ///
   /// Ignored while the arrow is still fading in: acting on an affordance the
   /// user cannot properly see yet is indistinguishable from a misfire.
-  /// Whether the request was taken: not until the arrow is half in view.
-  bool requestAdvance() {
-    if (visibleAmount <= 0.5) return false;
+  void requestAdvance() {
+    if (visibleAmount <= 0.5) return;
     onAdvance();
-    return true;
   }
 
   @visibleForTesting
