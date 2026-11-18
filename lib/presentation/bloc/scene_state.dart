@@ -130,4 +130,8 @@ sealed class SceneState with _$SceneState {
   /// radio off leaves a stream playing under a title screen, and nothing
   /// about that looks wrong in the code that added the stage.
   bool get playsRadio => this is Gallery;
+
+  /// Whether the screen's chrome (the title's icons) sits on a light scene
+  /// and wants the dark ink: the gallery's ceiling, not the title's dusk.
+  bool get chromeOnLight => this is Gallery;
 }
