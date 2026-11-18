@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
+import 'package:portfolio/domain/gallery/walk_control.dart';
 import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/recommendation_form.dart';
@@ -201,6 +202,32 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// How far the pointer may travel and still count as a press.
   static const double _tapSlop = 6;
+
+  /// The thumb stick and the look (WalkControl), on a touch screen when the
+  /// scene's rule says so (SceneState.walksByStick). The stick sets a
+  /// walking rate; the frame advances the scroll by it. The look turns the
+  /// head and eases back when let go.
+  int? _stickPointer;
+  Offset? _stickOrigin;
+  double _push = 0;
+  double _walkSpeed = 0;
+  int? _lookPointer;
+  double _lookDx = 0;
+  double _yaw = 0;
+
+  /// Where the stick is drawn: where the thumb landed, and the knob.
+  final ValueNotifier<(Offset, Offset)?> _stick =
+      ValueNotifier<(Offset, Offset)?>(null);
+
+  /// Whether [event] walks by stick or looks: a finger or a pen, in the
+  /// corridor (the hall turns its board with a drag), nothing focused, and
+  /// the scene's rule on.
+  bool _walksByStick(PointerEvent event) =>
+      (event.kind == PointerDeviceKind.touch ||
+          event.kind == PointerDeviceKind.stylus) &&
+      !_inHall &&
+      _focused == null &&
+      context.read<SceneBloc>().state.walksByStick;
 
   /// Where the camera actually is, as opposed to where it is wanted.
   ///
@@ -739,6 +766,7 @@ class _GalleryViewState extends State<GalleryView> {
     _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
+    _stick.dispose();
     _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it
@@ -794,11 +822,43 @@ class _GalleryViewState extends State<GalleryView> {
                 onPointerDown: (event) {
                   _dragFrom = event.localPosition;
                   _dragDistance = 0;
+                  if (!_walksByStick(event)) return;
+                  if (WalkControl.holdsStick(
+                    event.localPosition.dy,
+                    _viewSize.height,
+                  )) {
+                    _stickPointer = event.pointer;
+                    _stickOrigin = event.localPosition;
+                    _stick.value = (event.localPosition, event.localPosition);
+                  } else {
+                    _lookPointer = event.pointer;
+                    _lookDx = 0;
+                  }
                 },
                 onPointerMove: (event) {
                   final from = _dragFrom;
                   if (from == null) return;
                   _dragDistance += event.delta.distance;
+
+                  // The stick sets a rate, it does not move anything: the
+                  // frame walks by it ([WalkControl]).
+                  if (event.pointer == _stickPointer) {
+                    final origin = _stickOrigin!;
+                    final d = event.localPosition - origin;
+                    _push = WalkControl.push(d.dy);
+                    final reach = WalkControl.stickRadius;
+                    _stick.value = (
+                      origin,
+                      origin +
+                          (d.distance > reach ? d / d.distance * reach : d),
+                    );
+                    return;
+                  }
+                  if (event.pointer == _lookPointer) {
+                    _lookDx += event.delta.dx;
+                    _yaw = WalkControl.look(_lookDx, _viewSize.width);
+                    return;
+                  }
 
                   // Only the board turns by dragging. Everywhere else a drag
                   // *is* the scroll — on a phone, where there is no wheel, it
@@ -826,12 +886,16 @@ class _GalleryViewState extends State<GalleryView> {
                   _scroll.scrollBy(GalleryInput.dragStep(event.delta.dy));
                 },
                 onPointerUp: (event) {
+                  _letGo(event.pointer);
                   final dragged = _dragDistance > _tapSlop;
                   _dragFrom = null;
                   if (dragged) return;
                   _pick(event.localPosition);
                 },
-                onPointerCancel: (_) => _dragFrom = null,
+                onPointerCancel: (event) {
+                  _dragFrom = null;
+                  _letGo(event.pointer);
+                },
                 child: _surface(context),
               ),
 
@@ -853,6 +917,23 @@ class _GalleryViewState extends State<GalleryView> {
                 onForward: () => _control(ControlAction.next),
                 mirrored: !(_focused?.position.x.isNegative ?? true),
                 asFallback: _gallery?.controls == null,
+              ),
+
+              // The thumb stick, where the thumb landed: a plain ring and knob.
+              IgnorePointer(
+                child: ValueListenableBuilder<(Offset, Offset)?>(
+                  valueListenable: _stick,
+                  builder: (context, stick, _) => stick == null
+                      ? const SizedBox.shrink()
+                      : CustomPaint(
+                          size: Size.infinite,
+                          painter: _StickPainter(
+                            origin: stick.$1,
+                            knob: stick.$2,
+                            ink: context.colors.galleryControlInk,
+                          ),
+                        ),
+                ),
               ),
 
               // Over the room *and* over its controls. A ✕ still lit on a
@@ -929,7 +1010,25 @@ class _GalleryViewState extends State<GalleryView> {
         // The scroll keeps running while a piece is focused, but it drives
         // nothing — so leaving focus hands the visitor back to exactly the
         // spot they left rather than to wherever the wheel wandered.
-        if (_focused == null) _scroll.update(deltaSeconds);
+        // The stick's walk: eased toward the push, and fed to the same
+        // scroll the wheel and the old drag move, through the same gate.
+        _walkSpeed = WalkControl.speedTowards(
+          _walkSpeed,
+          _focused == null && !_inHall ? _push : 0,
+          deltaSeconds,
+        );
+        if (_walkSpeed != 0 &&
+            _focused == null &&
+            _gate.accept(_clock.elapsedMilliseconds)) {
+          _scroll.scrollBy(_walkSpeed * deltaSeconds);
+        }
+        if (_lookPointer == null) {
+          _yaw = WalkControl.lookReturn(_yaw, deltaSeconds);
+        }
+
+        if (_focused == null) {
+          _scroll.update(deltaSeconds, tight: _stickDriving);
+        }
         final seconds = elapsed.inMicroseconds / 1e6;
         gallery.arrow?.update(seconds, _scroll.progress);
 
@@ -1000,7 +1099,7 @@ class _GalleryViewState extends State<GalleryView> {
           // The camera crosses the same boundary as the room, or it would
           // pan away from the wall it is meant to be tracking.
           position: SceneAxes.position(_eye ?? _targetPose().position),
-          target: SceneAxes.position(_look ?? _targetPose().target),
+          target: SceneAxes.position(_lookedAt()),
         );
         _lastCamera = camera;
         return camera;
@@ -1046,6 +1145,33 @@ class _GalleryViewState extends State<GalleryView> {
     return _targetPose();
   }
 
+  /// Whether the thumb stick is moving the visitor: held, or still easing
+  /// out. While it is, the scroll and the camera follow it tightly, so a
+  /// release stops the walk instead of letting it glide.
+  bool get _stickDriving => _stickPointer != null || _walkSpeed != 0;
+
+  /// Lets go of whatever [pointer] was holding: the stick stops pushing
+  /// (the walk eases out) and the look eases back in the frame.
+  void _letGo(int pointer) {
+    if (pointer == _stickPointer) {
+      _stickPointer = null;
+      _push = 0;
+      _stick.value = null;
+    }
+    if (pointer == _lookPointer) _lookPointer = null;
+  }
+
+  /// Where the camera looks: the path's look point, turned about the eye by
+  /// the head's turn ([_yaw]) while walking.
+  Vector3 _lookedAt() {
+    final eye = _eye ?? _targetPose().position;
+    final look = _look ?? _targetPose().target;
+    if (_yaw == 0 || _focused != null) return look;
+    final dir = look - eye;
+    final c = math.cos(_yaw), sn = math.sin(_yaw);
+    return eye + Vector3(dir.x * c - dir.z * sn, dir.y, dir.x * sn + dir.z * c);
+  }
+
   /// Moves the camera toward where it wants to be.
   ///
   /// Frame-rate independent, rather than a fixed fraction per frame: the
@@ -1056,7 +1182,11 @@ class _GalleryViewState extends State<GalleryView> {
     final eye = _eye ??= target.position.clone();
     final look = _look ??= target.target.clone();
 
-    final rate = _focused != null ? focusApproach : corridorReturn;
+    final rate = _focused != null
+        ? focusApproach
+        : _stickDriving
+        ? WalkControl.stickChase
+        : corridorReturn;
     final t = 1 - math.exp(-rate * dt.clamp(0.0, 0.1));
 
     eye.setFrom(eye + (target.position - eye) * t);
@@ -1109,4 +1239,35 @@ class GalleryFailure extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The thumb stick: a ring where the thumb landed and a knob where it is.
+class _StickPainter extends CustomPainter {
+  const _StickPainter({
+    required this.origin,
+    required this.knob,
+    required this.ink,
+  });
+
+  final Offset origin;
+  final Offset knob;
+  final Color ink;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas
+      ..drawCircle(
+        origin,
+        WalkControl.stickRadius,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2
+          ..color = ink.withValues(alpha: 0.5),
+      )
+      ..drawCircle(knob, 18, Paint()..color = ink.withValues(alpha: 0.6));
+  }
+
+  @override
+  bool shouldRepaint(_StickPainter old) =>
+      old.origin != origin || old.knob != knob || old.ink != ink;
 }

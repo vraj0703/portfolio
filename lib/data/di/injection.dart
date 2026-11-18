@@ -69,6 +69,7 @@ Future<void> initDependencies() async {
       flags: ButtonFlags(
         connect: events.showsConnect(),
         menu: events.showsMenu(),
+        walkStick: events.walksByStick(),
       ),
     );
   });

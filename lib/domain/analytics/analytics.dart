@@ -250,8 +250,10 @@ class SiteEvents {
   // Flags.
   static const String connectFlag = 'title_connect_button';
   static const String menuFlag = 'title_menu_button';
+  static const String walkStickFlag = 'gallery_walk_stick';
 
   bool showsConnect() => _sink.flag(connectFlag, orElse: true);
   bool showsMenu() => _sink.flag(menuFlag, orElse: true);
+  bool walksByStick() => _sink.flag(walkStickFlag, orElse: true);
   Listenable get flagsChanged => _sink.flagsChanged;
 }
