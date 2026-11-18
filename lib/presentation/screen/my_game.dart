@@ -8,6 +8,7 @@ import 'package:flame/flame.dart';
 import 'package:flame/game.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/foundation.dart' show ValueNotifier;
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/backdrop_detail.dart';
@@ -451,15 +452,24 @@ class MyGame extends FlameGame
     queuer.queue(event: const SceneEvent.logoExitCompleted());
   }
 
+  /// How far a finger moves the intro, against how far it travels, where it
+  /// scrolls rather than strokes (a mouse drag, or the strokes' flag off).
+  ///
+  /// A wheel notch reports about a hundred units; a finger reports the pixels
+  /// it crossed. Left at one-to-one the stage still works, but reading a
+  /// paragraph takes a handful of full-screen swipes, which is not what the
+  /// same gesture costs anywhere else on a phone.
+  static const double dragScrollGain = 2;
+
+  /// The wheel scrolls, continuously, as it always has. Strokes are for
+  /// touch only: as strokes, a wheel spun or a trackpad's flick (one long
+  /// burst of events) played its first stroke and swallowed the rest, and
+  /// the title hung on the bold text until the visitor stopped and scrolled
+  /// again (Vishal, 2026-11-18; reproduced on desktop Chrome).
   @override
   void onScroll(PointerScrollInfo info) {
     super.onScroll(info);
-    // One flick of the wheel is one stroke ([Strokes]): the first event of a
-    // burst decides it, the rest of the burst is the same gesture.
-    final now = _strokeClock.elapsedMilliseconds;
-    final starts = Strokes.wheelStartsStroke(now, _lastWheelMs);
-    _lastWheelMs = now;
-    if (starts) _stroke(Strokes.wheelDirection(info.scrollDelta.global.y));
+    _advanceBy(info.scrollDelta.global.y);
   }
 
   @override
@@ -467,11 +477,22 @@ class MyGame extends FlameGame
     super.onDragStart(event);
     _dragTravelled = 0;
     _dragStroked = false;
+    // A finger or a pen strokes, when the scene's rule says so; a mouse
+    // drag scrolls, as it always has.
+    _dragStrokes =
+        (event.deviceKind == PointerDeviceKind.touch ||
+            event.deviceKind == PointerDeviceKind.stylus) &&
+        bloc.state.swipesByStroke;
   }
 
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+    if (!_dragStrokes) {
+      // A finger moving *up* is a wheel turning down: both mean "onward".
+      _advanceBy(-event.localDelta.y * dragScrollGain);
+      return;
+    }
     // One swipe is one stroke, decided once it has gone far enough to say
     // which way; the rest of the swipe is the same gesture.
     if (_dragStroked) return;
@@ -482,11 +503,25 @@ class MyGame extends FlameGame
     _stroke(direction);
   }
 
-  /// The wheel's and the finger's stroke state.
-  final Stopwatch _strokeClock = Stopwatch()..start();
-  int? _lastWheelMs;
+  /// Moves the intro on by [delta]: the wheel's continuous scroll (and a
+  /// drag's, where it does not stroke). Master's, unchanged.
+  void _advanceBy(double delta) {
+    // Once the stage has handed over, its scroll is spent.
+    if (_boldTextHandedOver) return;
+    if (_boldTextActive) {
+      _scroll.scrollBy(delta);
+      return;
+    }
+    // Before the stage, a downward scroll is just another way of asking to
+    // move on: the same request the arrow makes.
+    if (delta <= 0) return;
+    _scrollCue.requestAdvance();
+  }
+
+  /// The finger's stroke state.
   double _dragTravelled = 0;
   bool _dragStroked = false;
+  bool _dragStrokes = false;
 
   /// A stroke onward from the title, made before the stage was running:
   /// the stage plays it as soon as it opens, so the one stroke carries the

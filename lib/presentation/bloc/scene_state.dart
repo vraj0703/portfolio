@@ -134,4 +134,10 @@ sealed class SceneState with _$SceneState {
   /// Whether the screen's chrome (the title's icons) sits on a light scene
   /// and wants the dark ink: the gallery's ceiling, not the title's dusk.
   bool get chromeOnLight => this is Gallery;
+
+  /// Whether a swipe on the title moves it by strokes (one swipe, one timed
+  /// move between pauses) rather than by distance. Touch only (the wheel
+  /// always scrolls), behind the same flag as the gallery's thumb stick, so
+  /// turning the touch controls off restores the old drag everywhere.
+  bool get swipesByStroke => flags.walkStick;
 }

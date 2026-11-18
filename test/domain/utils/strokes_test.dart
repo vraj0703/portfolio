@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/domain/config/button_flags.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/domain/utils/strokes.dart';
@@ -16,18 +18,6 @@ void main() {
       expect(Strokes.dragDirection(-10), 0);
       expect(Strokes.dragDirection(-Strokes.dragThreshold), 1);
       expect(Strokes.dragDirection(Strokes.dragThreshold + 1), -1);
-    });
-
-    test('a wheel burst is one stroke; a pause starts the next', () {
-      expect(Strokes.wheelStartsStroke(1000, null), isTrue);
-      expect(Strokes.wheelStartsStroke(1100, 1000), isFalse);
-      expect(
-        Strokes.wheelStartsStroke(1000 + Strokes.wheelBurstGapMs + 1, 1000),
-        isTrue,
-      );
-      expect(Strokes.wheelDirection(120), 1);
-      expect(Strokes.wheelDirection(-3), -1);
-      expect(Strokes.wheelDirection(0), 0);
     });
 
     test('a move is eased in and out, and timed between 0.8 and 1 s', () {
@@ -87,6 +77,18 @@ void main() {
       run(driver, 0.2);
       driver.scrollBy(10);
       expect(driver.isMoving, isFalse);
+    });
+  });
+
+  group('who strokes', () {
+    test('touch strokes behind the touch-controls flag; off, it scrolls', () {
+      expect(const SceneState.title().swipesByStroke, isTrue);
+      expect(
+        const SceneState.title(
+          flags: ButtonFlags(walkStick: false),
+        ).swipesByStroke,
+        isFalse,
+      );
     });
   });
 }
