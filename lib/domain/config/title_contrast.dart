@@ -18,11 +18,16 @@ enum TitleContrast {
 
   /// (D) A and B, both lighter.
   dimAndDarker,
+
+  /// (E) A's dimming made part of the picture: warm (toward the dunes'
+  /// shadow brown, not grey), feathered wider and softer, only as wide as
+  /// the name with a soft falloff; with a slightly brighter, heavier name.
+  warmBand,
 }
 
 abstract final class TitleContrastConfig {
   /// The way the site ships. Change this one line to choose another.
-  static const TitleContrast chosen = TitleContrast.dimBand;
+  static const TitleContrast chosen = TitleContrast.warmBand;
 
   /// The way in use: [chosen], or `?pc-title=none|A|B|C|D` on the URL, for
   /// shooting the four side by side. Read once.
@@ -45,12 +50,36 @@ abstract final class TitleContrastConfig {
   // -- (C) where the name moves: up the screen, as a share of its height.
   static const double offBandRise = 0.2;
 
+  // -- (E) the warm band and its name.
+  static const double warmStrength = 0.62;
+  static const double warmHalfHeight = 0.2;
+  static const double warmShape = 6;
+  static const double warmMargin = 0.08; // beyond the name, in uv
+  static const int warmNameBase = 0xFFF0EEEA;
+
+  /// The name's measured half width in logical pixels, set by the title as
+  /// it lays out, so (E)'s band is only as wide as the name.
+  static double nameHalfWidthPx = 0;
+
   /// The dimming strength for [way] (0 = none).
   static double dimFor(TitleContrast way) => switch (way) {
     TitleContrast.dimBand => dimStrength,
     TitleContrast.dimAndDarker => dimStrengthLight,
+    TitleContrast.warmBand => warmStrength,
     _ => 0,
   };
+
+  /// The band's half width in uv for [way] on a screen [height] tall.
+  static double halfWidthFor(TitleContrast way, double height) =>
+      way == TitleContrast.warmBand && nameHalfWidthPx > 0 && height > 0
+      ? nameHalfWidthPx / height + warmMargin
+      : dimHalfWidth;
+  static double halfHeightFor(TitleContrast way) =>
+      way == TitleContrast.warmBand ? warmHalfHeight : dimHalfHeight;
+  static double warmFor(TitleContrast way) =>
+      way == TitleContrast.warmBand ? 1 : 0;
+  static double shapeFor(TitleContrast way) =>
+      way == TitleContrast.warmBand ? warmShape : 2;
 
   /// How far the name rises (share of screen height) for [way].
   static double riseFor(TitleContrast way) =>
@@ -64,6 +93,7 @@ abstract final class TitleContrastConfig {
       'B' => TitleContrast.darkerName,
       'C' => TitleContrast.offBand,
       'D' => TitleContrast.dimAndDarker,
+      'E' => TitleContrast.warmBand,
       _ => null,
     };
   }

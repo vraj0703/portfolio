@@ -147,8 +147,16 @@ class BackdropComponent extends PositionComponent
       // name sits: the screen's middle, or higher for (C).
       ..setFloat(6, TitleContrastConfig.dimFor(TitleContrastConfig.current))
       ..setFloat(7, TitleContrastConfig.riseFor(TitleContrastConfig.current))
-      ..setFloat(8, TitleContrastConfig.dimHalfWidth)
-      ..setFloat(9, TitleContrastConfig.dimHalfHeight);
+      ..setFloat(
+        8,
+        TitleContrastConfig.halfWidthFor(TitleContrastConfig.current, size.y),
+      )
+      ..setFloat(
+        9,
+        TitleContrastConfig.halfHeightFor(TitleContrastConfig.current),
+      )
+      ..setFloat(10, TitleContrastConfig.warmFor(TitleContrastConfig.current))
+      ..setFloat(11, TitleContrastConfig.shapeFor(TitleContrastConfig.current));
 
     _paint.shader = shader;
     final rect = size.toRect();

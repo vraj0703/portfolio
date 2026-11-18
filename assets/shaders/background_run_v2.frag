@@ -16,6 +16,11 @@ uniform float uDim;
 uniform float uDimY;
 uniform float uDimHalfW;
 uniform float uDimHalfH;
+// (E) how warm the dimming is (0 = toward grey, as A; 1 = toward the dune's
+// shadow brown) and its horizontal shape (2 = an ellipse; higher = flatter
+// over the name with a soft falloff past it).
+uniform float uDimWarm;
+uniform float uDimShape;
 
 out vec4 fragColor;
 
@@ -89,7 +94,9 @@ void main() {
     // 5. Behind the name: a soft local dimming, so the letters hold their
     // own at the band's brightest (PORTFOLIO-22). Zero strength is a no-op.
     vec2 dn = vec2(uv.x / uDimHalfW, (uv.y - uDimY) / uDimHalfH);
-    o.rgb *= 1.0 - uDim * exp(-dot(dn, dn));
+    float w = exp(-(pow(abs(dn.x), uDimShape) + dn.y * dn.y));
+    vec3 toward = mix(vec3(1.0 - uDim), mix(vec3(1.0), vec3(0.42, 0.27, 0.16), uDim), uDimWarm);
+    o.rgb *= mix(vec3(1.0), toward, w);
 
     fragColor = vec4(o.rgb, 1.0);
 }

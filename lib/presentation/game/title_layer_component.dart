@@ -87,10 +87,18 @@ class TitleLayerComponent extends PositionComponent
     // How the name holds its own against the backdrop (PORTFOLIO-22): (B)
     // and (D) darken its metal, give it a soft dark shadow and more weight.
     final way = TitleContrastConfig.current;
+    final warm = way == TitleContrast.warmBand;
     final darker =
-        way == TitleContrast.darkerName || way == TitleContrast.dimAndDarker;
-    final light = way == TitleContrast.dimAndDarker;
-    final nameStyle = darker
+        way == TitleContrast.darkerName ||
+        way == TitleContrast.dimAndDarker ||
+        warm;
+    final light = way == TitleContrast.dimAndDarker || warm;
+    // (E) takes the weight but not the shadow: a blurred shadow needs GL
+    // programs the loading rehearsal does not compile (the census showed 6
+    // linked after the tap, against 2), and E reaches 3:1 without it.
+    final nameStyle = warm
+        ? palette.titlePrimaryStyle.copyWith(fontWeight: FontWeight.w700)
+        : darker
         ? palette.titlePrimaryStyle.copyWith(
             fontWeight: FontWeight.w700,
             shadows: <Shadow>[
@@ -108,7 +116,11 @@ class TitleLayerComponent extends PositionComponent
             ],
           )
         : palette.titlePrimaryStyle;
-    final nameBase = darker
+    // (E) a slightly brighter metal: against a dimmed band, darker letters
+    // lose contrast (why D fell short).
+    final nameBase = warm
+        ? const Color(TitleContrastConfig.warmNameBase)
+        : darker
         ? Color(
             light
                 ? TitleContrastConfig.darkerBaseLight
@@ -272,6 +284,9 @@ class TitleLayerComponent extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
+    // The name's laid-out half width, for (E)'s band (logical pixels).
+    TitleContrastConfig.nameHalfWidthPx =
+        _primary.size.x * _primary.scale.x / 2;
 
     final elapsed = _elapsed;
     if (elapsed == null) return;
