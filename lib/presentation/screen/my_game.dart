@@ -268,6 +268,7 @@ class MyGame extends FlameGame
   void _rewindBoldTextStage() {
     _boldTextActive = false;
     _strokePending = false;
+    _strokeWaitingMs = null;
     _boldTextHandedOver = false;
     _tingPlayed = false;
     _scroll.reset();
@@ -406,6 +407,7 @@ class MyGame extends FlameGame
     if (!isLoaded) return;
 
     _cursor.update(dt);
+    _retryWaitingStroke();
 
     if (_boldTextActive) {
       _scroll.update(dt);
@@ -513,7 +515,29 @@ class MyGame extends FlameGame
     // stage carries it on to the bold text once it opens.
     if (direction < 0) return;
     _strokePending = true;
-    _scrollCue.requestAdvance();
+    // The arrow takes the request only once it is half in view; a stroke
+    // made as the title arrives waits for it rather than being lost (one
+    // stroke asks once, where a distance scroll used to ask every frame).
+    _strokeWaitingMs = _scrollCue.requestAdvance()
+        ? null
+        : _strokeClock.elapsedMilliseconds;
+  }
+
+  /// When a stroke from the title began waiting for the arrow, if it is.
+  int? _strokeWaitingMs;
+
+  /// How long a stroke from the title waits for the arrow before it lapses.
+  static const int strokeWaitMs = 1500;
+
+  void _retryWaitingStroke() {
+    final since = _strokeWaitingMs;
+    if (since == null) return;
+    if (_boldTextActive ||
+        _strokeClock.elapsedMilliseconds - since > strokeWaitMs) {
+      _strokeWaitingMs = null;
+      return;
+    }
+    if (_scrollCue.requestAdvance()) _strokeWaitingMs = null;
   }
 
   /// Called by the arrow. Before the stage it asks the bloc to move on; once
