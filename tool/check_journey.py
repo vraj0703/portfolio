@@ -261,7 +261,7 @@ async def journey(cdp, p, url):
     if p["touch"]:
         await touch(cdp, "touchStart", W / 2, H * 0.82)
         for k in range(1, 6):
-            await touch(cdp, "touchMove", W / 2, H * 0.82 - 14 * k)
+            await touch(cdp, "touchMove", W / 2, H * 0.82 - 22 * k)
             await asyncio.sleep(0.02)
 
         async def walk():
@@ -291,7 +291,7 @@ async def journey(cdp, p, url):
     if p["touch"]:
         await touch(cdp, "touchStart", W / 2, H * 0.82)
         for k in range(1, 6):
-            await touch(cdp, "touchMove", W / 2 + 11 * k, H * 0.82)
+            await touch(cdp, "touchMove", W / 2 + 22 * k, H * 0.82)
             await asyncio.sleep(0.02)
     while not await marked(cdp, "/#/skills"):
         if await focused_piece(cdp):

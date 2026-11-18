@@ -16,7 +16,10 @@ abstract final class WalkControl {
   static const double stickZone = 0.55;
 
   /// How far the thumb moves, in logical pixels, for a full push.
-  static const double stickRadius = 56;
+  /// Wide enough to say "harder": at 56 px a push saturated at once
+  /// (Vishal, 2026-11-18: "suppose i am pushing harder the scroll should
+  /// match").
+  static const double stickRadius = 104;
 
   /// The share of a full push that does nothing, so a resting thumb's
   /// tremor does not creep the visitor along.
@@ -24,11 +27,10 @@ abstract final class WalkControl {
 
   // -- The tuning, in one place: each value is one line to change. -------
 
-  /// Seconds a full push takes to walk the corridor end to end: a brisk
-  /// walk. 6 s read as running; 15 read as slow; 11 still read as dragging
-  /// (Vishal, 2026-11-18), with the response curve below a small push is
-  /// slower than before and a full one a little quicker.
-  static const double corridorSeconds = 9;
+  /// Seconds a full push takes to walk the corridor end to end, before the
+  /// run builds ([runBoost]): with it, about 5.5 s at the rim. 11 and 9 read
+  /// as dragging (Vishal, 2026-11-18); a small push is slow, the rim quick.
+  static const double corridorSeconds = 6.3;
 
   /// The corridor's walk in scroll units: the gallery's scroll extent times
   /// the share of it that is the walk (`GalleryView.scrollExtent` 8000 x
@@ -38,15 +40,25 @@ abstract final class WalkControl {
   /// Walking speed at a full push, in scroll units a second.
   static const double maxSpeed = corridorUnits / corridorSeconds;
 
-  /// Seconds from standing to full speed, and from full speed to standing:
-  /// the stick's one smoother. Measured on the ROG, 0.3 s to start (plus a
-  /// camera chase) took 320-350 ms to full speed and read as being towed.
-  static const double accelerateSeconds = 0.12;
-  static const double stopSeconds = 0.12;
+  /// Inertia, like a body: about how long the speed takes to build to what
+  /// the push asks (to within 5%), and to coast down when let go (friction).
+  /// Exponential, not a ramp: a linear ramp read as "linear, rather than
+  /// natural" (Vishal, 2026-11-18).
+  static const double buildSeconds = 0.35;
+  static const double coastSeconds = 0.3;
 
-  /// How a push maps to speed: a small push walks slowly, a full one
-  /// briskly (speed = push ^ this).
-  static const double responseExponent = 1.6;
+  /// Below this speed (scroll units a second) a coasting walk is at rest.
+  static const double restSpeed = 2;
+
+  /// How a push maps to speed: slow near the centre, quick at the rim
+  /// (speed = push ^ this).
+  static const double responseExponent = 1.8;
+
+  /// A held full push keeps building a little for its first second: a run.
+  /// How full counts as full, how much more, and over how long.
+  static const double runFrom = 0.9;
+  static const double runBoost = 1.15;
+  static const double runSeconds = 1.0;
 
   /// While the stick drives, the camera sits on the path, with no chase of
   /// its own; it only starts once it is this close (world units), so a
@@ -167,19 +179,28 @@ abstract final class WalkControl {
   static bool holdsStick(double y, double height) =>
       height > 0 && y >= height * stickZone;
 
-  /// The walking speed after [dt] seconds, moving from [current] toward the
-  /// speed [push] asks for: no faster than full speed in [accelerateSeconds]
-  /// when speeding up, or in [stopSeconds] when slowing or turning round.
-  static double speedTowards(double current, double push, double dt) {
-    final target = push.clamp(-1.0, 1.0) * maxSpeed;
+  /// The speed (scroll units a second) a push of [rate] (-1..1) asks for,
+  /// having been held near full for [runHeld] seconds: the response curve,
+  /// and the run on a held full push.
+  static double targetSpeed(double rate, double runHeld) {
+    final base = response(rate) * maxSpeed;
+    if (rate.abs() < runFrom) return base;
+    final run = (runHeld / runSeconds).clamp(0.0, 1.0);
+    return base * (1 + (runBoost - 1) * run);
+  }
+
+  /// The walking speed after [dt] seconds, moving from [current] toward
+  /// [target]: exponentially, like a body with inertia, building over about
+  /// [buildSeconds] and coasting down (or turning) over about [coastSeconds].
+  static double speedTowards(double current, double target, double dt) {
     final speedingUp =
         target.abs() > current.abs() &&
         (current == 0 || target.sign == current.sign);
-    final seconds = speedingUp ? accelerateSeconds : stopSeconds;
-    final step = maxSpeed / seconds * dt;
-    final gap = target - current;
-    if (gap.abs() <= step) return target;
-    return current + gap.sign * step;
+    // To within 5% in the named time: three time constants.
+    final tau = (speedingUp ? buildSeconds : coastSeconds) / 3;
+    final next = target + (current - target) * math.exp(-dt / tau);
+    if (target == 0 && next.abs() < restSpeed) return 0;
+    return next;
   }
 
   /// The scroll step a stick walk may take from [at] by [step]: all of it,

@@ -163,41 +163,61 @@ void main() {
     });
   });
 
-  group('the walking speed eases in and out', () {
-    test('full speed from standing takes the acceleration time', () {
-      var speed = 0.0;
-      const dt = 1 / 60;
+  group('the walk has inertia, like a body', () {
+    const dt = 1 / 60;
+
+    double timeTo(double from, double target, double fraction) {
+      var speed = from;
       var t = 0.0;
-      while (speed < WalkControl.maxSpeed) {
-        speed = WalkControl.speedTowards(speed, 1, dt);
+      while ((speed - from).abs() < (target - from).abs() * fraction) {
+        speed = WalkControl.speedTowards(speed, target, dt);
         t += dt;
       }
-      expect(t, closeTo(WalkControl.accelerateSeconds, 2 * dt));
+      return t;
+    }
+
+    test('it builds to the push in about the build time', () {
+      final t = timeTo(0, WalkControl.maxSpeed, 0.95);
+      expect(t, closeTo(WalkControl.buildSeconds, 3 * dt));
+      expect(WalkControl.buildSeconds, inInclusiveRange(0.25, 0.4));
     });
 
-    test('and letting go stops in the stopping time', () {
+    test('and coasts to rest on release, with friction, in about 0.3 s', () {
       var speed = WalkControl.maxSpeed;
-      const dt = 1 / 60;
       var t = 0.0;
+      var distance = 0.0;
       while (speed > 0) {
         speed = WalkControl.speedTowards(speed, 0, dt);
+        distance += speed * dt;
         t += dt;
       }
-      expect(t, closeTo(WalkControl.stopSeconds, 2 * dt));
+      expect(t, inInclusiveRange(0.25, 0.6));
+      // A coast, not a stop: it carries on a little way.
+      expect(distance, greaterThan(WalkControl.maxSpeed * 0.05));
     });
 
-    test('turning round slows first, at the stopping rate', () {
-      final next = WalkControl.speedTowards(WalkControl.maxSpeed, -1, 0.1);
-      final stoppingStep = WalkControl.maxSpeed / WalkControl.stopSeconds * 0.1;
-      expect(next, closeTo(WalkControl.maxSpeed - stoppingStep, 1e-9));
+    test('harder is faster, and the rim is much faster than the middle', () {
+      final quarter = WalkControl.targetSpeed(0.25, 0);
+      final half = WalkControl.targetSpeed(0.5, 0);
+      final threeQ = WalkControl.targetSpeed(0.75, 0);
+      final full = WalkControl.targetSpeed(1, 0);
+      expect(quarter, lessThan(half));
+      expect(half, lessThan(threeQ));
+      expect(threeQ, lessThan(full));
+      expect(half / full, lessThan(0.3));
     });
 
-    test('half a push walks at half speed', () {
-      var speed = 0.0;
-      for (var i = 0; i < 120; i++) {
-        speed = WalkControl.speedTowards(speed, 0.5, 1 / 60);
-      }
-      expect(speed, closeTo(WalkControl.maxSpeed / 2, 1e-9));
+    test('a held full push keeps building a little: the run', () {
+      final start = WalkControl.targetSpeed(1, 0);
+      final run = WalkControl.targetSpeed(1, WalkControl.runSeconds);
+      expect(run / start, closeTo(WalkControl.runBoost, 1e-9));
+      // A half push does not run.
+      expect(WalkControl.targetSpeed(0.5, 3), WalkControl.targetSpeed(0.5, 0));
+    });
+
+    test('at the rim, with the run, the corridor takes about 5-6 s', () {
+      final rim = WalkControl.targetSpeed(1, WalkControl.runSeconds);
+      expect(WalkControl.corridorUnits / rim, inInclusiveRange(5.0, 6.0));
     });
   });
 

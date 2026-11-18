@@ -225,6 +225,9 @@ class _GalleryViewState extends State<GalleryView> {
   /// the eye, and the stick marks going down and up. Off otherwise.
   static final bool _probe = Uri.base.queryParameters.containsKey('pc-probe');
 
+  /// How long the stick has been pushed near full (the run builds over it).
+  double _runHeld = 0;
+
   /// Whether the camera is riding the path (the stick drives, no chase).
   bool _riding = false;
 
@@ -1310,9 +1313,11 @@ class _GalleryViewState extends State<GalleryView> {
             pastCorner: _scroll.target > GalleryView.backWallStop + 1,
           )
         : 0.0;
+    // The run: how long the push has been held near full.
+    _runHeld = rate.abs() >= WalkControl.runFrom ? _runHeld + dt : 0;
     _walkSpeed = WalkControl.speedTowards(
       _walkSpeed,
-      WalkControl.response(rate),
+      WalkControl.targetSpeed(rate, _runHeld),
       dt,
     );
     if (_walkSpeed != 0 &&
