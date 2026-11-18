@@ -56,6 +56,21 @@ abstract final class GalleryCameraPath {
   /// Where the visitor starts, just inside the entrance.
   static const double startZ = 3;
 
+  /// Where a portrait screen starts: further back, so the BACK sign and the
+  /// radio on the side walls by the entrance are in view on arrival.
+  ///
+  /// A portrait phone sees about 24 degrees either side of the corridor's
+  /// line (78 degree vertical field of view at ~0.54 aspect). From [startZ]
+  /// those two pieces sat 39 degrees off it, so a phone visitor never saw
+  /// either (Vishal, 2026-11-18). From here the BACK sign's near edge is
+  /// about 22 degrees off, and the side walls' open entrance end (z ~ +2)
+  /// stays outside the view, which only meets a side wall ~7 units ahead.
+  static const double portraitStartZ = 8.5;
+
+  /// Where the walk starts for a screen of [aspect] (width over height).
+  static double startZFor(double aspect) =>
+      aspect < 1 ? portraitStartZ : startZ;
+
   /// How far ahead the camera looks while walking.
   static const double lookAhead = 10;
 
@@ -153,8 +168,9 @@ abstract final class GalleryCameraPath {
       math.atan2(hallEyeRise, hallViewDistance);
 
   /// Distance from the board at rest, along the line of sight.
-  static double get hallOrbitRadius =>
-      math.sqrt(hallViewDistance * hallViewDistance + hallEyeRise * hallEyeRise);
+  static double get hallOrbitRadius => math.sqrt(
+    hallViewDistance * hallViewDistance + hallEyeRise * hallEyeRise,
+  );
 
   /// Where the camera stands when orbiting the board.
   ///
@@ -188,7 +204,7 @@ abstract final class GalleryCameraPath {
   /// The pose at [progress], `0`..`1`.
   static CameraPose poseAt(double progress, {double aspect = landscape}) {
     final p = progress.clamp(0.0, 1.0);
-    if (p < walkFraction) return _walk(p);
+    if (p < walkFraction) return _walk(p, aspect);
     if (p < panEnd) return _pan(p);
     return _approach(p, aspect);
   }
@@ -199,12 +215,15 @@ abstract final class GalleryCameraPath {
   /// over the last stretch, so arriving at the end is a turn of attention
   /// rather than a stop. Squared, so the swing is imperceptible until the
   /// wall is genuinely close.
-  static CameraPose _walk(double p) {
+  static CameraPose _walk(double p, double aspect) {
     final t = p / walkFraction;
-    final z = startZ - t * (startZ - GalleryDimensions.wallLockZ);
+    final start = startZFor(aspect);
+    final z = start - t * (start - GalleryDimensions.wallLockZ);
 
-    final proximity = ((t - (1 - approachShare)) / approachShare)
-        .clamp(0.0, 1.0);
+    final proximity = ((t - (1 - approachShare)) / approachShare).clamp(
+      0.0,
+      1.0,
+    );
     final aheadZ = z - lookAhead;
     final lookZ =
         aheadZ + (GalleryDimensions.backWallZ - aheadZ) * proximity * proximity;
@@ -271,7 +290,8 @@ abstract final class GalleryCameraPath {
       final ease = 1 - (1 - walk) * (1 - walk);
       x = entry + (stopX - entry) * ease;
       eyeY =
-          panEyeHeight + (board.y + hallEyeRiseFor(aspect) - panEyeHeight) * ease;
+          panEyeHeight +
+          (board.y + hallEyeRiseFor(aspect) - panEyeHeight) * ease;
       turn = 1;
     }
 
