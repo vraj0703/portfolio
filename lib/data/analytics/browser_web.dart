@@ -34,6 +34,21 @@ abstract final class Browser {
     return t != null && t.isA<JSString>() ? (t as JSString).toDart : null;
   }
 
+  /// Whether this is a phone: a coarse pointer and a screen whose short side
+  /// is at most [phoneShortSide] CSS pixels. By what the device is rather
+  /// than what it is called; desktops and tablets answer false.
+  static bool isPhone() {
+    final coarse = web.window.matchMedia('(pointer: coarse)').matches;
+    final screen = web.window.screen;
+    final shortSide = screen.width < screen.height
+        ? screen.width
+        : screen.height;
+    return coarse && shortSide <= phoneShortSide;
+  }
+
+  /// The largest short side, in CSS pixels, that still counts as a phone.
+  static const int phoneShortSide = 600;
+
   /// The GPU's name, as WebGL reports it.
   static String? renderer() {
     try {

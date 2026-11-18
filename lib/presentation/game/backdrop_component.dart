@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
+import 'package:portfolio/domain/config/backdrop_detail.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -15,9 +16,17 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 /// never a frame where the background visibly switches on.
 class BackdropComponent extends PositionComponent
     with FlameBlocListenable<SceneBloc, SceneState> {
-  BackdropComponent({required this.shader, super.priority});
+  BackdropComponent({
+    required this.shader,
+    this.detail = BackdropDetail.full,
+    super.priority,
+  });
 
   final ui.FragmentShader shader;
+
+  /// How much work the shader does per pixel, chosen for the device by the
+  /// game (`BackdropDetail.forDevice`), not by this component.
+  final BackdropDetail detail;
 
   final Paint _paint = Paint();
 
@@ -129,7 +138,10 @@ class BackdropComponent extends PositionComponent
     shader
       ..setFloat(0, size.x)
       ..setFloat(1, size.y)
-      ..setFloat(2, _elapsed);
+      ..setFloat(2, _elapsed)
+      ..setFloat(3, detail.steps.toDouble())
+      ..setFloat(4, detail.octaves.toDouble())
+      ..setFloat(5, detail.stepScale);
 
     _paint.shader = shader;
     final rect = size.toRect();
