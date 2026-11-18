@@ -1,12 +1,16 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/domain/gallery/gallery_detail.dart';
+import 'package:portfolio/domain/gallery/lightmap_bake.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart' show TextSpan, TextStyle;
 import 'package:flutter_scene/scene.dart';
+// ignore: implementation_imports
+import 'package:flutter_scene/src/gpu/gpu.dart' as gpu;
 import 'package:portfolio/presentation/gallery/build_yield.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
@@ -145,6 +149,7 @@ class GalleryScene {
     await BuildTiming.span(BuildPhase.shaders, Scene.initializeStaticResources);
     await _report(onProgress, _shaderShare);
 
+    final detail = GalleryDetail.forDevice(phone: Browser.isPhone());
     final scene = Scene()
       // Replaces the engine's default studio environment. That default is
       // built to flatter a product on a turntable; this is a dim room, and
@@ -153,12 +158,12 @@ class GalleryScene {
       ..environment = EnvironmentMap.constantDiffuse(GalleryLighting.ambient)
       // A phone renders at a fraction of the view's size: the corridor is
       // fill-rate bound there (GalleryDetail).
-      ..renderScale = GalleryDetail.forDevice(
-        phone: Browser.isPhone(),
-      ).renderScale;
+      ..renderScale = detail.renderScale;
     final artwork = <ui.Image>[];
     final textures = <TextureSource>[];
     final testimonials = TestimonialCards();
+
+    final floorLightmap = detail.bakeLighting ? _bakeFloor(shape) : null;
 
     await _populate(
       scene,
@@ -168,8 +173,10 @@ class GalleryScene {
       artworkSize,
       onProgress,
       testimonials,
+      floorLightmap,
     );
-    _light(scene, shape);
+    // Baked, the pools are already in the surfaces: no lamp is hung.
+    if (!detail.bakeLighting) _light(scene, shape);
 
     var tail = 0;
     Future<void> step() => _report(
@@ -351,6 +358,7 @@ class GalleryScene {
     int artworkSize,
     void Function(double)? onProgress,
     TestimonialCards testimonials,
+    _Lightmap? floorLightmap,
   ) async {
     // Built once and shared by every wall. Each surface having its own copy
     // would multiply an identical megabyte of noise by the number of walls.
@@ -490,6 +498,13 @@ class GalleryScene {
       }
 
       final material = _surfaceOf(piece, normalTexture, roughTexture, surfaces);
+      if (piece.kind == SurfaceKind.floor && floorLightmap != null) {
+        material
+          ..lightmapTexture = floorLightmap.texture
+          ..lightmapTextureTransform = floorLightmap.transform
+          ..lightmapTextureTexCoord = 0
+          ..lightmapRgbm = true;
+      }
 
       final geometry = switch (piece.kind) {
         // The floor alone is a plane. A plane's normals point straight up,
@@ -506,6 +521,83 @@ class GalleryScene {
         Node(mesh: Mesh(geometry, material), localTransform: transform),
       );
     }
+  }
+
+  /// The floor's lamp pools, baked from the lamps [_light] would hang.
+  ///
+  /// The same [GalleryLighting] list, converted to engine space the same
+  /// way, through LightmapBake's copy of the renderer's own arithmetic. The
+  /// texture covers only the region the lamps reach (clamped at its edges to
+  /// the ambient), mapped onto the floor plane's 0..1 UVs by a transform.
+  static _Lightmap _bakeFloor(GalleryShape shape) {
+    final lamps = <BakeLamp>[
+      for (final light in GalleryLighting.build(shape: shape))
+        BakeLamp(
+          position: SceneAxes.position(light.position),
+          radiance:
+              Vector3(light.colour.r, light.colour.g, light.colour.b) *
+              light.intensity,
+          range: light.range,
+          direction: light.direction == null
+              ? null
+              : SceneAxes.position(light.direction!),
+          innerCone: light.innerCone,
+          outerCone: light.outerCone,
+        ),
+    ];
+    final floor = GalleryLayout.build(
+      shape: shape,
+    ).firstWhere((p) => p.kind == SurfaceKind.floor);
+    final centre = SceneAxes.position(floor.position);
+    final w = floor.extents.x, d = floor.extents.z;
+
+    var x0 = double.infinity, x1 = -double.infinity;
+    var z0 = double.infinity, z1 = -double.infinity;
+    for (final lamp in lamps) {
+      x0 = math.min(x0, lamp.position.x - lamp.range);
+      x1 = math.max(x1, lamp.position.x + lamp.range);
+      z0 = math.min(z0, lamp.position.z - lamp.range);
+      z1 = math.max(z1, lamp.position.z + lamp.range);
+    }
+    x0 = math.max(x0, centre.x - w / 2);
+    x1 = math.min(x1, centre.x + w / 2);
+    z0 = math.max(z0, centre.z - d / 2);
+    z1 = math.min(z1, centre.z + d / 2);
+
+    const texelsPerUnit = 8;
+    final width = ((x1 - x0) * texelsPerUnit).ceil().clamp(1, 1024);
+    final height = ((z1 - z0) * texelsPerUnit).ceil().clamp(1, 1024);
+    final rgb = LightmapBake.level(
+      lamps: lamps,
+      ambient: GalleryLighting.ambient,
+      x0: x0,
+      z0: z0,
+      x1: x1,
+      z1: z1,
+      y: centre.y,
+      width: width,
+      height: height,
+    );
+    final texture = Texture2D.fromPixels(
+      LightmapBake.rgbm(rgb),
+      width,
+      height,
+      content: TextureContent.data,
+      sampling: const TextureSampling(
+        addressMode: gpu.SamplerAddressMode.clampToEdge,
+      ),
+    );
+
+    // The plane's u runs 0..1 over x from centre - w/2, v over z likewise.
+    final u0 = (x0 - (centre.x - w / 2)) / w,
+        u1 = (x1 - (centre.x - w / 2)) / w;
+    final v0 = (z0 - (centre.z - d / 2)) / d,
+        v1 = (z1 - (centre.z - d / 2)) / d;
+    final transform = TextureTransform(
+      scale: Vector2(1 / (u1 - u0), 1 / (v1 - v0)),
+      offset: Vector2(-u0 / (u1 - u0), -v0 / (v1 - v0)),
+    );
+    return _Lightmap(texture, transform);
   }
 
   /// Hangs the lights described by [GalleryLighting].
@@ -872,4 +964,11 @@ class GalleryScene {
     testimonials.images.clear();
     testimonials.textures.clear();
   }
+}
+
+/// A baked lightmap and the transform that lays it onto its surface.
+class _Lightmap {
+  const _Lightmap(this.texture, this.transform);
+  final Texture2D texture;
+  final TextureTransform transform;
 }
