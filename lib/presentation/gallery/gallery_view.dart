@@ -358,6 +358,33 @@ class _GalleryViewState extends State<GalleryView> {
   ///
   /// Ignores a second request: the visitor pressing the sign twice while the
   /// room is going dark should not restart the fade or queue two events.
+  /// The radio's play or stop: from the wall's button.
+  void _toggleRadio() {
+    _sound(AudioCue.click);
+    final radio = locate<RadioPlayer>();
+
+    // Not awaited, and said so. Opening a stream takes seconds; a tap
+    // handler that waited on it would hold the corridor still while the
+    // radio dialled out.
+    unawaited(
+      radio.state.isPlaying || radio.state.isTuning
+          ? radio.stop()
+          : radio.play(),
+    );
+  }
+
+  /// The radio's next station: from the wall's button.
+  void _nextStation() {
+    _sound(AudioCue.click);
+    unawaited(locate<RadioPlayer>().next());
+  }
+
+  /// The way out: from the BACK sign.
+  void _exitGallery() {
+    _sound(AudioCue.pageTurn);
+    _leave(const SceneEvent.galleryExited());
+  }
+
   void _leave(SceneEvent event) {
     if (_leavingFor != null) return;
     setState(() => _leavingFor = event);
@@ -491,29 +518,17 @@ class _GalleryViewState extends State<GalleryView> {
     }
 
     if (hit?.kind == SurfaceKind.radioPlay) {
-      _sound(AudioCue.click);
-      final radio = locate<RadioPlayer>();
-
-      // Not awaited, and said so. Opening a stream takes seconds; a tap
-      // handler that waited on it would hold the corridor still while the
-      // radio dialled out.
-      unawaited(
-        radio.state.isPlaying || radio.state.isTuning
-            ? radio.stop()
-            : radio.play(),
-      );
+      _toggleRadio();
       return;
     }
 
     if (hit?.kind == SurfaceKind.radioNext) {
-      _sound(AudioCue.click);
-      unawaited(locate<RadioPlayer>().next());
+      _nextStation();
       return;
     }
 
     if (hit?.kind == SurfaceKind.exitSign) {
-      _sound(AudioCue.pageTurn);
-      _leave(const SceneEvent.galleryExited());
+      _exitGallery();
       return;
     }
 
