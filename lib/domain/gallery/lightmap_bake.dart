@@ -60,28 +60,25 @@ abstract final class LightmapBake {
     required double y,
     required int width,
     required int height,
-  }) {
-    final out = Float32List(width * height * 3);
-    final p = Vector3.zero();
-    for (var j = 0; j < height; j++) {
-      final z = z0 + (j + 0.5) / height * (z1 - z0);
-      for (var i = 0; i < width; i++) {
-        final x = x0 + (i + 0.5) / width * (x1 - x0);
-        p.setValues(x, y, z);
-        final e = radianceAt(lamps, p, Vector3(0, 1, 0))..add(ambient);
-        final k = (j * width + i) * 3;
-        out[k] = e.x;
-        out[k + 1] = e.y;
-        out[k + 2] = e.z;
-      }
-    }
-    return out;
-  }
+  }) => face(
+    lamps: lamps,
+    ambient: ambient,
+    origin: Vector3(x0, y, z0),
+    uAxis: Vector3(x1 - x0, 0, 0),
+    vAxis: Vector3(0, 0, z1 - z0),
+    normal: Vector3(0, 1, 0),
+    width: width,
+    height: height,
+  );
 
   /// Radiance over a rectangular face: the texel at (u, v) sits at
   /// `origin + uAxis * u + vAxis * v`, facing [normal]; [width] by [height]
   /// texels, rows along v, three floats a texel. For a wall, a ceiling, any
   /// flat side of a box.
+  ///
+  /// A scalar loop over lamps packed once, with nothing allocated per texel
+  /// and lamps out of range rejected first: the vector version cost about
+  /// 12 s of loading on the ROG Phone II.
   static Float32List face({
     required List<BakeLamp> lamps,
     required Vector3 ambient,
@@ -92,17 +89,25 @@ abstract final class LightmapBake {
     required int width,
     required int height,
   }) {
+    final packed = _pack(lamps);
+    final n = normal.normalized();
+    final acc = Float64List(3);
     final out = Float32List(width * height * 3);
     for (var j = 0; j < height; j++) {
       final v = (j + 0.5) / height;
       for (var i = 0; i < width; i++) {
         final u = (i + 0.5) / width;
-        final p = origin + uAxis * u + vAxis * v;
-        final e = radianceAt(lamps, p, normal)..add(ambient);
+        final x = origin.x + uAxis.x * u + vAxis.x * v;
+        final y = origin.y + uAxis.y * u + vAxis.y * v;
+        final z = origin.z + uAxis.z * u + vAxis.z * v;
+        acc[0] = ambient.x;
+        acc[1] = ambient.y;
+        acc[2] = ambient.z;
+        _accumulate(packed, lamps.length, x, y, z, n.x, n.y, n.z, acc);
         final k = (j * width + i) * 3;
-        out[k] = e.x;
-        out[k + 1] = e.y;
-        out[k + 2] = e.z;
+        out[k] = acc[0];
+        out[k + 1] = acc[1];
+        out[k + 2] = acc[2];
       }
     }
     return out;
@@ -115,35 +120,96 @@ abstract final class LightmapBake {
     Vector3 point,
     Vector3 normal,
   ) {
-    final sum = Vector3.zero();
-    for (final lamp in lamps) {
-      final toLight = lamp.position - point;
-      final d2 = toLight.length2;
-      if (d2 <= 1e-8) continue;
-      final l = toLight / math.sqrt(d2);
-      final nl = normal.dot(l);
-      if (nl <= 0) continue;
+    final acc = Float64List(3);
+    final n = normal.normalized();
+    _accumulate(
+      _pack(lamps),
+      lamps.length,
+      point.x,
+      point.y,
+      point.z,
+      n.x,
+      n.y,
+      n.z,
+      acc,
+    );
+    return Vector3(acc[0], acc[1], acc[2]);
+  }
 
-      final inv = lamp.range > 0 ? 1 / lamp.range : 0.0;
-      final factor = d2 * inv * inv;
-      final window = (1 - factor * factor).clamp(0.0, 1.0);
-      var scale =
-          window *
-          window /
-          math.max(math.pow(d2, lamp.falloffExponent / 2).toDouble(), 1e-4);
+  /// Floats per packed lamp: position, radiance, inverse range, normalised
+  /// direction, cone scale and offset, spot flag, half the falloff exponent.
+  static const int _stride = 14;
 
+  static Float64List _pack(List<BakeLamp> lamps) {
+    final out = Float64List(lamps.length * _stride);
+    for (var i = 0; i < lamps.length; i++) {
+      final lamp = lamps[i];
+      final b = i * _stride;
+      out[b] = lamp.position.x;
+      out[b + 1] = lamp.position.y;
+      out[b + 2] = lamp.position.z;
+      out[b + 3] = lamp.radiance.x;
+      out[b + 4] = lamp.radiance.y;
+      out[b + 5] = lamp.radiance.z;
+      out[b + 6] = lamp.range > 0 ? 1 / lamp.range : 0;
       final dir = lamp.direction;
       if (dir != null) {
+        final d = dir.normalized();
         final cosInner = math.cos(lamp.innerCone);
         final cosOuter = math.cos(lamp.outerCone);
-        final s = 1 / math.max(cosInner - cosOuter, 1e-4);
-        final cd = dir.normalized().dot(-l);
-        final cone = (cd * s - cosOuter * s).clamp(0.0, 1.0);
+        final scale = 1 / math.max(cosInner - cosOuter, 1e-4);
+        out[b + 7] = d.x;
+        out[b + 8] = d.y;
+        out[b + 9] = d.z;
+        out[b + 10] = scale;
+        out[b + 11] = -cosOuter * scale;
+        out[b + 12] = 1;
+      }
+      out[b + 13] = lamp.falloffExponent / 2;
+    }
+    return out;
+  }
+
+  /// Adds every lamp's term at (x, y, z) facing (nx, ny, nz) into [acc]:
+  /// flutter_scene's windowed falloff, squared cone ramp and n.l / pi.
+  static void _accumulate(
+    Float64List lamps,
+    int count,
+    double x,
+    double y,
+    double z,
+    double nx,
+    double ny,
+    double nz,
+    Float64List acc,
+  ) {
+    for (var i = 0; i < count; i++) {
+      final b = i * _stride;
+      final tx = lamps[b] - x, ty = lamps[b + 1] - y, tz = lamps[b + 2] - z;
+      final d2 = tx * tx + ty * ty + tz * tz;
+      if (d2 <= 1e-8) continue;
+      final inv = lamps[b + 6];
+      final factor = d2 * inv * inv;
+      if (inv > 0 && factor >= 1) continue;
+      final dist = math.sqrt(d2);
+      final lx = tx / dist, ly = ty / dist, lz = tz / dist;
+      final nl = nx * lx + ny * ly + nz * lz;
+      if (nl <= 0) continue;
+      final window = inv > 0 ? 1 - factor * factor : 1.0;
+      final half = lamps[b + 13];
+      final falloff = half == 1 ? d2 : math.pow(d2, half).toDouble();
+      var scale = window * window / math.max(falloff, 1e-4);
+      if (lamps[b + 12] > 0.5) {
+        final cd = -(lamps[b + 7] * lx + lamps[b + 8] * ly + lamps[b + 9] * lz);
+        final cone = (cd * lamps[b + 10] + lamps[b + 11]).clamp(0.0, 1.0);
+        if (cone <= 0) continue;
         scale *= cone * cone;
       }
-      sum.add(lamp.radiance * (scale * nl / math.pi));
+      final w = scale * nl / math.pi;
+      acc[0] += lamps[b + 3] * w;
+      acc[1] += lamps[b + 4] * w;
+      acc[2] += lamps[b + 5] * w;
     }
-    return sum;
   }
 
   /// RGBM-packs linear [rgb] radiance (three floats a texel) into RGBA bytes,

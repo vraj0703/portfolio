@@ -548,7 +548,7 @@ class GalleryScene {
   ];
 
   /// Texels a world unit, and the most along either side of a map.
-  static const int _texelsPerUnit = 8;
+  static const int _texelsPerUnit = 4;
   static const int _maxTexels = 1024;
 
   /// The floor's top, or the ceiling's underside: a level surface far larger
