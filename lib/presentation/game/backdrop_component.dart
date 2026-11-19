@@ -5,6 +5,7 @@ import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/domain/config/backdrop_detail.dart';
+import 'package:portfolio/domain/config/title_contrast.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -138,10 +139,24 @@ class BackdropComponent extends PositionComponent
     shader
       ..setFloat(0, size.x)
       ..setFloat(1, size.y)
-      ..setFloat(2, _elapsed)
+      ..setFloat(2, TitleContrastConfig.pinnedTime ?? _elapsed)
       ..setFloat(3, detail.steps.toDouble())
       ..setFloat(4, detail.octaves.toDouble())
-      ..setFloat(5, detail.stepScale);
+      ..setFloat(5, detail.stepScale)
+      // The dimming behind the name (TitleContrastConfig). Centred where the
+      // name sits: the screen's middle, or higher for (C).
+      ..setFloat(6, TitleContrastConfig.dimFor(TitleContrastConfig.current))
+      ..setFloat(7, TitleContrastConfig.riseFor(TitleContrastConfig.current))
+      ..setFloat(
+        8,
+        TitleContrastConfig.halfWidthFor(TitleContrastConfig.current, size.y),
+      )
+      ..setFloat(
+        9,
+        TitleContrastConfig.halfHeightFor(TitleContrastConfig.current),
+      )
+      ..setFloat(10, TitleContrastConfig.warmFor(TitleContrastConfig.current))
+      ..setFloat(11, TitleContrastConfig.shapeFor(TitleContrastConfig.current));
 
     _paint.shader = shader;
     final rect = size.toRect();
