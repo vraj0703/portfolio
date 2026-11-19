@@ -12,7 +12,6 @@ import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 import 'package:portfolio/presentation/menu/drawer_nav_bar.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
@@ -32,25 +31,26 @@ void main() {
       expect(const SceneState.loading().navCurrent, isNull);
     });
 
-    test('routes go through today\'s events; from the gallery, its exit', () {
-      final home = DrawerNavBar.routeTo(
-        NavDestination.home,
-        const SceneState.gallery(),
+    test("routes are today's events; from the gallery, its one way out", () {
+      expect(
+        DrawerNavBar.routeTo(NavDestination.home, const SceneState.gallery()),
+        const SceneEvent.galleryExitRequested(to: GalleryExit.title),
       );
-      expect(home.event, const SceneEvent.galleryExited());
-      expect(home.viaGalleryExit, isTrue);
-      final contact = DrawerNavBar.routeTo(
-        NavDestination.contact,
-        const SceneState.gallery(),
+      expect(
+        DrawerNavBar.routeTo(
+          NavDestination.contact,
+          const SceneState.gallery(),
+        ),
+        const SceneEvent.galleryExitRequested(to: GalleryExit.contact),
       );
-      expect(contact.event, const SceneEvent.contactRequested());
-      expect(contact.viaGalleryExit, isTrue);
-      final gallery = DrawerNavBar.routeTo(
-        NavDestination.gallery,
-        const SceneState.title(),
+      expect(
+        DrawerNavBar.routeTo(NavDestination.gallery, const SceneState.title()),
+        const SceneEvent.galleryRequested(),
       );
-      expect(gallery.event, const SceneEvent.galleryRequested());
-      expect(gallery.viaGalleryExit, isFalse);
+      expect(
+        DrawerNavBar.routeTo(NavDestination.home, const SceneState.active()),
+        const SceneEvent.homeRequested(),
+      );
     });
 
     test(
@@ -176,18 +176,13 @@ void main() {
       expect(scene!.state, isA<Contact>());
     });
 
-    testWidgets('home from the gallery asks the gallery to leave', (
+    testWidgets('home from the gallery: the gallery leaves, for the title', (
       tester,
     ) async {
-      final asked = <SceneEvent?>[];
-      void listen() => asked.add(GalleryExitRequests.instance.take());
-      GalleryExitRequests.instance.addListener(listen);
-      addTearDown(() => GalleryExitRequests.instance.removeListener(listen));
-
       await openIn(tester, const SceneState.gallery());
       await tester.tap(dest(NavDestination.home));
       await tester.pumpAndSettle();
-      expect(asked, <SceneEvent?>[const SceneEvent.galleryExited()]);
+      expect(scene!.state.galleryLeavingFor, GalleryExit.title);
       expect(drawer!.state, isFalse);
       await tester.pump(const Duration(seconds: 5));
     });

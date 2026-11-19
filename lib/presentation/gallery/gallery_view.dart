@@ -40,7 +40,6 @@ import 'package:portfolio/presentation/gallery/frame_picker.dart';
 import 'package:portfolio/presentation/gallery/gallery_mark.dart';
 import 'package:portfolio/presentation/gallery/gallery_overlay.dart';
 import 'package:portfolio/presentation/gallery/gallery_scene_builder.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 import 'package:portfolio/presentation/gallery/scene_axes.dart';
 import 'package:portfolio/presentation/gallery/testimonial_card.dart';
 import 'package:portfolio/presentation/gallery/scroll_gate.dart';
@@ -163,7 +162,8 @@ class _GalleryViewState extends State<GalleryView> {
   /// instead of a cut — and holding the event until the black is down is
   /// what stops the scene changing underneath a room the visitor can still
   /// see.
-  SceneEvent? _leavingFor;
+  /// Whether the arrival event has gone out for this leaving: once.
+  bool _arrivalRaised = false;
 
   /// The order the visitor steps through the work in — by depth down the
   /// corridor, both walls interleaved. See [FocusOrder].
@@ -291,8 +291,6 @@ class _GalleryViewState extends State<GalleryView> {
   @override
   void initState() {
     super.initState();
-    // The drawer's way out takes the same fade as the BACK sign.
-    GalleryExitRequests.instance.addListener(_onExitRequest);
 
     // Taken synchronously when the loading screen already built it, which is
     // the normal case. Awaiting even a completed future costs a frame, and
@@ -445,24 +443,18 @@ class _GalleryViewState extends State<GalleryView> {
     );
   }
 
-  /// The drawer's bar asking to leave (home or contact), through the same
-  /// lights-down as the BACK sign.
-  void _onExitRequest() {
-    final event = GalleryExitRequests.instance.take();
-    if (event == null) return;
-    _sound(AudioCue.pageTurn);
-    _leave(event);
-  }
+  /// The way out: the BACK sign. One path out for every control: a request
+  /// to the bloc, which marks the gallery as leaving; the lights-down runs
+  /// from that ([_advanceLeaving]).
+  void _exitGallery() => _requestExit(GalleryExit.title);
 
-  /// The way out: from the BACK sign.
-  void _exitGallery() {
+  void _requestExit(GalleryExit to) {
+    // Once: a second press while the lights go down is the same press.
+    if (context.read<SceneBloc>().state.galleryLeavingFor != null) return;
     _sound(AudioCue.pageTurn);
-    _leave(const SceneEvent.galleryExited());
-  }
-
-  void _leave(SceneEvent event) {
-    if (_leavingFor != null) return;
-    setState(() => _leavingFor = event);
+    context.read<SceneBloc>().queue(
+      event: SceneEvent.galleryExitRequested(to: to),
+    );
   }
 
   /// Opens the recommendation form.
@@ -608,8 +600,7 @@ class _GalleryViewState extends State<GalleryView> {
     }
 
     if (hit?.kind == SurfaceKind.connectSign) {
-      _sound(AudioCue.pageTurn);
-      _leave(const SceneEvent.contactRequested());
+      _requestExit(GalleryExit.contact);
       return;
     }
 
@@ -753,13 +744,12 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// Runs the lights down and raises the held event when they are out.
   void _advanceLeaving(double dt) {
-    final event = _leavingFor;
-    if (event == null || _leaving.value >= 1) return;
+    // The scene says whether the gallery is leaving, and for where.
+    final to = context.read<SceneBloc>().state.galleryLeavingFor;
+    if (to == null || _arrivalRaised) return;
 
-    final journeying = event is ContactRequested;
-    final duration = journeying
-        ? GalleryView.leavingWithMark
-        : GalleryView.leaving;
+    final journeying = to == GalleryExit.contact;
+    final duration = GalleryLeaving.durationFor(to);
 
     final step = dt / (duration.inMilliseconds / 1000);
     final next = (_leaving.value + step).clamp(0.0, 1.0);
@@ -775,7 +765,10 @@ class _GalleryViewState extends State<GalleryView> {
 
     // Raised from the render loop, so it cannot go out during a build.
     // `queue` is the bloc's own inbox and defers to the next turn.
-    if (mounted) context.read<SceneBloc>().queue(event: event);
+    _arrivalRaised = true;
+    if (mounted) {
+      context.read<SceneBloc>().queue(event: GalleryLeaving.arrivalFor(to));
+    }
   }
 
   /// Keeps every radio face in step with the radio.
@@ -815,7 +808,6 @@ class _GalleryViewState extends State<GalleryView> {
     _radio?.cancel();
     _leaving.dispose();
     _stick.dispose();
-    GalleryExitRequests.instance.removeListener(_onExitRequest);
     _markJourney.dispose();
     // The scene is deliberately *not* disposed here. It is memoised so it is
     // built once, and this widget is only the window onto it — tearing it
@@ -1521,4 +1513,18 @@ class _StickPainter extends CustomPainter {
   @override
   bool shouldRepaint(_StickPainter old) =>
       old.origin != origin || old.knob != knob || old.ink != ink;
+}
+
+/// The gallery's way out, as rules: how long the lights take to go down for
+/// each destination, and the event that arrives there when they have.
+abstract final class GalleryLeaving {
+  static Duration durationFor(GalleryExit to) => switch (to) {
+    GalleryExit.title => GalleryView.leaving,
+    GalleryExit.contact => GalleryView.leavingWithMark,
+  };
+
+  static SceneEvent arrivalFor(GalleryExit to) => switch (to) {
+    GalleryExit.title => const SceneEvent.galleryExited(),
+    GalleryExit.contact => const SceneEvent.contactRequested(),
+  };
 }
