@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/presentation/widgets/close_icon.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -179,7 +180,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(drawer!.state, isTrue);
-    expect(find.text(strings.menuClose), findsOneWidget);
+    expect(find.byType(CloseIcon), findsOneWidget);
     expect(audio.played, contains(AudioCue.next));
   });
 

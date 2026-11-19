@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/presentation/widgets/close_icon.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -203,7 +204,7 @@ void main() {
     expect(title, findsOneWidget);
     expect(find.text(strings.creditsSubtitle), findsOneWidget);
 
-    await tester.tap(find.text(strings.creditsClose));
+    await tester.tap(find.byType(CloseIcon));
     await tester.pumpAndSettle();
     expect(find.byType(CreditsDialog), findsNothing);
   });

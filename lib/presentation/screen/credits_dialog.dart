@@ -1,3 +1,4 @@
+import 'package:portfolio/presentation/widgets/close_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -82,18 +83,13 @@ class CreditsDialog extends StatelessWidget {
                   // out that sits below them is a way out that scrolls off
                   // the bottom of a phone the first time the list is long
                   // enough to need scrolling.
-                  TextButton(
+                  CloseIcon(
+                    ink: colors.creditsAction,
                     onPressed: () {
                       // Answers the step the heart took to open this.
                       context.audio.play(AudioCue.previous);
                       Navigator.of(context).pop();
                     },
-                    child: Text(
-                      strings.creditsClose,
-                      style: type.creditsAction.copyWith(
-                        color: colors.creditsAction,
-                      ),
-                    ),
                   ),
                 ],
               ),
@@ -135,9 +131,7 @@ class _CreditGroupBlock extends StatelessWidget {
         children: <Widget>[
           Text(
             group.heading.toUpperCase(),
-            style: type.creditsHeading.copyWith(
-              color: colors.creditsHeading,
-            ),
+            style: type.creditsHeading.copyWith(color: colors.creditsHeading),
           ),
           const SizedBox(height: 8),
           for (final item in group.items)
