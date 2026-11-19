@@ -6,7 +6,6 @@ import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
-import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
@@ -43,7 +42,6 @@ class Sent implements Analytics {
 }
 
 void main() {
-  const strings = DefaultAppStrings();
   late Sent sent;
   late RecordingRadio radio;
   SceneBloc? scene;
@@ -106,7 +104,7 @@ void main() {
     await tester.tap(find.byType(MenuButton));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text(strings.drawerRadioPlay));
+    await tester.tap(find.text('PLAY'));
     await tester.pumpAndSettle();
     expect(sent.last('radio_toggled'), <String, Object?>{
       ...sent.last('radio_toggled'),
@@ -114,7 +112,7 @@ void main() {
       'surface': 'drawer',
     });
 
-    await tester.tap(find.text(strings.drawerRadioNext));
+    await tester.tap(find.text('NEXT'));
     await tester.pumpAndSettle();
     final changed = sent.last('radio_station_changed');
     expect(changed['surface'], 'drawer');

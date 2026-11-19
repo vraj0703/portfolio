@@ -1,6 +1,7 @@
+import 'dart:ui' as ui;
+
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
@@ -48,7 +49,10 @@ class WallRadios {
   /// radio without changing its picture, so keying on them would rebake a
   /// face already on the wall — and the whole point of the cache is that the
   /// expensive thing happens once.
-  @visibleForTesting
+  /// The baked faces as images, by [faceKey], for the drawer's radio: the
+  /// same face as the wall's, never rendered on the drawer's opening.
+  static final Map<String, ui.Image> faceImages = <String, ui.Image>{};
+
   static String faceKey(RadioState state) =>
       '${state.status.name}:${state.station}';
 
@@ -57,9 +61,9 @@ class WallRadios {
     required AppTypography type,
     GalleryShape shape = GalleryShape.desktop,
   }) async {
-    final panels = GalleryLayout.build(shape: shape)
-        .where((piece) => piece.kind == SurfaceKind.radio)
-        .toList();
+    final panels = GalleryLayout.build(
+      shape: shape,
+    ).where((piece) => piece.kind == SurfaceKind.radio).toList();
 
     final faces = <String, TextureSource>{};
 
@@ -90,10 +94,22 @@ class WallRadios {
   /// The image is released as soon as it is uploaded: `GpuUpload.image`
   /// reads its bytes and keeps its own copy, so holding the original past
   /// this point is a megabyte of nothing.
-  static Future<TextureSource> _bake(RadioState state, AppTypography type) async {
-    final image = await BuildTiming.span(BuildPhase.bake, () => RadioFace.render(state: state, type: type));
-    final texture = await BuildTiming.upload('wall_radio.image', image, () => GpuUpload.image(image));
-    image.dispose();
+  static Future<TextureSource> _bake(
+    RadioState state,
+    AppTypography type,
+  ) async {
+    final image = await BuildTiming.span(
+      BuildPhase.bake,
+      () => RadioFace.render(state: state, type: type),
+    );
+    final texture = await BuildTiming.upload(
+      'wall_radio.image',
+      image,
+      () => GpuUpload.image(image),
+    );
+    // Kept, not freed (PORTFOLIO-25): the drawer's radio shows the same
+    // face, and must not render one when it opens.
+    faceImages[faceKey(state)] = image;
     return texture;
   }
 
@@ -111,10 +127,7 @@ class WallRadios {
   /// appearance.
   Future<void> _lettering = Future<void>.value();
 
-  Future<void> show({
-    required RadioState state,
-    required AppTypography type,
-  }) {
+  Future<void> show({required RadioState state, required AppTypography type}) {
     _lettering = _lettering.then((_) => _wearFace(state, type));
     return _lettering;
   }
