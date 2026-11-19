@@ -18,6 +18,47 @@ it; it gives you the trace that tells you whether you need it.
 Everything below was run on the pc seat (Windows 11, Chrome 157, Flutter at this repo's
 version) on 2026-11-16. Steps marked **not verified** were not run here.
 
+## 0. The journey must pass before any PR is reported
+
+```bash
+flutter build web --release -o build/web-journey
+python -m http.server PORT --directory build/web-journey
+python tool/check_journey.py --url http://127.0.0.1:PORT/ --profile both
+```
+
+`JOURNEY PASS` on **both** profiles is required before a PR is reported as ready; paste the two
+JSON lines (each step's seconds) into the report. A real phone can stand in for the phone
+profile: `--remote 9222` with a tab of ours open (see section 7).
+
+What it walks, on a desktop profile (1280x800, mouse and wheel) and a phone profile (412x915
+at DPR 2.625, touch): load, tap the logo, title -> bold text -> gallery (wheel on desktop,
+swipes on the phone), the walk to the back wall (stick on the phone, wheel on desktop), the
+testimonial wall, the drawer. It fails on a hang (a step not done within its limit, or the
+screen frozen while input is going in) and on any console error or uncaught exception, and
+saves the screen at the failure (`hang_screen` in the JSON).
+
+How it knows where the visitor is: the app marks each scene it enters on the page's
+performance timeline (`scene:/#/gallery`, `scene:/#/testimonials`, from `SiteTelemetry`),
+and the check waits on those marks rather than guessing from pixels. Pixels decide only two
+things: that a testimonial card is in front, and (on the phone) that the drawer's panel is up.
+
+Things it learned the hard way (2026-11-18), so a failure is read right:
+
+- **The gallery's wheel is inverted on purpose** (`GalleryInput.wheelDirection = -1`): onward
+  is a negative delta there. A page-direction wheel walks backward and parks at the entrance.
+- **A held stick does not stop for a fresh push** at the back wall (by design), and the hall's
+  board turns on its own, so "the screen has settled" is not a usable signal for "arrived".
+- **Flutter's semantics** puts a button's label in its text, not `aria-label`; on desktop a
+  JS click on `flt-semantics-placeholder` switches it on, on the phone profile nothing tried
+  did, so the phone taps the menu by its layout (`TitleChrome`) instead.
+- **Touch from CDP or adb can reach Flutter with an unknown pointer kind.** Code that asks
+  "is this touch?" breaks under the check while a real finger works; ask "is this a mouse?".
+
+Why it exists: PR 19's wheel strokes passed every unit test and hung the title on desktop.
+Only a journey driven by both kinds of input catches that class of fault. It is not wired into
+CI: it needs real Chrome with a GPU (not headless, see section 2), which the CI runners do not
+have; that was not tried, only reasoned from this skill's own finding about headless.
+
 ## 1. Build so the trace is readable
 
 ```bash

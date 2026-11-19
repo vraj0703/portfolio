@@ -39,9 +39,7 @@ class WalkOrder {
       .toList();
 
   static List<Placement> _sorted(List<Placement> pieces) {
-    final frames = pieces
-        .where((p) => p.kind == SurfaceKind.frame)
-        .toList();
+    final frames = pieces.where((p) => p.kind == SurfaceKind.frame).toList();
 
     // Descending z: the corridor runs toward negative z, so the piece
     // nearest the entrance has the *largest* z and is met first.
@@ -86,4 +84,18 @@ class WalkOrder {
     return i >= 0 && i < wall.length - 1 ? wall[i + 1] : null;
   }
 
+  /// The frame on the [right] (or left) wall nearest to depth [z], for a
+  /// sideways swipe in the corridor ([SwipeIntent]). Null if that wall has
+  /// none.
+  Placement? nearestOn({required bool right, required double z}) {
+    Placement? best;
+    for (final frame in _frames) {
+      if (frame.position.x.isNegative == right) continue;
+      if (best == null ||
+          (frame.position.z - z).abs() < (best.position.z - z).abs()) {
+        best = frame;
+      }
+    }
+    return best;
+  }
 }

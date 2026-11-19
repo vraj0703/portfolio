@@ -49,9 +49,13 @@ sealed class SceneState with _$SceneState {
   }) = Active;
 
   /// The gallery: the corridor of work the bold text hands over to.
+  ///
+  /// [leavingFor] is set while the visitor is on their way out: the gallery
+  /// runs its lights-down, then raises the event that arrives there.
   const factory SceneState.gallery({
     @Default(ButtonFlags()) ButtonFlags flags,
     @Default(false) bool muted,
+    GalleryExit? leavingFor,
   }) = Gallery;
 
   /// The contact screen.
@@ -107,7 +111,10 @@ sealed class SceneState with _$SceneState {
   /// A rule on the state rather than a check at the widget, like the two
   /// below it: `Title` is also a Flutter widget, and a view that tests for
   /// it directly has to fight its own imports to say so.
-  bool get showsMenu => this is Title || this is Active;
+  ///
+  /// And in the gallery (Vishal, 2026-11-18): the same three icons in the
+  /// same corner, the drawer holding the radio and the way out.
+  bool get showsMenu => this is Title || this is Active || this is Gallery;
 
   /// The title's Connect and Menu buttons: on the stages that show the
   /// menu, and only while their feature flag (carried by every state, see
@@ -127,4 +134,26 @@ sealed class SceneState with _$SceneState {
   /// radio off leaves a stream playing under a title screen, and nothing
   /// about that looks wrong in the code that added the stage.
   bool get playsRadio => this is Gallery;
+
+  /// Where the visitor is leaving the gallery for, while the lights go down
+  /// (null when they are not leaving, or not in the gallery). The gallery
+  /// view reads it and runs its fade; the bloc is the only one who sets it.
+  GalleryExit? get galleryLeavingFor => switch (this) {
+    Gallery(:final leavingFor) => leavingFor,
+    _ => null,
+  };
+
+  /// Whether the screen's chrome (the title's icons) sits on a light scene
+  /// and wants the dark ink: the gallery's ceiling, not the title's dusk.
+  bool get chromeOnLight => this is Gallery;
+
+  /// Whether a swipe on the title moves it by strokes (one swipe, one timed
+  /// move between pauses) rather than by distance. Touch only (the wheel
+  /// always scrolls), behind the same flag as the gallery's thumb stick, so
+  /// turning the touch controls off restores the old drag everywhere.
+  bool get swipesByStroke => flags.walkStick;
 }
+
+/// Where a visitor leaving the gallery is going: the title (the BACK sign,
+/// the drawer) or the contact page (the wall's LET'S CONNECT).
+enum GalleryExit { title, contact }

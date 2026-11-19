@@ -152,6 +152,8 @@ class SiteTelemetry {
         : _region ?? SitePath.gallery;
     // The same scene again is no new view; the first one always is.
     if (path == events.scene && events.entered) return;
+    // Where the visitor is, on the page's timeline (tool/check_journey.py).
+    Browser.mark('scene:$path');
     final summary = _health.take();
     if (summary != null) events.sceneHealth(summary);
     if (events.enter(path)) _health.begin(path);

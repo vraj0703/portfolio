@@ -326,6 +326,11 @@ class _ActionIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    // The same icons in both scenes; the ink is the scene's to decide.
+    final onLight = context.select<SceneBloc, bool>(
+      (bloc) => bloc.state.chromeOnLight,
+    );
+    final ink = onLight ? colors.galleryChromeInk : tint;
 
     return Semantics(
       button: true,
@@ -349,7 +354,7 @@ class _ActionIcon extends StatelessWidget {
               // Drawn in its own black, like every other mark here, and
               // tinted on the way in — one file serves wherever it is used,
               // and the colour stays the theme's to decide.
-              colorFilter: ColorFilter.mode(tint, BlendMode.srcIn),
+              colorFilter: ColorFilter.mode(ink, BlendMode.srcIn),
             ),
           ),
         ),

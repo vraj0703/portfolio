@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/utils/scroll_motion.dart';
+import 'package:portfolio/domain/utils/strokes.dart';
 
 /// Owns a scroll position: the bold-text stage's, and the corridor's.
 ///
@@ -79,6 +80,18 @@ class ScrollDriver {
   /// True while a pause is claiming the scroll.
   bool get isSnapping => _snappingTo != null;
 
+  /// A move between pauses in progress ([advanceToNextPause],
+  /// [retreatToPreviousPause]): where it set off from and is going, and how
+  /// long it has been going. Timed and eased ([Strokes.eased]), so a stroke
+  /// is the same move however fast the frames come.
+  double? _moveFrom;
+  double _moveTo = 0;
+  double _moveElapsed = 0;
+  double _moveSeconds = Strokes.moveSeconds;
+
+  /// Whether a move between pauses is playing.
+  bool get isMoving => _moveFrom != null;
+
   /// Speed of the target, in units per second, smoothed.
   ///
   /// Read by the bold-text swell to decide how loud it is as well as by the
@@ -89,6 +102,8 @@ class ScrollDriver {
   /// Moves the target by [delta], interrupting any pause it is settling into.
   void scrollBy(double delta) {
     if (delta == 0) return;
+    // A deliberate scroll takes over from a move in progress.
+    _moveFrom = null;
 
     // A deliberate scroll always wins over a snap in progress; continuing to
     // pull toward a pause the user is actively scrolling away from feels like
@@ -117,8 +132,35 @@ class ScrollDriver {
           (best, point) => best == null ? point : math.min(best, point),
         );
 
-    _snappingTo = next ?? extent;
+    _moveTowards(next ?? extent);
+  }
+
+  /// Sends the scroll back to the previous pause, or to the start.
+  void retreatToPreviousPause() {
+    final previous = snapPoints
+        .where((point) => point < _target - 1)
+        .fold<double?>(
+          null,
+          (best, point) => best == null ? point : math.max(best, point),
+        );
+    _moveTowards(previous ?? 0);
+  }
+
+  /// A timed move to [point], as a stroke makes, over [seconds]: for a
+  /// caller that has its own steps (the testimonial wall's cards,
+  /// [WallSteps]) or its own settle (the stick's, [WalkControl.settleOn]).
+  void moveTo(double point, {double seconds = Strokes.moveSeconds}) =>
+      _moveTowards(point, seconds: seconds);
+
+  void _moveTowards(double to, {double seconds = Strokes.moveSeconds}) {
+    _moveSeconds = seconds;
+    _moveFrom = _target;
+    _moveTo = to.clamp(0.0, extent);
+    _moveElapsed = 0;
+    _snappingTo = null;
     _springVelocity = 0;
+    // Arriving on a pause is not a reason for it to take hold again.
+    _released = _moveTo;
   }
 
   /// Places the scroll without animating. Used on entry.
@@ -129,6 +171,7 @@ class ScrollDriver {
     _snappingTo = null;
     _previousTarget = 0;
     _released = null;
+    _moveFrom = null;
     _motion.reset();
   }
 
@@ -146,6 +189,25 @@ class ScrollDriver {
   void update(double dt, {bool tight = false}) {
     final step = dt.clamp(0.0, BoldTextConfig.maxStep);
     if (step <= 0) return;
+
+    // A move between pauses runs on the real clock (a slow frame does not
+    // stretch it; a hidden tab's long gap does not skip it), and the offset
+    // is the eased target: the easing is the motion, with nothing chasing it.
+    final from = _moveFrom;
+    if (from != null) {
+      _moveElapsed += dt.clamp(0.0, 0.1);
+      _target =
+          from +
+          (_moveTo - from) * Strokes.eased(_moveElapsed, seconds: _moveSeconds);
+      if (_moveElapsed >= _moveSeconds) {
+        _target = _moveTo;
+        _moveFrom = null;
+      }
+      _motion.sample(_target - _previousTarget, step);
+      _previousTarget = _target;
+      _offset = _target;
+      return;
+    }
 
     // Across the whole frame, the visitor's own scrolling included, and
     // sampled *before* the pause is offered the scroll rather than after.

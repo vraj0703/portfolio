@@ -21,13 +21,18 @@ class Recorder implements Analytics {
   List<String> get names => sent.map((e) => e.$1).toList();
 
   @override
-  void capture(String event, Map<String, Object?> properties,
-          {bool beforeUnload = false}) =>
-      sent.add((event, properties, beforeUnload));
+  void capture(
+    String event,
+    Map<String, Object?> properties, {
+    bool beforeUnload = false,
+  }) => sent.add((event, properties, beforeUnload));
 
   @override
-  void screen(String path, Map<String, Object?> properties) =>
-      sent.add((r'$pageview', <String, Object?>{...properties, 'path': path}, false));
+  void screen(String path, Map<String, Object?> properties) => sent.add((
+    r'$pageview',
+    <String, Object?>{...properties, 'path': path},
+    false,
+  ));
 
   @override
   bool flag(String key, {required bool orElse}) => flags[key] ?? orElse;
@@ -260,11 +265,15 @@ void main() {
 
     test('the widgets read a rule on the state, not the flag', () {
       const on = SceneState.title();
-      const off = SceneState.title(flags: ButtonFlags(connect: false, menu: false));
+      const off = SceneState.title(
+        flags: ButtonFlags(connect: false, menu: false),
+      );
       expect(on.showsConnect && on.showsMenuButton, isTrue);
       expect(off.showsConnect || off.showsMenuButton, isFalse);
       // Off-stage, neither shows whatever the flags say.
-      expect(const SceneState.gallery().showsConnect, isFalse);
+      expect(const SceneState.loading().showsConnect, isFalse);
+      // The gallery keeps the title's icons (Vishal, 2026-11-18).
+      expect(const SceneState.gallery().showsConnect, isTrue);
     });
   });
 

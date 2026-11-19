@@ -10,6 +10,11 @@ abstract final class Browser {
   /// Milliseconds since navigation started.
   static double now() => web.window.performance.now();
 
+  /// A named mark on the page's performance timeline: where the visitor is,
+  /// for the end-to-end journey check (tool/check_journey.py) and for a
+  /// trace. A few dozen bytes per scene; nothing reads it in production.
+  static void mark(String name) => web.window.performance.mark(name);
+
   static double? firstPaint() {
     final entries = web.window.performance.getEntriesByName(
       'first-contentful-paint',

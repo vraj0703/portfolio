@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_camera_path.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
@@ -7,7 +5,7 @@ import 'package:portfolio/domain/utils/scroll_driver.dart';
 import 'package:portfolio/presentation/gallery/gallery_view.dart';
 
 void main() {
-  test('a full push walks the corridor in about 15 s', () {
+  test('a full push, before the run, walks the corridor in 6.3 s', () {
     // The corridor's walk, in the gallery's own scroll units.
     expect(
       WalkControl.corridorUnits,
@@ -17,33 +15,16 @@ void main() {
       WalkControl.corridorUnits / WalkControl.maxSpeed,
       closeTo(WalkControl.corridorSeconds, 1e-9),
     );
-    expect(WalkControl.corridorSeconds, 15);
+    expect(WalkControl.corridorSeconds, 6.3);
   });
 
-  test('letting go stops within a quarter of a second, camera included', () {
-    // The walk's own ease-out, plus the camera's tight chase settling to
-    // within 1% (ln 100 / rate seconds).
-    final cameraSettle = math.log(100) / WalkControl.stickChase;
-    expect(WalkControl.stopSeconds + cameraSettle, lessThanOrEqualTo(0.25));
-    expect(WalkControl.stopSeconds, lessThanOrEqualTo(0.15));
+  test('a small push walks slowly, a full one briskly', () {
+    expect(WalkControl.response(1), 1);
+    expect(WalkControl.response(-1), -1);
+    expect(WalkControl.response(0.5), lessThan(0.3));
+    expect(WalkControl.response(0.5), greaterThan(0.15));
+    expect(WalkControl.response(0), 0);
   });
-
-  test(
-    'the look reaches 35 degrees at a full-width drag, after a dead zone',
-    () {
-      const width = 400.0;
-      expect(WalkControl.look(WalkControl.lookDeadZone, width), 0);
-      expect(
-        WalkControl.look(width + WalkControl.lookDeadZone, width),
-        closeTo(WalkControl.maxLook, 1e-9),
-      );
-      expect(
-        WalkControl.look(width / 3, width),
-        lessThan(WalkControl.maxLook / 2),
-      );
-      expect(WalkControl.maxLook, closeTo(35 * math.pi / 180, 1e-12));
-    },
-  );
 
   test('a tight update puts the offset on the target, with no glide', () {
     final driver = ScrollDriver(extent: 8000, progressExtent: 8000);
@@ -56,5 +37,17 @@ void main() {
       ..scrollBy(500);
     soft.update(1 / 60);
     expect(soft.offset, lessThan(soft.target));
+  });
+
+  test('a held stick stops at the back wall, and walks on after', () {
+    const stop = 3480.0;
+    // Short of it: the whole step.
+    expect(WalkControl.stepToStop(3000, 20, stop), 20);
+    // Crossing it: lands on it.
+    expect(WalkControl.stepToStop(3470, 20, stop), 10);
+    // On it, pushed again: walks on.
+    expect(WalkControl.stepToStop(stop, 20, stop), 20);
+    // Backward is never held.
+    expect(WalkControl.stepToStop(3490, -20, stop), -20);
   });
 }

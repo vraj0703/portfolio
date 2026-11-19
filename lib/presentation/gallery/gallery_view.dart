@@ -3,6 +3,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
+import 'package:portfolio/domain/gallery/swipe_map.dart';
+import 'package:portfolio/domain/gallery/wall_steps.dart';
 import 'package:portfolio/domain/gallery/walk_control.dart';
 import 'package:portfolio/domain/gallery/gallery_input.dart';
 import 'package:portfolio/domain/gallery/testimonial_data.dart';
@@ -11,6 +13,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_scene/scene.dart';
+import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -158,7 +161,8 @@ class _GalleryViewState extends State<GalleryView> {
   /// instead of a cut — and holding the event until the black is down is
   /// what stops the scene changing underneath a room the visitor can still
   /// see.
-  SceneEvent? _leavingFor;
+  /// Whether the arrival event has gone out for this leaving: once.
+  bool _arrivalRaised = false;
 
   /// The order the visitor steps through the work in — by depth down the
   /// corridor, both walls interleaved. See [FocusOrder].
@@ -209,24 +213,53 @@ class _GalleryViewState extends State<GalleryView> {
   /// head and eases back when let go.
   int? _stickPointer;
   Offset? _stickOrigin;
-  double _push = 0;
+
+  /// The testimonial wall's steps ([WallSteps]), and when a held stick may
+  /// take the next one (it rests on each card).
+  late final List<double> _wallSteps = WallSteps.points(
+    GalleryView.scrollExtent,
+  );
+
+  /// A per-frame probe of the walk, for measuring its feel on a phone: with
+  /// `?pc-probe=1` each frame marks the page's timeline with the scroll and
+  /// the eye, and the stick marks going down and up. Off otherwise.
+  static final bool _probe = Uri.base.queryParameters.containsKey('pc-probe');
+
+  /// How long the stick has been pushed near full (the run builds over it).
+  double _runHeld = 0;
+
+  /// Whether the camera is riding the path (the stick drives, no chase).
+  bool _riding = false;
+
+  /// Whether a stick let go on the wall is still to settle onto a card.
+  bool _settleDue = false;
+
+  /// Whether the stick may pick a frame by pushing sideways: once per push,
+  /// re-armed when it comes back toward the middle.
+  bool _sideArmed = true;
+
+  /// The stick's push, two axes ([WalkControl.stick]).
+  ({double x, double y}) _push = (x: 0, y: 0);
   double _walkSpeed = 0;
-  int? _lookPointer;
-  double _lookDx = 0;
-  double _yaw = 0;
+
+  /// A swipe above the stick ([SwipeMap]): the finger, where it set off,
+  /// what it turned out to mean, and the way of travel on screen when it
+  /// began. Replaces the look drag (Vishal, 2026-11-18).
+  int? _swipePointer;
+  Offset? _swipeFrom;
+  SwipeIntent _swipeIntent = SwipeIntent.none;
+  ScreenAxis _swipeAxis = (x: 0, y: 1);
 
   /// Where the stick is drawn: where the thumb landed, and the knob.
   final ValueNotifier<(Offset, Offset)?> _stick =
       ValueNotifier<(Offset, Offset)?>(null);
 
-  /// Whether [event] walks by stick or looks: a finger or a pen, in the
-  /// corridor (the hall turns its board with a drag), nothing focused, and
-  /// the scene's rule on.
+  /// Whether [event] is read by the stick and the swipes: a finger or a pen,
+  /// with the scene's rule on. Where it lands decides which
+  /// ([WalkControl.roleFor]).
   bool _walksByStick(PointerEvent event) =>
       (event.kind == PointerDeviceKind.touch ||
           event.kind == PointerDeviceKind.stylus) &&
-      !_inHall &&
-      _focused == null &&
       context.read<SceneBloc>().state.walksByStick;
 
   /// Where the camera actually is, as opposed to where it is wanted.
@@ -393,11 +426,7 @@ class _GalleryViewState extends State<GalleryView> {
     // Not awaited, and said so. Opening a stream takes seconds; a tap
     // handler that waited on it would hold the corridor still while the
     // radio dialled out.
-    unawaited(
-      radio.state.isPlaying || radio.state.isTuning
-          ? radio.stop()
-          : radio.play(),
-    );
+    unawaited(radio.toggle());
   }
 
   /// The radio's next station: from the wall's button.
@@ -406,15 +435,18 @@ class _GalleryViewState extends State<GalleryView> {
     unawaited(locate<RadioPlayer>().next());
   }
 
-  /// The way out: from the BACK sign.
-  void _exitGallery() {
-    _sound(AudioCue.pageTurn);
-    _leave(const SceneEvent.galleryExited());
-  }
+  /// The way out: the BACK sign. One path out for every control: a request
+  /// to the bloc, which marks the gallery as leaving; the lights-down runs
+  /// from that ([_advanceLeaving]).
+  void _exitGallery() => _requestExit(GalleryExit.title);
 
-  void _leave(SceneEvent event) {
-    if (_leavingFor != null) return;
-    setState(() => _leavingFor = event);
+  void _requestExit(GalleryExit to) {
+    // Once: a second press while the lights go down is the same press.
+    if (context.read<SceneBloc>().state.galleryLeavingFor != null) return;
+    _sound(AudioCue.pageTurn);
+    context.read<SceneBloc>().queue(
+      event: SceneEvent.galleryExitRequested(to: to),
+    );
   }
 
   /// Opens the recommendation form.
@@ -560,8 +592,7 @@ class _GalleryViewState extends State<GalleryView> {
     }
 
     if (hit?.kind == SurfaceKind.connectSign) {
-      _sound(AudioCue.pageTurn);
-      _leave(const SceneEvent.contactRequested());
+      _requestExit(GalleryExit.contact);
       return;
     }
 
@@ -705,13 +736,12 @@ class _GalleryViewState extends State<GalleryView> {
 
   /// Runs the lights down and raises the held event when they are out.
   void _advanceLeaving(double dt) {
-    final event = _leavingFor;
-    if (event == null || _leaving.value >= 1) return;
+    // The scene says whether the gallery is leaving, and for where.
+    final to = context.read<SceneBloc>().state.galleryLeavingFor;
+    if (to == null || _arrivalRaised) return;
 
-    final journeying = event is ContactRequested;
-    final duration = journeying
-        ? GalleryView.leavingWithMark
-        : GalleryView.leaving;
+    final journeying = to == GalleryExit.contact;
+    final duration = GalleryLeaving.durationFor(to);
 
     final step = dt / (duration.inMilliseconds / 1000);
     final next = (_leaving.value + step).clamp(0.0, 1.0);
@@ -727,7 +757,10 @@ class _GalleryViewState extends State<GalleryView> {
 
     // Raised from the render loop, so it cannot go out during a build.
     // `queue` is the bloc's own inbox and defers to the next turn.
-    if (mounted) context.read<SceneBloc>().queue(event: event);
+    _arrivalRaised = true;
+    if (mounted) {
+      context.read<SceneBloc>().queue(event: GalleryLeaving.arrivalFor(to));
+    }
   }
 
   /// Keeps every radio face in step with the radio.
@@ -823,16 +856,24 @@ class _GalleryViewState extends State<GalleryView> {
                   _dragFrom = event.localPosition;
                   _dragDistance = 0;
                   if (!_walksByStick(event)) return;
-                  if (WalkControl.holdsStick(
+                  switch (WalkControl.roleFor(
                     event.localPosition.dy,
                     _viewSize.height,
+                    inHall: _inHall,
                   )) {
-                    _stickPointer = event.pointer;
-                    _stickOrigin = event.localPosition;
-                    _stick.value = (event.localPosition, event.localPosition);
-                  } else {
-                    _lookPointer = event.pointer;
-                    _lookDx = 0;
+                    case TouchRole.stick:
+                      _stickPointer = event.pointer;
+                      if (_probe) Browser.mark('g down');
+                      _stickOrigin = event.localPosition;
+                      _stick.value = (event.localPosition, event.localPosition);
+                    case TouchRole.swipe:
+                      _swipePointer = event.pointer;
+                      _swipeFrom = event.localPosition;
+                      _swipeIntent = SwipeIntent.none;
+                      _swipeAxis = _travelAxisNow();
+                    case TouchRole.boardDrag:
+                      // Left to the board's own drag below.
+                      break;
                   }
                 },
                 onPointerMove: (event) {
@@ -845,7 +886,7 @@ class _GalleryViewState extends State<GalleryView> {
                   if (event.pointer == _stickPointer) {
                     final origin = _stickOrigin!;
                     final d = event.localPosition - origin;
-                    _push = WalkControl.push(d.dy);
+                    _push = WalkControl.stick(d.dx, d.dy);
                     final reach = WalkControl.stickRadius;
                     _stick.value = (
                       origin,
@@ -854,9 +895,8 @@ class _GalleryViewState extends State<GalleryView> {
                     );
                     return;
                   }
-                  if (event.pointer == _lookPointer) {
-                    _lookDx += event.delta.dx;
-                    _yaw = WalkControl.look(_lookDx, _viewSize.width);
+                  if (event.pointer == _swipePointer) {
+                    _swiped(event);
                     return;
                   }
 
@@ -1010,21 +1050,7 @@ class _GalleryViewState extends State<GalleryView> {
         // The scroll keeps running while a piece is focused, but it drives
         // nothing — so leaving focus hands the visitor back to exactly the
         // spot they left rather than to wherever the wheel wandered.
-        // The stick's walk: eased toward the push, and fed to the same
-        // scroll the wheel and the old drag move, through the same gate.
-        _walkSpeed = WalkControl.speedTowards(
-          _walkSpeed,
-          _focused == null && !_inHall ? _push : 0,
-          deltaSeconds,
-        );
-        if (_walkSpeed != 0 &&
-            _focused == null &&
-            _gate.accept(_clock.elapsedMilliseconds)) {
-          _scroll.scrollBy(_walkSpeed * deltaSeconds);
-        }
-        if (_lookPointer == null) {
-          _yaw = WalkControl.lookReturn(_yaw, deltaSeconds);
-        }
+        _driveStick(deltaSeconds);
 
         if (_focused == null) {
           _scroll.update(deltaSeconds, tight: _stickDriving);
@@ -1072,10 +1098,19 @@ class _GalleryViewState extends State<GalleryView> {
           // the visitor out facing the way they came, rather than sideways
           // from wherever they had wandered round to.
           _orbit.settle(deltaSeconds);
-        } else if (_dragFrom == null) {
+        } else if (_dragFrom == null || _stickPointer != null) {
+          // The stick walking to the board is not a hand on the board.
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);
+        if (_probe) {
+          final eye = _eye;
+          Browser.mark(
+            'g ${_scroll.offset.toStringAsFixed(2)} '
+            '${seconds.toStringAsFixed(5)} '
+            '${eye?.x.toStringAsFixed(4)} ${eye?.z.toStringAsFixed(4)}',
+          );
+        }
         _advanceLeaving(deltaSeconds);
 
         // Hung off the scroll rather than off a tap, so both have to be
@@ -1099,7 +1134,7 @@ class _GalleryViewState extends State<GalleryView> {
           // The camera crosses the same boundary as the room, or it would
           // pan away from the wall it is meant to be tracking.
           position: SceneAxes.position(_eye ?? _targetPose().position),
-          target: SceneAxes.position(_lookedAt()),
+          target: SceneAxes.position(_look ?? _targetPose().target),
         );
         _lastCamera = camera;
         return camera;
@@ -1148,28 +1183,218 @@ class _GalleryViewState extends State<GalleryView> {
   /// Whether the thumb stick is moving the visitor: held, or still easing
   /// out. While it is, the scroll and the camera follow it tightly, so a
   /// release stops the walk instead of letting it glide.
-  bool get _stickDriving => _stickPointer != null || _walkSpeed != 0;
+  bool get _stickDriving =>
+      _stickPointer != null || _walkSpeed != 0 || _scroll.isMoving;
 
   /// Lets go of whatever [pointer] was holding: the stick stops pushing
   /// (the walk eases out) and the look eases back in the frame.
   void _letGo(int pointer) {
     if (pointer == _stickPointer) {
+      if (_probe) Browser.mark('g up');
       _stickPointer = null;
-      _push = 0;
+      _settleDue = true;
+      _sideArmed = true;
+      _push = (x: 0, y: 0);
       _stick.value = null;
     }
-    if (pointer == _lookPointer) _lookPointer = null;
+    if (pointer == _swipePointer) {
+      _swipePointer = null;
+      _swipeFrom = null;
+    }
   }
 
-  /// Where the camera looks: the path's look point, turned about the eye by
-  /// the head's turn ([_yaw]) while walking.
-  Vector3 _lookedAt() {
-    final eye = _eye ?? _targetPose().position;
-    final look = _look ?? _targetPose().target;
-    if (_yaw == 0 || _focused != null) return look;
-    final dir = look - eye;
-    final c = math.cos(_yaw), sn = math.sin(_yaw);
-    return eye + Vector3(dir.x * c - dir.z * sn, dir.y, dir.x * sn + dir.z * c);
+  /// The way of travel on screen, here: from the path a step ahead and
+  /// where the camera is looking.
+  ScreenAxis _travelAxisNow() {
+    final progress = _scroll.progress;
+    final here = GalleryCameraPath.poseAt(progress, aspect: _aspect);
+    final ahead = GalleryCameraPath.poseAt(
+      math.min(1, progress + 0.002),
+      aspect: _aspect,
+    );
+    return SwipeMap.travelAxis(
+      ahead.position - here.position,
+      here.target - here.position,
+    );
+  }
+
+  /// A swipe's move: decided once it has gone far enough, then followed.
+  void _swiped(PointerMoveEvent event) {
+    final from = _swipeFrom;
+    if (from == null) return;
+
+    if (_swipeIntent == SwipeIntent.none) {
+      final d = event.localPosition - from;
+      _swipeIntent = SwipeMap.classify(d.dx, d.dy, _swipeAxis);
+      switch (_swipeIntent) {
+        case SwipeIntent.none:
+          return;
+        case SwipeIntent.travel:
+          if (_focused != null) _focus(null);
+          // On the wall, one swipe is one step to the next card (or back).
+          if (_swipeStep(SwipeMap.onward(d.dx, d.dy, _swipeAxis))) {
+            _swipeIntent = SwipeIntent.none;
+            _swipeFrom = null;
+            return;
+          }
+          // Everything so far, then every move after it.
+          _travel(d.dx, d.dy);
+          return;
+        case SwipeIntent.focusLeft:
+        case SwipeIntent.focusRight:
+          _focusSide(right: _swipeIntent == SwipeIntent.focusRight);
+          return;
+      }
+    }
+    if (_swipeIntent == SwipeIntent.travel) {
+      _travel(event.delta.dx, event.delta.dy);
+    }
+  }
+
+  /// A swipe's step along the testimonial wall, if it is on the wall and
+  /// there is a card that way: true if it took it (or one is playing).
+  bool _swipeStep(double onward) {
+    final at = _scroll.target;
+    if (!WallSteps.onWall(at, _wallSteps)) return false;
+    if (_scroll.isMoving) return true;
+    final to = onward > 0
+        ? WallSteps.next(at, _wallSteps)
+        : WallSteps.previous(at, _wallSteps);
+    if (to == null) return false;
+    _scroll.moveTo(to);
+    return true;
+  }
+
+  /// The stick, every frame: in the corridor a sideways push turns to the
+  /// nearest frame on that side; everywhere it walks by rate along the way
+  /// of travel (up the corridor, along the wall), eased in and out; let go
+  /// on the wall, it settles onto the nearest whole card.
+  void _driveStick(double dt) {
+    final held = _stickPointer != null;
+    final push = held ? _push : (x: 0.0, y: 0.0);
+    final (ahead, behind) = _axesNow();
+
+    // Sideways in the corridor: a frame. Pushing the other way, or up or
+    // down, leaves it and carries on.
+    if (held && !_inHall) {
+      final side = WalkControl.side(
+        push,
+        ahead,
+        at: _scroll.target,
+        backWallStop: GalleryView.backWallStop,
+      );
+      final current = _focused;
+      if (current != null) {
+        final otherWay =
+            side != 0 && current.position.x.isNegative == (side > 0);
+        if (otherWay || push.y.abs() > 0.5) _focus(null);
+      } else if (side != 0 && _sideArmed) {
+        _sideArmed = false;
+        _focusSide(right: side > 0);
+      }
+      if (push.x.abs() < WalkControl.sideRearm) _sideArmed = true;
+    }
+
+    // The camera rides the path while the stick drives. Riding starts once
+    // the camera is on the path (easing out of a focused frame, the walk
+    // waits for it) and holds for as long as the stick drives: the walk moves
+    // the path a little each frame, so "on the path" is a state, not a
+    // distance checked every frame (checked every frame, it stalled the walk
+    // to a crawl on the ROG).
+    if (!_stickDriving || _focused != null) {
+      _riding = false;
+    } else if (!_riding && _cameraGap() < WalkControl.rideGap) {
+      _riding = true;
+    }
+    final rate = _focused == null && _riding
+        ? WalkControl.rate(
+            push,
+            ahead,
+            behind,
+            pastCorner: _scroll.target > GalleryView.backWallStop + 1,
+          )
+        : 0.0;
+    // The run: how long the push has been held near full.
+    _runHeld = rate.abs() >= WalkControl.runFrom ? _runHeld + dt : 0;
+    _walkSpeed = WalkControl.speedTowards(
+      _walkSpeed,
+      WalkControl.targetSpeed(rate, _runHeld),
+      dt,
+    );
+    if (_walkSpeed != 0 &&
+        _focused == null &&
+        _gate.accept(_clock.elapsedMilliseconds)) {
+      final want = _walkSpeed * dt;
+      final step = WalkControl.stepToStop(
+        _scroll.target,
+        want,
+        GalleryView.backWallStop,
+      );
+      _scroll.scrollBy(step);
+      // Arrived at the back wall walking up the corridor: the walk stops
+      // there unless the push already runs along the wall (a diagonal), in
+      // which case it glides straight on.
+      if (step != want) {
+        final (aheadAtWall, behindAtWall) = _axesAt(GalleryView.backWallStop);
+        if (WalkControl.rate(push, aheadAtWall, behindAtWall) <= 0) {
+          _walkSpeed = 0;
+        }
+      }
+    }
+
+    // Let go on the wall: once the walk has eased out, a soft settle onto the
+    // nearest whole card. Never while the stick is held.
+    if (!held &&
+        _settleDue &&
+        _walkSpeed == 0 &&
+        !_scroll.isMoving &&
+        _focused == null) {
+      _settleDue = false;
+      final to = WalkControl.settleOn(_scroll.target, _wallSteps);
+      if (to != null && (to - _scroll.target).abs() > 1) {
+        _scroll.moveTo(to, seconds: WalkControl.settleSeconds);
+      }
+    }
+  }
+
+  /// The way of travel on screen ahead of the visitor and behind them, here.
+  (ScreenAxis, ScreenAxis) _axesNow() =>
+      _axesAt(_scroll.progress * GalleryView.scrollExtent);
+
+  /// The same at scroll position [at].
+  (ScreenAxis, ScreenAxis) _axesAt(double at) {
+    const step = 1.0; // scroll units: a hair either side of the point
+    double p(double units) =>
+        (units / GalleryView.scrollExtent).clamp(0.0, 1.0);
+    final here = GalleryCameraPath.poseAt(p(at), aspect: _aspect);
+    final look = here.target - here.position;
+    return (
+      SwipeMap.travelAxis(GalleryCameraPath.headingAt(p(at + step)), look),
+      SwipeMap.travelAxis(GalleryCameraPath.headingAt(p(at - step)), look),
+    );
+  }
+
+  void _travel(double dx, double dy) {
+    // A step playing on the wall is not interrupted by the rest of a swipe.
+    if (_scroll.isMoving) return;
+    if (!_gate.accept(_clock.elapsedMilliseconds)) return;
+    _scroll.scrollBy(SwipeMap.onward(dx, dy, _swipeAxis));
+  }
+
+  /// A sideways swipe in the corridor: the nearest frame on that side comes
+  /// into focus, or, if a frame on the other side is focused, the swipe back
+  /// leaves it.
+  void _focusSide({required bool right}) {
+    final current = _focused;
+    if (current != null) {
+      if (current.position.x.isNegative == right) _focus(null);
+      return;
+    }
+    final z = (_eye ?? _targetPose().position).z;
+    final frame = _order.nearestOn(right: right, z: z);
+    if (frame == null) return;
+    _sound(AudioCue.click);
+    _focus(frame);
   }
 
   /// Moves the camera toward where it wants to be.
@@ -1177,16 +1402,26 @@ class _GalleryViewState extends State<GalleryView> {
   /// Frame-rate independent, rather than a fixed fraction per frame: the
   /// latter closes a different amount of the gap at 60fps than at 120, so
   /// the same move reads as a different speed on a different machine.
+  /// How far the camera is from where the path puts it (world units).
+  double _cameraGap() {
+    final eye = _eye;
+    if (eye == null) return 0;
+    return (_cameraTarget().position - eye).length;
+  }
+
   void _advanceCamera(double dt) {
     final target = _cameraTarget();
     final eye = _eye ??= target.position.clone();
     final look = _look ??= target.target.clone();
 
-    final rate = _focused != null
-        ? focusApproach
-        : _stickDriving
-        ? WalkControl.stickChase
-        : corridorReturn;
+    // The stick (and the moves it and a swipe make): the camera is the path,
+    // the walk's own ease the only smoothing. Everything else keeps its chase.
+    if (_riding && _focused == null) {
+      eye.setFrom(target.position);
+      look.setFrom(target.target);
+      return;
+    }
+    final rate = _focused != null ? focusApproach : corridorReturn;
     final t = 1 - math.exp(-rate * dt.clamp(0.0, 0.1));
 
     eye.setFrom(eye + (target.position - eye) * t);
@@ -1270,4 +1505,18 @@ class _StickPainter extends CustomPainter {
   @override
   bool shouldRepaint(_StickPainter old) =>
       old.origin != origin || old.knob != knob || old.ink != ink;
+}
+
+/// The gallery's way out, as rules: how long the lights take to go down for
+/// each destination, and the event that arrives there when they have.
+abstract final class GalleryLeaving {
+  static Duration durationFor(GalleryExit to) => switch (to) {
+    GalleryExit.title => GalleryView.leaving,
+    GalleryExit.contact => GalleryView.leavingWithMark,
+  };
+
+  static SceneEvent arrivalFor(GalleryExit to) => switch (to) {
+    GalleryExit.title => const SceneEvent.galleryExited(),
+    GalleryExit.contact => const SceneEvent.contactRequested(),
+  };
 }
