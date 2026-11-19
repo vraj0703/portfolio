@@ -93,27 +93,27 @@ void main() {
       }
     });
 
-    testWidgets('and none of them anywhere else', (tester) async {
-      await tester.pumpWidget(host(state: const SceneState.title()));
+    testWidgets('on every section, the contact page too, and not before', (
+      tester,
+    ) async {
+      await tester.pumpWidget(host(state: const SceneState.contact()));
+      await tester.pumpAndSettle();
+      // The drawer, and its bar's way home, is reachable from every section
+      // (PORTFOLIO-24): the contact page included.
+      for (final button in buttons) {
+        expect(button, findsOneWidget, reason: 'the contact page lost $button');
+      }
 
       for (final state in <SceneState>[
         const SceneState.loading(),
         const SceneState.logo(),
-        const SceneState.gallery(),
-        const SceneState.contact(),
       ]) {
-        scene!.emit(state);
+        await tester.pumpWidget(host(state: state));
         await tester.pump();
-
         for (final button in buttons) {
           expect(button, findsNothing, reason: '$state drew $button');
         }
       }
-
-      // The corridor sets the radio's wait going; let it run out rather than
-      // leave a timer pending past the end of the test.
-      scene!.emit(const SceneState.title());
-      await tester.pump(AudioCue.galleryEntry.length);
     });
   });
 

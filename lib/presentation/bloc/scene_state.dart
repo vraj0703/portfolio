@@ -114,7 +114,11 @@ sealed class SceneState with _$SceneState {
   ///
   /// And in the gallery (Vishal, 2026-11-18): the same three icons in the
   /// same corner, the drawer holding the radio and the way out.
-  bool get showsMenu => this is Title || this is Active || this is Gallery;
+  ///
+  /// And on the contact page (PORTFOLIO-24), so the drawer, and its bar's
+  /// way home and to the gallery, is reachable from every section.
+  bool get showsMenu =>
+      this is Title || this is Active || this is Gallery || this is Contact;
 
   /// The title's Connect and Menu buttons: on the stages that show the
   /// menu, and only while their feature flag (carried by every state, see
@@ -134,6 +138,17 @@ sealed class SceneState with _$SceneState {
   /// about that looks wrong in the code that added the stage.
   bool get playsRadio => this is Gallery;
 
+  /// Which of the drawer's bar destinations the visitor is at (PORTFOLIO-24):
+  /// the title's stages are home, the gallery is the gallery, the contact
+  /// page is contact; anything else (loading, the logo) none. The bar keeps
+  /// no state of its own; it reads this.
+  NavDestination? get navCurrent => switch (this) {
+    TitleLoading() || Title() || Active() => NavDestination.home,
+    Gallery() => NavDestination.gallery,
+    Contact() => NavDestination.contact,
+    _ => null,
+  };
+
   /// Where the visitor is leaving the gallery for, while the lights go down
   /// (null when they are not leaving, or not in the gallery). The gallery
   /// view reads it and runs its fade; the bloc is the only one who sets it.
@@ -152,6 +167,9 @@ sealed class SceneState with _$SceneState {
   /// turning the touch controls off restores the old drag everywhere.
   bool get swipesByStroke => flags.walkStick;
 }
+
+/// The drawer's bar: where it can take the visitor.
+enum NavDestination { home, gallery, contact }
 
 /// Where a visitor leaving the gallery is going: the title (the BACK sign,
 /// the drawer) or the contact page (the wall's LET'S CONNECT).

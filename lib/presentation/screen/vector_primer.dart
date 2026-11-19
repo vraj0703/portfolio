@@ -23,7 +23,9 @@ class VectorPrimer extends StatelessWidget {
   static const List<String> drawings = <String>[
     SoundButton.speaker,
     SoundButton.mute,
-    // The heart: the drawer's bar (PORTFOLIO-24), once the title's.
+    // The drawer's bar (PORTFOLIO-24): home, the gallery, the heart.
+    'assets/vectors/home.svg',
+    'assets/vectors/gallery.svg',
     'assets/vectors/heart.svg',
     MenuButton.icon,
     ...ContactMenu.drawings,
