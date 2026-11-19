@@ -86,4 +86,9 @@ class SceneEvent with _$SceneEvent {
   /// The visitor pressed the sound switch. Whether the site is silent is a
   /// fact every stage carries (see [SceneState.muted]).
   const factory SceneEvent.muteToggled() = MuteToggled;
+
+  /// The radio's play or stop, pressed (the drawer, on any screen, or the
+  /// wall). The bloc owns the radio: it plays or stops it, and a radio the
+  /// visitor put on is theirs, playing across screens until they stop it.
+  const factory SceneEvent.radioToggled() = RadioToggled;
 }

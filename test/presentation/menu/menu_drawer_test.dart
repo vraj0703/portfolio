@@ -36,8 +36,11 @@ void main() {
     DependencyManager.instance.reset();
   });
 
-  Widget host({required SceneState state}) {
-    scene = SceneBloc(audio: audio)..emit(state);
+  Widget host({
+    required SceneState state,
+    RadioPlayer radio = const SilentRadio(),
+  }) {
+    scene = SceneBloc(audio: audio, radio: radio)..emit(state);
     drawer = MenuDrawerCubit();
 
     return MaterialApp(
@@ -166,7 +169,7 @@ void main() {
     tearDown(() => radio.dispose());
 
     Future<void> openIn(WidgetTester tester, SceneState state) async {
-      await tester.pumpWidget(host(state: state));
+      await tester.pumpWidget(host(state: state, radio: radio));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(MenuButton));
       await tester.pumpAndSettle();

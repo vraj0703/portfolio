@@ -428,7 +428,8 @@ class _GalleryViewState extends State<GalleryView> {
     // handler that waited on it would hold the corridor still while the
     // radio dialled out.
     final on = radio.state.isPlaying || radio.state.isTuning;
-    unawaited(radio.toggle());
+    // The bloc owns the radio: the press goes to it.
+    context.read<SceneBloc>().queue(event: const SceneEvent.radioToggled());
     locate<SiteEvents>().radioToggled(on: !on, surface: 'wall');
   }
 
