@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/presentation/widgets/close_icon.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/data/di/injection.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -72,12 +73,12 @@ void main() {
     testWidgets('a press opens the panel', (tester) async {
       await tester.pumpWidget(host(state: const SceneState.title()));
 
-      expect(find.text(strings.menuClose), findsNothing);
+      expect(find.byType(CloseIcon), findsNothing);
 
       await tester.tap(find.byType(MenuButton));
       await tester.pumpAndSettle();
 
-      expect(find.text(strings.menuClose), findsOneWidget);
+      expect(find.byType(CloseIcon), findsOneWidget);
       expect(drawer!.state, isTrue);
     });
 
@@ -88,13 +89,13 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(drawer!.state, isFalse);
-      expect(find.text(strings.menuClose), findsNothing);
+      expect(find.byType(CloseIcon), findsNothing);
     });
 
     testWidgets('and so does its own way out', (tester) async {
       await open(tester);
 
-      await tester.tap(find.text(strings.menuClose));
+      await tester.tap(find.byType(CloseIcon));
       await tester.pumpAndSettle();
 
       expect(drawer!.state, isFalse);
@@ -146,13 +147,13 @@ void main() {
         );
       }
 
-      // The only drawings in the panel are the bar's three.
+      // The only drawings in the panel: the close and the bar's three.
       expect(
         find.descendant(of: panel, matching: find.byType(SvgPicture)),
-        findsNWidgets(3),
+        findsNWidgets(4),
       );
       expect(
-        find.descendant(of: panel, matching: find.text(strings.menuClose)),
+        find.descendant(of: panel, matching: find.byType(CloseIcon)),
         findsOneWidget,
       );
     });

@@ -6,11 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
-import 'package:portfolio/domain/style/strings.dart';
-import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/menu/drawer_nav_bar.dart';
 import 'package:portfolio/presentation/menu/drawer_radio.dart';
+import 'package:portfolio/presentation/widgets/close_icon.dart';
 
 /// The panel the title screen's control opens.
 ///
@@ -202,13 +201,8 @@ class _Panel extends StatelessWidget {
   }
 }
 
-/// The way out, as a word.
-///
-/// A word rather than a glyph, and right-aligned above the panel's contents,
-/// which is how the credits dialog already says the same thing. The previous
-/// site put "MENU" beside a cross here; the heading labelled a panel the
-/// visitor had just opened deliberately, and the cross was the one control on
-/// this screen that was not a word.
+/// The way out: the icon family's cross ([CloseIcon], PORTFOLIO-26),
+/// right-aligned above the panel's contents, as the credits dialog has it.
 class _CloseRow extends StatelessWidget {
   const _CloseRow({required this.onClose});
 
@@ -223,14 +217,9 @@ class _CloseRow extends StatelessWidget {
         // the frame rather than something to press, and on a phone it sat
         // where the system's own furniture does.
         padding: const EdgeInsets.only(right: 16, top: 16),
-        child: TextButton(
+        child: CloseIcon(
+          ink: context.colors.menuTextSoft,
           onPressed: () => unawaited(onClose()),
-          child: Text(
-            context.strings.menuClose,
-            style: context.typography.menuAction.copyWith(
-              color: context.colors.menuTextSoft,
-            ),
-          ),
         ),
       ),
     );
