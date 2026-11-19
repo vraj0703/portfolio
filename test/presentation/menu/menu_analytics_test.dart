@@ -54,7 +54,6 @@ void main() {
     await initDependencies();
     sent = Sent();
     radio = RecordingRadio();
-    RadioChoice.visitorOn = false;
     DependencyManager.instance
       ..registerSingleton<SiteEvents>(
         SiteEvents(sent, viewport: () => (390, 844)),
@@ -71,7 +70,7 @@ void main() {
 
   Widget host(SceneState state) {
     final audio = RecordingAudio();
-    scene = SceneBloc(audio: audio)..emit(state);
+    scene = SceneBloc(audio: audio, radio: radio)..emit(state);
     drawer = MenuDrawerCubit();
     return MaterialApp(
       theme: ThemeData(
@@ -146,18 +145,29 @@ void main() {
   test('a radio the visitor put on keeps playing out of the gallery', () async {
     final bloc = SceneBloc(radio: radio)..emit(const SceneState.title());
     addTearDown(bloc.close);
-    await radio.toggle(); // the drawer's play, on the title
-    expect(RadioChoice.visitorOn, isTrue);
+    // The drawer's play, on the title: a press to the bloc.
+    bloc.add(const SceneEvent.radioToggled());
+    await Future<void>.delayed(Duration.zero);
+    expect(radio.calls, <String>['play']);
     bloc.emit(const SceneState.gallery());
     bloc.emit(const SceneState.title());
     await Future<void>.delayed(Duration.zero);
     expect(radio.calls, <String>['play'], reason: 'not stopped on the way');
   });
 
+  test("pressed again, it stops, and is the gallery's again", () async {
+    final bloc = SceneBloc(radio: radio)..emit(const SceneState.title());
+    addTearDown(bloc.close);
+    bloc
+      ..add(const SceneEvent.radioToggled())
+      ..add(const SceneEvent.radioToggled());
+    await Future<void>.delayed(Duration.zero);
+    expect(radio.calls, <String>['play', 'stop']);
+  });
+
   test('a radio the gallery put on still goes off as the visitor leaves', () {
     final bloc = SceneBloc(radio: radio);
     addTearDown(bloc.close);
-    RadioChoice.visitorOn = false;
     radio.play();
     bloc.emit(const SceneState.title());
     expect(radio.calls.last, 'stop');

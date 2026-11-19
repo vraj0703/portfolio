@@ -13,6 +13,7 @@ import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/menu/drawer_nav_bar.dart';
 
 /// The panel the title screen's control opens.
@@ -277,7 +278,10 @@ class _RadioHalf extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       context.audio.play(AudioCue.click);
-                      unawaited(radio.toggle());
+                      // The bloc owns the radio: the press goes to it.
+                      context.read<SceneBloc>().queue(
+                        event: const SceneEvent.radioToggled(),
+                      );
                       locate<SiteEvents>().radioToggled(
                         on: !on,
                         surface: 'drawer',
