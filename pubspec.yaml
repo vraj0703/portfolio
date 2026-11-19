@@ -109,6 +109,8 @@ flutter:
     # The three marks on the contact menu, the dot between them, and the
     # heart again in its dialog.
     - assets/vectors/circle.svg
+    # The way out, everywhere (PORTFOLIO-26).
+    - assets/vectors/close.svg
     - assets/vectors/gallery.svg
     - assets/vectors/heart.svg
     - assets/vectors/home.svg

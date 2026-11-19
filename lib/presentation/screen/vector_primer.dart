@@ -27,6 +27,8 @@ class VectorPrimer extends StatelessWidget {
     'assets/vectors/home.svg',
     'assets/vectors/gallery.svg',
     'assets/vectors/heart.svg',
+    // The way out, in the drawer and the credits (PORTFOLIO-26).
+    'assets/vectors/close.svg',
     MenuButton.icon,
     ...ContactMenu.drawings,
   ];
