@@ -119,7 +119,6 @@ sealed class SceneState with _$SceneState {
   /// The title's Connect and Menu buttons: on the stages that show the
   /// menu, and only while their feature flag (carried by every state, see
   /// [ButtonFlags]) leaves them shown. Widgets read these, never the flag.
-  bool get showsConnect => showsMenu && flags.connect;
   bool get showsMenuButton => showsMenu && flags.menu;
 
   /// Whether the wall radio belongs on air.

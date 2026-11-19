@@ -33,7 +33,6 @@ abstract class AppStrings {
   String get drawerRadioPlay;
   String get drawerRadioStop;
   String get drawerRadioNext;
-  String get drawerLeaveGallery;
 
   /// The testimonial wall: its first frame's title and invitation, the quiet
   /// line on the frames still empty, and the mark on a visitor's own words.
@@ -135,8 +134,6 @@ class DefaultAppStrings implements AppStrings {
   String get drawerRadioPlay => 'play';
   @override
   String get drawerRadioStop => 'stop';
-  @override
-  String get drawerLeaveGallery => 'leave the gallery';
   @override
   String get drawerRadioNext => 'next station';
 

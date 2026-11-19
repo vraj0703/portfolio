@@ -52,6 +52,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<HomeRequested>(_onHomeRequested);
     on<FlagsChanged>(_onFlagsChanged);
     on<MuteToggled>(_onMuteToggled);
+    on<RadioToggled>(_onRadioToggled);
   }
 
   final AppAudio? _audio;
@@ -151,11 +152,30 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     });
   }
 
+  /// Whether the visitor put the radio on themselves (PORTFOLIO-23): the
+  /// bloc's own record, set by [RadioToggled], never by a widget.
+  bool _visitorRadio = false;
+
+  void _onRadioToggled(RadioToggled event, Emitter<SceneState> emit) {
+    final on = _radio.state.isPlaying || _radio.state.isTuning;
+    _visitorRadio = !on;
+    if (!on) {
+      // The gallery's own wait to tune in is superseded by the press.
+      _tuningIn?.cancel();
+      _tuningIn = null;
+    }
+    unawaited(on ? _radio.stop() : _radio.play());
+  }
+
   void _tuneOut() {
     // Cancelled first. Leaving the corridor before the music has started
     // must not leave a timer that turns it on over the screen after it.
     _tuningIn?.cancel();
     _tuningIn = null;
+
+    // A radio the visitor put on (from the drawer, on any screen, or the
+    // wall) is theirs: it keeps playing until they stop it.
+    if (_visitorRadio) return;
 
     if (_radio.state.status == RadioStatus.off) return;
     unawaited(_radio.stop());

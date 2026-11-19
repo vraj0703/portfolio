@@ -79,10 +79,21 @@ void main() {
       }
     });
 
-    test('fifteen from the plan, and the one control it names', () {
-      expect(SiteEvents.names, hasLength(16));
-      expect(SiteEvents.names, contains('sound_toggled'));
-    });
+    test(
+      'fifteen from the plan, the one control it names, the menu and the radio',
+      () {
+        expect(SiteEvents.names, hasLength(19));
+        expect(SiteEvents.names, contains('sound_toggled'));
+        expect(
+          SiteEvents.names,
+          containsAll(<String>[
+            'menu_opened',
+            'radio_toggled',
+            'radio_station_changed',
+          ]),
+        );
+      },
+    );
 
     test('every event carries the scene, the viewport and the device', () {
       events.projectCaseOpened('tantr');
@@ -101,7 +112,6 @@ void main() {
 
     test('every flag is its compiled default', () {
       final silent = SiteEvents(SilentAnalytics(), viewport: () => (1, 1));
-      expect(silent.showsConnect(), isTrue);
       expect(silent.showsMenu(), isTrue);
     });
   });
@@ -246,14 +256,14 @@ void main() {
 
   group('the flags', () {
     test('the default holds when the SDK is missing', () {
-      expect(SiteEvents(sink, viewport: () => (1, 1)).showsConnect(), isTrue);
-      expect(const ButtonFlags(), const ButtonFlags(connect: true, menu: true));
+      expect(SiteEvents(sink, viewport: () => (1, 1)).showsMenu(), isTrue);
+      expect(const ButtonFlags(), const ButtonFlags(menu: true));
     });
 
     test('ride on the state, through every transition', () async {
-      final bloc = SceneBloc(flags: const ButtonFlags(connect: false));
+      final bloc = SceneBloc(flags: const ButtonFlags(walkStick: false));
       addTearDown(bloc.close);
-      expect(bloc.state.flags.connect, isFalse);
+      expect(bloc.state.flags.walkStick, isFalse);
       bloc.add(const SceneEvent.flagsChanged(flags: ButtonFlags(menu: false)));
       await Future<void>.delayed(Duration.zero);
       expect(bloc.state.flags, const ButtonFlags(menu: false));
@@ -265,15 +275,13 @@ void main() {
 
     test('the widgets read a rule on the state, not the flag', () {
       const on = SceneState.title();
-      const off = SceneState.title(
-        flags: ButtonFlags(connect: false, menu: false),
-      );
-      expect(on.showsConnect && on.showsMenuButton, isTrue);
-      expect(off.showsConnect || off.showsMenuButton, isFalse);
-      // Off-stage, neither shows whatever the flags say.
-      expect(const SceneState.loading().showsConnect, isFalse);
+      const off = SceneState.title(flags: ButtonFlags(menu: false));
+      expect(on.showsMenuButton, isTrue);
+      expect(off.showsMenuButton, isFalse);
+      // Off-stage it does not show, whatever the flag says.
+      expect(const SceneState.loading().showsMenuButton, isFalse);
       // The gallery keeps the title's icons (Vishal, 2026-11-18).
-      expect(const SceneState.gallery().showsConnect, isTrue);
+      expect(const SceneState.gallery().showsMenuButton, isTrue);
     });
   });
 

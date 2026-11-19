@@ -67,7 +67,6 @@ Future<void> initDependencies() async {
       events: events,
       // The compiled defaults, or what the flags already say: never waits.
       flags: ButtonFlags(
-        connect: events.showsConnect(),
         menu: events.showsMenu(),
         walkStick: events.walksByStick(),
       ),

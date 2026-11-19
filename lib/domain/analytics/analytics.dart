@@ -163,6 +163,9 @@ class SiteEvents {
     'testimonial_linkedin_opened',
     'testimonial_submitted',
     'sound_toggled',
+    'menu_opened',
+    'radio_toggled',
+    'radio_station_changed',
   };
 
   Map<String, Object?> _common() {
@@ -247,12 +250,27 @@ class SiteEvents {
   void soundToggled({required bool muted}) =>
       _send('sound_toggled', <String, Object?>{'muted': muted});
 
-  // Flags.
-  static const String connectFlag = 'title_connect_button';
+  // The menu and the radio (PORTFOLIO-23).
+  void menuOpened() => _send('menu_opened', <String, Object?>{'scene': _scene});
+
+  /// The radio put on ([on]) or off, from [surface]: `drawer` or `wall`.
+  void radioToggled({required bool on, required String surface}) =>
+      _send('radio_toggled', <String, Object?>{'on': on, 'surface': surface});
+
+  /// The radio stepped to [station], from [surface]: `drawer` or `wall`.
+  void radioStationChanged({
+    required String station,
+    required String surface,
+  }) => _send('radio_station_changed', <String, Object?>{
+    'station': station,
+    'surface': surface,
+  });
+
+  // Flags. `title_connect_button` is gone with the title's heart
+  // (PORTFOLIO-23); the contact page is reached from the drawer's bar.
   static const String menuFlag = 'title_menu_button';
   static const String walkStickFlag = 'gallery_walk_stick';
 
-  bool showsConnect() => _sink.flag(connectFlag, orElse: true);
   bool showsMenu() => _sink.flag(menuFlag, orElse: true);
   bool walksByStick() => _sink.flag(walkStickFlag, orElse: true);
   Listenable get flagsChanged => _sink.flagsChanged;

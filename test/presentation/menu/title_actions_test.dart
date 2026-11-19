@@ -69,11 +69,7 @@ void main() {
     );
   }
 
-  final buttons = <Finder>[
-    find.byType(SoundButton),
-    find.byType(ConnectButton),
-    find.byType(MenuButton),
-  ];
+  final buttons = <Finder>[find.byType(SoundButton), find.byType(MenuButton)];
 
   group('the row belongs to the screens with no other way out', () {
     testWidgets('all three on the title and the stage after it', (
@@ -166,17 +162,14 @@ void main() {
     });
   });
 
-  testWidgets('connect reaches the contact screen without the drawer', (
+  testWidgets('the row is sound and menu: the heart went to the drawer', (
     tester,
   ) async {
     await tester.pumpWidget(host(state: const SceneState.title()));
-
-    await tester.tap(find.byType(ConnectButton));
     await tester.pumpAndSettle();
-
-    expect(scene!.state, isA<Contact>());
-    expect(drawer!.state, isFalse);
-    expect(audio.played, contains(AudioCue.pageTurn));
+    expect(find.bySemanticsLabel(strings.menuConnect), findsNothing);
+    expect(find.byType(SoundButton), findsOneWidget);
+    expect(find.byType(MenuButton), findsOneWidget);
   });
 
   testWidgets('the menu opens the drawer', (tester) async {
@@ -194,11 +187,7 @@ void main() {
     final handle = tester.ensureSemantics();
     await tester.pumpWidget(host(state: const SceneState.title()));
 
-    for (final label in <String>[
-      strings.menuSoundOff,
-      strings.menuConnect,
-      strings.menuOpen,
-    ]) {
+    for (final label in <String>[strings.menuSoundOff, strings.menuOpen]) {
       final node = tester.getSemantics(find.bySemanticsLabel(label));
       expect(
         node.flagsCollection.isButton,
@@ -210,20 +199,16 @@ void main() {
     handle.dispose();
   });
 
-  testWidgets('tab walks sound, connect, menu, and enter presses', (
-    tester,
-  ) async {
+  testWidgets('tab walks sound, menu, and enter presses', (tester) async {
     await tester.pumpWidget(host(state: const SceneState.title()));
 
     Type? focused() {
       final context = FocusManager.instance.primaryFocus?.context;
       if (context == null) return null;
-      for (final type in <Type>[SoundButton, ConnectButton, MenuButton]) {
+      for (final type in <Type>[SoundButton, MenuButton]) {
         final found = switch (type) {
           const (SoundButton) =>
             context.findAncestorWidgetOfExactType<SoundButton>(),
-          const (ConnectButton) =>
-            context.findAncestorWidgetOfExactType<ConnectButton>(),
           _ => context.findAncestorWidgetOfExactType<MenuButton>(),
         };
         if (found != null) return type;
@@ -232,13 +217,13 @@ void main() {
     }
 
     final order = <Type?>[];
-    for (var i = 0; i < 3; i++) {
+    for (var i = 0; i < 2; i++) {
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
       order.add(focused());
     }
 
-    expect(order, <Type>[SoundButton, ConnectButton, MenuButton]);
+    expect(order, <Type>[SoundButton, MenuButton]);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
     await tester.pumpAndSettle();
@@ -286,7 +271,8 @@ void main() {
       await tester.pumpWidget(host(state: const SceneState.title()));
 
       // The first under way, the last not yet started.
-      await tester.pump(TitleActionEntry.stagger * 1.5);
+      // Two buttons now: the second starts one stagger in.
+      await tester.pump(TitleActionEntry.stagger * 0.5);
       final early = <double>[
         for (final button in buttons) offsetOf(tester, button),
       ];

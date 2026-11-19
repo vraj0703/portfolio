@@ -106,6 +106,18 @@ matters (`&utm_campaign=<company>`). This is the cheapest and most reliable "who
 
 `sound_toggled` (`muted`) and `intro_skipped`: two decisions are waiting on what visitors actually do.
 
+### The menu and the radio (PORTFOLIO-23)
+
+The radio moved into the drawer, on every screen; whether visitors find it there, and use it, decides
+whether the wall radio and the drawer both earn their place.
+
+- `menu_opened` (`scene`): the drawer opened, and on which screen.
+- `radio_toggled` (`on`, `surface`: `drawer` | `wall`): the radio put on or off, and from where.
+- `radio_station_changed` (`station`, `surface`: `drawer` | `wall`): the next station, and from where.
+
+The title's heart (the way to the contact page) left the top row for the drawer's bar
+(PORTFOLIO-24); it had no event of its own, so none is removed.
+
 ## What is deliberately not collected
 
 - No names, emails or text typed by visitors. The testimonial text never leaves the page through analytics.
@@ -157,8 +169,8 @@ matters (`&utm_campaign=<company>`). This is the cheapest and most reliable "who
   events raised before it is ready are queued and sent when it is.
 - Sources that already exist: `LoadingProgress` / `LoadingPhase` and `BUILD_TIMING` for loading; `FrameWatch`
   for frames; `SceneBloc` state changes for scenes (one listener, not a call per widget).
-- Feature flags `title_connect_button` and `title_menu_button`: the compiled default is the present behaviour
-  (shown). A flag that is absent, or PostHog being unreachable, means the default. The first paint never waits.
+- Feature flags `title_menu_button` and `gallery_walk_stick`: the compiled default is the present behaviour
+  (shown). `title_connect_button` is dropped with the button it gated (PORTFOLIO-23); archive it in PostHog. A flag that is absent, or PostHog being unreachable, means the default. The first paint never waits.
 - Tests: every event in this file exists in the typed wrapper and nowhere else as a string; a no-token build
   sends nothing; `load_abandoned` is sent on hide before load and not after; `scene_health` is capped; the
   flag default holds when the SDK is missing.
