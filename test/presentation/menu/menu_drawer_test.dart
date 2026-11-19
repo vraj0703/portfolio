@@ -10,7 +10,6 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 import 'package:portfolio/presentation/menu/menu_drawer.dart';
 import 'package:portfolio/presentation/menu/title_actions.dart';
 
@@ -202,16 +201,13 @@ void main() {
     testWidgets("and the way out, through the gallery's own exit", (
       tester,
     ) async {
-      var asked = 0;
-      void count() => asked++;
-      GalleryExitRequests.instance.addListener(count);
-      addTearDown(() => GalleryExitRequests.instance.removeListener(count));
-
       await openIn(tester, const SceneState.gallery());
       await tester.tap(find.text(strings.drawerLeaveGallery));
       await tester.pumpAndSettle();
 
-      expect(asked, 1);
+      // The one way out: a request to the bloc, which marks the gallery as
+      // leaving for the title (the gallery's lights-down runs from that).
+      expect(scene!.state.galleryLeavingFor, GalleryExit.title);
       expect(drawer!.state, isFalse, reason: 'the drawer closes first');
       await tester.pump(const Duration(seconds: 5));
     });

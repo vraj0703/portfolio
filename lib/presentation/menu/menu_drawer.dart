@@ -12,7 +12,6 @@ import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 
 /// The panel the title screen's control opens.
 ///
@@ -301,8 +300,14 @@ class _GalleryHalf extends StatelessWidget {
               Divider(color: colors.menuEdge),
               TextButton(
                 onPressed: () async {
+                  final scene = context.read<SceneBloc>();
                   await onClose();
-                  GalleryExitRequests.instance.request();
+                  // The one way out of the gallery: a request to the bloc.
+                  scene.queue(
+                    event: const SceneEvent.galleryExitRequested(
+                      to: GalleryExit.title,
+                    ),
+                  );
                 },
                 child: Text(strings.drawerLeaveGallery, style: action),
               ),
