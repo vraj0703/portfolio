@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
@@ -10,6 +11,7 @@ import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
+import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/gallery/radio_face.dart';
 import 'package:portfolio/presentation/gallery/wall_radio.dart';
 
@@ -71,7 +73,8 @@ class DrawerRadio extends StatelessWidget {
 void _toggle(BuildContext context, RadioPlayer radio, RadioState state) {
   final on = state.isPlaying || state.isTuning;
   context.audio.play(AudioCue.click);
-  unawaited(radio.toggle());
+  // The bloc owns the radio: the press goes to it.
+  context.read<SceneBloc>().queue(event: const SceneEvent.radioToggled());
   locate<SiteEvents>().radioToggled(on: !on, surface: 'drawer');
 }
 
