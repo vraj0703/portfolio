@@ -284,7 +284,9 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     GalleryRequested event,
     Emitter<SceneState> emit,
   ) {
-    if (state is! Contact) return null;
+    // From the contact page's mark, and (PORTFOLIO-24) from the drawer's bar
+    // on the title and the bold text: the same event, the same way in.
+    if (!(state is Contact || state is Title || state is Active)) return null;
 
     // The corridor's view is rebuilt from scratch on the way in — it is
     // unmounted while the contact screen is up — so it comes back at the
@@ -296,6 +298,12 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     HomeRequested event,
     Emitter<SceneState> emit,
   ) {
+    // From the bold text (the drawer's bar, PORTFOLIO-24): back to the title,
+    // which rewinds the stage as arriving there always does.
+    if (state is Active) {
+      emit(const SceneState.title());
+      return null;
+    }
     if (state is! Contact) return null;
 
     // The same door the visitor came in through, not a shortcut past it.

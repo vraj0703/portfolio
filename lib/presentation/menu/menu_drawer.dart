@@ -14,6 +14,7 @@ import 'package:portfolio/domain/radio/radio_player.dart';
 import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
+import 'package:portfolio/presentation/menu/drawer_nav_bar.dart';
 
 /// The panel the title screen's control opens.
 ///
@@ -189,6 +190,10 @@ class _Panel extends StatelessWidget {
                 // used to sit at the foot of it, and they moved up beside the
                 // control that opens it (`TitleActions`).
                 const Expanded(child: SizedBox.shrink()),
+
+                // Home, the gallery, the contact page (PORTFOLIO-24): pinned
+                // to the bottom, above the safe-area inset.
+                DrawerNavBar(onClose: onClose),
               ],
             ),
           ),

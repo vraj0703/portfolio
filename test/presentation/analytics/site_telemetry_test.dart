@@ -82,7 +82,7 @@ void main() {
     test(
       'fifteen from the plan, the one control it names, the menu and the radio',
       () {
-        expect(SiteEvents.names, hasLength(19));
+        expect(SiteEvents.names, hasLength(20));
         expect(SiteEvents.names, contains('sound_toggled'));
         expect(
           SiteEvents.names,
