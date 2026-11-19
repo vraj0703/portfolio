@@ -49,7 +49,7 @@ class FlameScene extends StatelessWidget {
   ///
   /// Scenes are read from the bloc's states, not reported by each widget;
   /// the title's button flags arrive as an event, so the widgets read them
-  /// from the state like every other rule (see [SceneState.showsConnect]).
+  /// from the state like every other rule (see [SceneState.showsMenuButton]).
   static void _report(SceneBloc bloc) {
     final telemetry = locate<SiteTelemetry>();
     final events = locate<SiteEvents>();
@@ -60,7 +60,6 @@ class FlameScene extends StatelessWidget {
       bloc.add(
         SceneEvent.flagsChanged(
           flags: ButtonFlags(
-            connect: events.showsConnect(),
             menu: events.showsMenu(),
             walkStick: events.walksByStick(),
           ),

@@ -29,6 +29,7 @@ import 'package:portfolio/domain/gallery/project_focus.dart';
 import 'package:portfolio/domain/gallery/skill_data.dart';
 import 'package:portfolio/domain/gallery/walk_order.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
+import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/utils/crossing.dart';
@@ -426,13 +427,21 @@ class _GalleryViewState extends State<GalleryView> {
     // Not awaited, and said so. Opening a stream takes seconds; a tap
     // handler that waited on it would hold the corridor still while the
     // radio dialled out.
-    unawaited(radio.toggle());
+    final on = radio.state.isPlaying || radio.state.isTuning;
+    // The bloc owns the radio: the press goes to it.
+    context.read<SceneBloc>().queue(event: const SceneEvent.radioToggled());
+    locate<SiteEvents>().radioToggled(on: !on, surface: 'wall');
   }
 
   /// The radio's next station: from the wall's button.
   void _nextStation() {
     _sound(AudioCue.click);
-    unawaited(locate<RadioPlayer>().next());
+    final radio = locate<RadioPlayer>();
+    unawaited(radio.next());
+    locate<SiteEvents>().radioStationChanged(
+      station: RadioDial.at(RadioDial.next(radio.state.station)).name,
+      surface: 'wall',
+    );
   }
 
   /// The way out: the BACK sign. One path out for every control: a request

@@ -36,8 +36,11 @@ void main() {
     DependencyManager.instance.reset();
   });
 
-  Widget host({required SceneState state}) {
-    scene = SceneBloc(audio: audio)..emit(state);
+  Widget host({
+    required SceneState state,
+    RadioPlayer radio = const SilentRadio(),
+  }) {
+    scene = SceneBloc(audio: audio, radio: radio)..emit(state);
     drawer = MenuDrawerCubit();
 
     return MaterialApp(
@@ -166,19 +169,16 @@ void main() {
     tearDown(() => radio.dispose());
 
     Future<void> openIn(WidgetTester tester, SceneState state) async {
-      await tester.pumpWidget(host(state: state));
+      await tester.pumpWidget(host(state: state, radio: radio));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(MenuButton));
       await tester.pumpAndSettle();
     }
 
-    testWidgets("the title's three icons stay, the same widget", (
-      tester,
-    ) async {
+    testWidgets("the title's icons stay, the same widget", (tester) async {
       await tester.pumpWidget(host(state: const SceneState.gallery()));
       await tester.pumpAndSettle();
       expect(find.byType(SoundButton), findsOneWidget);
-      expect(find.byType(ConnectButton), findsOneWidget);
       expect(find.byType(MenuButton), findsOneWidget);
       // Past the gallery's delayed radio start.
       await tester.pump(const Duration(seconds: 5));
@@ -198,24 +198,9 @@ void main() {
       expect(radio.calls.last, 'next');
     });
 
-    testWidgets("and the way out, through the gallery's own exit", (
-      tester,
-    ) async {
-      await openIn(tester, const SceneState.gallery());
-      await tester.tap(find.text(strings.drawerLeaveGallery));
-      await tester.pumpAndSettle();
-
-      // The one way out: a request to the bloc, which marks the gallery as
-      // leaving for the title (the gallery's lights-down runs from that).
-      expect(scene!.state.galleryLeavingFor, GalleryExit.title);
-      expect(drawer!.state, isFalse, reason: 'the drawer closes first');
-      await tester.pump(const Duration(seconds: 5));
-    });
-
-    testWidgets('on the title the drawer holds no radio', (tester) async {
+    testWidgets('the radio is in the drawer on the title too', (tester) async {
       await openIn(tester, const SceneState.title());
-      expect(find.text(strings.drawerRadioNext), findsNothing);
-      expect(find.text(strings.drawerLeaveGallery), findsNothing);
+      expect(find.text(strings.drawerRadioNext), findsOneWidget);
     });
   });
 }

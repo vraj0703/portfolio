@@ -9,7 +9,9 @@ import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/radio/radio_player.dart';
+import 'package:portfolio/domain/radio/radio_station.dart';
 import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -179,18 +181,8 @@ class _Panel extends StatelessWidget {
               children: <Widget>[
                 _CloseRow(onClose: onClose),
 
-                // The first half: in the gallery, its radio and the way out
-                // (Vishal, 2026-11-18: they left the corner of the screen for
-                // here). Shown by the scene's rule, the same one that puts
-                // the radio on air.
-                Expanded(
-                  child: BlocSelector<SceneBloc, SceneState, bool>(
-                    selector: (state) => state.playsRadio,
-                    builder: (context, inGallery) => inGallery
-                        ? _GalleryHalf(onClose: onClose)
-                        : const SizedBox.shrink(),
-                  ),
-                ),
+                // The first half: the radio, on every screen (PORTFOLIO-23).
+                const Expanded(child: _RadioHalf()),
 
                 // Where the projects and the writing will go. Empty on
                 // purpose: the sound switch and the way to the contact screen
@@ -241,12 +233,10 @@ class _CloseRow extends StatelessWidget {
   }
 }
 
-/// The gallery's half of the drawer: the radio (its station, what it is
-/// doing, play or stop, the next station) and the way out of the gallery.
-class _GalleryHalf extends StatelessWidget {
-  const _GalleryHalf({required this.onClose});
-
-  final Future<void> Function() onClose;
+/// The drawer's radio, on every screen: its station, what it is doing, play
+/// or stop, and the next station.
+class _RadioHalf extends StatelessWidget {
+  const _RadioHalf();
 
   @override
   Widget build(BuildContext context) {
@@ -272,7 +262,10 @@ class _GalleryHalf extends StatelessWidget {
                 style: type.menuAction.copyWith(color: colors.menuTextSoft),
               ),
               const SizedBox(height: 8),
-              Text('${state.tuned.name}  ·  ${state.readout}', style: action),
+              Text(
+                '${state.tuned.name}  \u00b7  ${state.readout}',
+                style: action,
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -280,7 +273,14 @@ class _GalleryHalf extends StatelessWidget {
                   TextButton(
                     onPressed: () {
                       context.audio.play(AudioCue.click);
-                      unawaited(radio.toggle());
+                      // The bloc owns the radio: the press goes to it.
+                      context.read<SceneBloc>().queue(
+                        event: const SceneEvent.radioToggled(),
+                      );
+                      locate<SiteEvents>().radioToggled(
+                        on: !on,
+                        surface: 'drawer',
+                      );
                     },
                     child: Text(
                       on ? strings.drawerRadioStop : strings.drawerRadioPlay,
@@ -291,25 +291,16 @@ class _GalleryHalf extends StatelessWidget {
                     onPressed: () {
                       context.audio.play(AudioCue.click);
                       unawaited(radio.next());
+                      locate<SiteEvents>().radioStationChanged(
+                        station: RadioDial.at(
+                          RadioDial.next(state.station),
+                        ).name,
+                        surface: 'drawer',
+                      );
                     },
                     child: Text(strings.drawerRadioNext, style: action),
                   ),
                 ],
-              ),
-              const Spacer(),
-              Divider(color: colors.menuEdge),
-              TextButton(
-                onPressed: () async {
-                  final scene = context.read<SceneBloc>();
-                  await onClose();
-                  // The one way out of the gallery: a request to the bloc.
-                  scene.queue(
-                    event: const SceneEvent.galleryExitRequested(
-                      to: GalleryExit.title,
-                    ),
-                  );
-                },
-                child: Text(strings.drawerLeaveGallery, style: action),
               ),
             ],
           );
