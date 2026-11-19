@@ -49,9 +49,13 @@ sealed class SceneState with _$SceneState {
   }) = Active;
 
   /// The gallery: the corridor of work the bold text hands over to.
+  ///
+  /// [leavingFor] is set while the visitor is on their way out: the gallery
+  /// runs its lights-down, then raises the event that arrives there.
   const factory SceneState.gallery({
     @Default(ButtonFlags()) ButtonFlags flags,
     @Default(false) bool muted,
+    GalleryExit? leavingFor,
   }) = Gallery;
 
   /// The contact screen.
@@ -130,6 +134,14 @@ sealed class SceneState with _$SceneState {
   /// about that looks wrong in the code that added the stage.
   bool get playsRadio => this is Gallery;
 
+  /// Where the visitor is leaving the gallery for, while the lights go down
+  /// (null when they are not leaving, or not in the gallery). The gallery
+  /// view reads it and runs its fade; the bloc is the only one who sets it.
+  GalleryExit? get galleryLeavingFor => switch (this) {
+    Gallery(:final leavingFor) => leavingFor,
+    _ => null,
+  };
+
   /// Whether the screen's chrome (the title's icons) sits on a light scene
   /// and wants the dark ink: the gallery's ceiling, not the title's dusk.
   bool get chromeOnLight => this is Gallery;
@@ -140,3 +152,7 @@ sealed class SceneState with _$SceneState {
   /// turning the touch controls off restores the old drag everywhere.
   bool get swipesByStroke => flags.walkStick;
 }
+
+/// Where a visitor leaving the gallery is going: the title (the BACK sign,
+/// the drawer) or the contact page (the wall's LET'S CONNECT).
+enum GalleryExit { title, contact }

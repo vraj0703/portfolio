@@ -58,6 +58,13 @@ class SceneEvent with _$SceneEvent {
   /// the middle of it would strand them halfway through an animation.
   const factory SceneEvent.galleryExited() = GalleryExited;
 
+  /// The visitor asked to leave the gallery, for [to]: from the BACK sign,
+  /// the wall's LET'S CONNECT, or the drawer. The one way out: the bloc marks
+  /// the gallery as leaving, the gallery runs its lights-down, and then
+  /// raises [galleryExited] or [contactRequested].
+  const factory SceneEvent.galleryExitRequested({required GalleryExit to}) =
+      GalleryExitRequested;
+
   /// The visitor pressed the sign on the skills hall's entry wall.
   const factory SceneEvent.contactRequested() = ContactRequested;
 
