@@ -1,90 +1,37 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_view.dart';
 
-Future<void> settle() => Future<void>.delayed(Duration.zero);
+import '../../support/scene_journey.dart';
 
 void main() {
-  group('the one way out of the gallery', () {
-    test('request -> leaving -> arrived, for the title', () async {
-      final bloc = SceneBloc()..emit(const SceneState.gallery());
-      addTearDown(bloc.close);
+  test('the sign on the left wall returns the visitor to the title', () async {
+    final bloc = await inTheGallery();
+    expect(bloc.state, isA<Gallery>(), reason: 'precondition');
 
-      bloc.add(const SceneEvent.galleryExitRequested(to: GalleryExit.title));
-      await settle();
-      expect(bloc.state, isA<Gallery>());
-      expect(bloc.state.galleryLeavingFor, GalleryExit.title);
+    bloc.add(const SceneEvent.galleryExited());
+    await settle();
 
-      // The gallery's fade ends and raises the arrival event.
-      bloc.add(GalleryLeaving.arrivalFor(GalleryExit.title));
-      await settle();
-      expect(bloc.state, isA<Title>());
-    });
+    // `title`, not `titleLoading`. The game is no longer torn down on the way
+    // into the corridor, so the stage is still standing exactly as it was
+    // left; replaying its entrance would animate something already on screen.
+    //
+    // And not the bold-text stage they scrolled through to get here: that is
+    // a one-way passage on a scroll already spent, and landing back inside it
+    // strands them mid-animation.
+    expect(bloc.state, isA<Title>());
 
-    test('and for the contact page', () async {
-      final bloc = SceneBloc()..emit(const SceneState.gallery());
-      addTearDown(bloc.close);
-
-      bloc.add(const SceneEvent.galleryExitRequested(to: GalleryExit.contact));
-      await settle();
-      expect(bloc.state.galleryLeavingFor, GalleryExit.contact);
-
-      bloc.add(GalleryLeaving.arrivalFor(GalleryExit.contact));
-      await settle();
-      expect(bloc.state, isA<Contact>());
-    });
-
-    test('a second request while leaving is ignored', () async {
-      final bloc = SceneBloc()..emit(const SceneState.gallery());
-      addTearDown(bloc.close);
-
-      bloc
-        ..add(const SceneEvent.galleryExitRequested(to: GalleryExit.title))
-        ..add(const SceneEvent.galleryExitRequested(to: GalleryExit.contact));
-      await settle();
-      expect(bloc.state.galleryLeavingFor, GalleryExit.title);
-    });
-
-    test('a request outside the gallery is ignored', () async {
-      final bloc = SceneBloc()..emit(const SceneState.title());
-      addTearDown(bloc.close);
-
-      bloc.add(const SceneEvent.galleryExitRequested(to: GalleryExit.title));
-      await settle();
-      expect(bloc.state, isA<Title>());
-      expect(bloc.state.galleryLeavingFor, isNull);
-    });
-
-    test('leaving survives the flags and the sound switch', () async {
-      final bloc = SceneBloc()..emit(const SceneState.gallery());
-      addTearDown(bloc.close);
-
-      bloc.add(const SceneEvent.galleryExitRequested(to: GalleryExit.title));
-      await settle();
-      bloc.add(const SceneEvent.muteToggled());
-      await settle();
-      expect(bloc.state.galleryLeavingFor, GalleryExit.title);
-    });
+    await bloc.close();
   });
 
-  group('the fade runs from the state', () {
-    test('its length and its arrival depend only on where to', () {
-      expect(
-        GalleryLeaving.durationFor(GalleryExit.title),
-        GalleryView.leaving,
-      );
-      expect(
-        GalleryLeaving.durationFor(GalleryExit.contact),
-        GalleryView.leavingWithMark,
-      );
-      expect(
-        GalleryLeaving.arrivalFor(GalleryExit.title),
-        const SceneEvent.galleryExited(),
-      );
-      expect(
-        GalleryLeaving.arrivalFor(GalleryExit.contact),
-        const SceneEvent.contactRequested(),
-      );
-    });
+  test('leaving is only offered from inside the gallery', () async {
+    final bloc = SceneBloc()..add(const SceneEvent.initialize());
+    await settle();
+    final before = bloc.state;
+
+    bloc.add(const SceneEvent.galleryExited());
+    await settle();
+
+    expect(bloc.state, before);
+    await bloc.close();
   });
 }
