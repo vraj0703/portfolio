@@ -31,12 +31,12 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // an initialising formal here — the lint's suggestion does not compile.
     // ignore: prefer_initializing_formals
     : _radio = radio,
-      _flags = flags,
-      _audio = audio,
-      // Seeded from the audio backend, which outlives any one bloc: a
-      // remount of the scene keeps the site as silent as it was.
-      _muted = audio?.isMuted ?? false,
-      super(SceneState.loading(flags: flags, muted: audio?.isMuted ?? false)) {
+       _flags = flags,
+       _audio = audio,
+       // Seeded from the audio backend, which outlives any one bloc: a
+       // remount of the scene keeps the site as silent as it was.
+       _muted = audio?.isMuted ?? false,
+       super(SceneState.loading(flags: flags, muted: audio?.isMuted ?? false)) {
     on<Initialize>(_initialize);
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
@@ -46,6 +46,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<AdvanceRequested>(_onAdvanceRequested);
     on<BoldTextCompleted>(_onBoldTextCompleted);
     on<GalleryExited>(_onGalleryExited);
+    on<GalleryExitRequested>(_onGalleryExitRequested);
     on<ContactRequested>(_onContactRequested);
     on<GalleryRequested>(_onGalleryRequested);
     on<HomeRequested>(_onHomeRequested);
@@ -232,6 +233,18 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // left — replaying its two-second entrance would be animating something
     // the visitor can already see.
     emit(const SceneState.title());
+  }
+
+  /// The gallery is leaving, and for where. Only in the gallery, and only
+  /// once: a second request while the lights are going down is the same
+  /// press again, not a change of mind.
+  void _onGalleryExitRequested(
+    GalleryExitRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Gallery || current.leavingFor != null) return;
+    emit(current.copyWith(leavingFor: event.to));
   }
 
   FutureOr<void> _onContactRequested(

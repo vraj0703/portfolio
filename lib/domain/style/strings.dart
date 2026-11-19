@@ -27,6 +27,13 @@ abstract class AppStrings {
   /// The two signs painted on the gallery's marble.
   String get galleryBack;
 
+  /// The drawer's gallery half: the radio's heading, play, stop and next
+  /// station, and the way out of the gallery.
+  String get drawerRadio;
+  String get drawerRadioPlay;
+  String get drawerRadioStop;
+  String get drawerRadioNext;
+  String get drawerLeaveGallery;
 
   /// The testimonial wall: its first frame's title and invitation, the quiet
   /// line on the frames still empty, and the mark on a visitor's own words.
@@ -122,6 +129,16 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get galleryBack => 'BACK';
+  @override
+  String get drawerRadio => 'Radio';
+  @override
+  String get drawerRadioPlay => 'play';
+  @override
+  String get drawerRadioStop => 'stop';
+  @override
+  String get drawerLeaveGallery => 'leave the gallery';
+  @override
+  String get drawerRadioNext => 'next station';
 
   @override
   String get testimonialsTitle => 'Testimonials';

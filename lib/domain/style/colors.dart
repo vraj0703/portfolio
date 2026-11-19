@@ -86,6 +86,11 @@ abstract class AppColors {
   Color get galleryControlInk;
   Color get galleryControlPlate;
 
+  /// The title's three icons where they sit on the gallery's light ceiling:
+  /// the accent's own bronze, darkened until it reads (at least 3:1, see
+  /// Contrast). The title's tint is a light ink for a dark scene.
+  Color get galleryChromeInk;
+
   /// The ring around a control's plate.
   Color get galleryControlEdge;
   Color get galleryFailureGround;
@@ -244,6 +249,9 @@ class DefaultAppColors implements AppColors {
 
   @override
   Color get creditsAction => _ink.withValues(alpha: 0.8);
+
+  @override
+  Color get galleryChromeInk => const Color(0xFF5E4318);
 
   @override
   Color get galleryControlInk => const Color(0xFFF0E4CC);

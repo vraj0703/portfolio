@@ -1,6 +1,13 @@
 import 'package:portfolio/domain/radio/radio_station.dart';
 
 /// What the radio is doing.
+/// The radio's two buttons, wherever they are pressed (the wall, the
+/// drawer): one meaning for each, said once.
+extension RadioRemote on RadioPlayer {
+  /// Stops a radio that is on air or tuning; otherwise plays.
+  Future<void> toggle() => state.isPlaying || state.isTuning ? stop() : play();
+}
+
 enum RadioStatus {
   /// Silent, and not trying to be otherwise.
   off,
