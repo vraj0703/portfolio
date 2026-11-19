@@ -9,7 +9,6 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
-import 'package:portfolio/presentation/gallery/gallery_exit_requests.dart';
 
 /// The drawer's bottom bar: home (the title), the gallery, and the contact
 /// page (PORTFOLIO-24).
@@ -45,28 +44,21 @@ class DrawerNavBar extends StatelessWidget {
     NavDestination.contact => strings.menuConnect,
   };
 
-  /// What going to [to] from [state] raises: the scene event, and whether
-  /// it has to go through the gallery's own exit (its lights-down).
-  static ({SceneEvent event, bool viaGalleryExit}) routeTo(
-    NavDestination to,
-    SceneState state,
-  ) {
+  /// What going to [to] from [state] raises, on the scene bloc: today's
+  /// events. From the gallery, home and contact are the gallery's one way
+  /// out ([SceneEvent.galleryExitRequested]), so its lights-down runs.
+  static SceneEvent routeTo(NavDestination to, SceneState state) {
     final inGallery = state is Gallery;
     return switch (to) {
-      NavDestination.home => (
-        event: inGallery
-            ? const SceneEvent.galleryExited()
+      NavDestination.home =>
+        inGallery
+            ? const SceneEvent.galleryExitRequested(to: GalleryExit.title)
             : const SceneEvent.homeRequested(),
-        viaGalleryExit: inGallery,
-      ),
-      NavDestination.gallery => (
-        event: const SceneEvent.galleryRequested(),
-        viaGalleryExit: false,
-      ),
-      NavDestination.contact => (
-        event: const SceneEvent.contactRequested(),
-        viaGalleryExit: inGallery,
-      ),
+      NavDestination.gallery => const SceneEvent.galleryRequested(),
+      NavDestination.contact =>
+        inGallery
+            ? const SceneEvent.galleryExitRequested(to: GalleryExit.contact)
+            : const SceneEvent.contactRequested(),
     };
   }
 
@@ -145,12 +137,8 @@ class DrawerNavBar extends StatelessWidget {
     );
     await onClose();
     if (to == current) return;
-    final route = routeTo(to, bloc.state);
-    if (route.viaGalleryExit) {
-      GalleryExitRequests.instance.request(route.event);
-      return;
-    }
+    final event = routeTo(to, bloc.state);
     audio.play(AudioCue.pageTurn);
-    bloc.queue(event: route.event);
+    bloc.queue(event: event);
   }
 }
