@@ -7,7 +7,8 @@ Runs on a DESKTOP profile (1280x800, mouse and wheel) and a PHONE profile (412x9
 already open with `pc-profile=1` in its URL). Each profile walks the same journey:
 
   1. load        the logo screen appears
-  2. enter       a tap (or click) on the logo leaves it
+  2. enter       a click on the logo leaves it; a touch taps twice, the first showing the logo's
+                 hover and staying on the logo screen (PORTFOLIO-27)
   3. gallery     wheel (desktop) or swipes (phone) carry title -> bold text -> gallery
   4. back wall   the walk reaches the far end of the corridor (screen settles there)
   5. testimonial the testimonial wall's cards are in front of the visitor
@@ -246,6 +247,15 @@ async def journey(cdp, p, url):
     async def enter_tap():
         await tap(cdp, p, W / 2, H * (0.89 if p["touch"] else 0.5))
         await asyncio.sleep(1.5)
+    if p["touch"]:
+        # A touch taps twice (PORTFOLIO-27): the first shows the logo's hover and stays on
+        # the logo screen, the second enters. Past the logo's own entrance first, so the
+        # first tap is taken.
+        await asyncio.sleep(2.5)
+        await tap(cdp, p, W / 2, H * 0.89)
+        await asyncio.sleep(1.5)
+        if not logo_like(await shot(cdp)):
+            raise Hang("enter: the first touch tap left the logo (no hover first)")
     await until(cdp, "enter", lambda im: not logo_like(im), enter_tap, steps)
 
     if p["touch"]:

@@ -131,6 +131,7 @@ abstract final class LogoConfig {
   /// The layer fades in, then the lines arrive, then the text types on.
   /// Fractions of [entranceDuration].
   static const double linesStart = 0.25;
+
   /// Where the label starts writing itself.
   ///
   /// Back at 0.45, where it was before it was moved to 0.608 to fit a typing
@@ -139,6 +140,14 @@ abstract final class LogoConfig {
   /// one thing a browser will not play — and the phase boundary it dragged
   /// with it has no reason to stay moved.
   static const double textStart = 0.45;
+
+  /// How long a touch's hover holds on the logo before it goes back to rest
+  /// (PORTFOLIO-27: the first tap shows the hover, the second enters).
+  static const Duration touchHoverHold = Duration(seconds: 6);
+
+  /// How fast the label types itself on again when a touch's first tap
+  /// shows the hover: the label's own animation, saying "tap" once more.
+  static const double retypeSpeed = 1.6;
 
   static const Duration entranceDuration = Duration(milliseconds: 1400);
 

@@ -41,6 +41,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<LoadingProgressed>(_onLoadingProgressed);
     on<LogoEntranceCompleted>(_onLogoEntranceCompleted);
     on<Tapped>(_onTapped);
+    on<LogoHoverLapsed>(_onLogoHoverLapsed);
     on<LogoExitCompleted>(_onLogoExitCompleted);
     on<TitleEntranceCompleted>(_onTitleEntranceCompleted);
     on<AdvanceRequested>(_onAdvanceRequested);
@@ -323,7 +324,24 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     // affordance yet.
     if (current is! Logo || !current.isInteractive) return null;
 
+    // A phone has no hover to show what the logo does under a pointer: its
+    // first tap shows it, held, and the second enters. A mouse has hovered
+    // already, so its click enters.
+    if (event.touch && !current.touchHovered) {
+      emit(current.copyWith(touchHovered: true));
+      return null;
+    }
+
     emit(const SceneState.logoOverlayRemoving());
+  }
+
+  FutureOr<void> _onLogoHoverLapsed(
+    LogoHoverLapsed event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Logo || !current.touchHovered) return null;
+    emit(current.copyWith(touchHovered: false));
   }
 
   FutureOr<void> _onLogoExitCompleted(

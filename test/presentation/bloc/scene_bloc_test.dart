@@ -51,7 +51,6 @@ void main() {
       expect(bloc.state, isA<Logo>());
     });
 
-
     test('stays in loading while any phase is short', () async {
       for (final phase in LoadingPhase.values) {
         bloc.add(SceneEvent.loadingProgressed(phase: phase, value: 0.99));
@@ -164,6 +163,66 @@ void main() {
       expect(bloc.state, isA<LogoOverlayRemoving>());
     });
 
+    group('a touch taps twice (PORTFOLIO-27)', () {
+      Future<void> interactive() async {
+        await reachLogo();
+        bloc.add(const SceneEvent.logoEntranceCompleted());
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      test('tap 1 shows the hover, and stays on the logo', () async {
+        await interactive();
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state, isA<Logo>());
+        expect((bloc.state as Logo).touchHovered, isTrue);
+        expect((bloc.state as Logo).isInteractive, isTrue);
+      });
+
+      test('tap 2 enters', () async {
+        await interactive();
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state, isA<LogoOverlayRemoving>());
+      });
+
+      test('left alone, the hover lapses back to rest', () async {
+        await interactive();
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        bloc.add(const SceneEvent.logoHoverLapsed());
+        await Future<void>.delayed(Duration.zero);
+        expect((bloc.state as Logo).touchHovered, isFalse);
+        // And the next tap is a first tap again.
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state, isA<Logo>());
+      });
+
+      test('a lapse anywhere else is a stray', () async {
+        await interactive();
+        bloc.add(const SceneEvent.logoHoverLapsed());
+        await Future<void>.delayed(Duration.zero);
+        expect((bloc.state as Logo).touchHovered, isFalse);
+      });
+
+      test('a mouse has hovered already: its click enters', () async {
+        await interactive();
+        bloc.add(const SceneEvent.tapped());
+        await Future<void>.delayed(Duration.zero);
+        expect(bloc.state, isA<LogoOverlayRemoving>());
+      });
+
+      test('no touch tap is taken before the logo is interactive', () async {
+        await reachLogo();
+        bloc.add(const SceneEvent.tapped(touch: true));
+        await Future<void>.delayed(Duration.zero);
+        expect((bloc.state as Logo).touchHovered, isFalse);
+      });
+    });
+
     test('a second entrance report changes nothing', () async {
       await reachLogo();
       bloc.add(const SceneEvent.logoEntranceCompleted());
@@ -231,16 +290,18 @@ void main() {
       expect(bloc.state, isA<Title>());
     });
 
-    test('a title entrance report is ignored before the title is loading',
-        () async {
-      await reachLogoExit();
+    test(
+      'a title entrance report is ignored before the title is loading',
+      () async {
+        await reachLogoExit();
 
-      // Arriving while the logo is still leaving would skip a stage.
-      bloc.add(const SceneEvent.titleEntranceCompleted());
-      await Future<void>.delayed(Duration.zero);
+        // Arriving while the logo is still leaving would skip a stage.
+        bloc.add(const SceneEvent.titleEntranceCompleted());
+        await Future<void>.delayed(Duration.zero);
 
-      expect(bloc.state, isA<LogoOverlayRemoving>());
-    });
+        expect(bloc.state, isA<LogoOverlayRemoving>());
+      },
+    );
 
     test('a logo exit report is ignored outside the exit', () async {
       await completeAllPhases();

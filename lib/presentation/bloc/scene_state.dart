@@ -20,8 +20,14 @@ sealed class SceneState with _$SceneState {
   /// [isInteractive] is false while the layer animates in. Taps are ignored
   /// until it flips, so the scene cannot be skipped past before the user has
   /// seen what they are tapping.
+  ///
+  /// [touchHovered]: a touch's first tap put the logo into the hover a mouse
+  /// gets by passing over it (PORTFOLIO-27, Vishal 2026-11-21: "on logo state
+  /// for mobile can we have double tap so that user can experience hover").
+  /// The logo layer shows it; the next tap enters.
   const factory SceneState.logo({
     @Default(false) bool isInteractive,
+    @Default(false) bool touchHovered,
     @Default(ButtonFlags()) ButtonFlags flags,
     @Default(false) bool muted,
   }) = Logo;

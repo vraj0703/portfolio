@@ -56,14 +56,15 @@ extension SceneEventPatterns on SceneEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,TResult Function( GalleryExited value)?  galleryExited,TResult Function( GalleryExitRequested value)?  galleryExitRequested,TResult Function( ContactRequested value)?  contactRequested,TResult Function( GalleryRequested value)?  galleryRequested,TResult Function( HomeRequested value)?  homeRequested,TResult Function( FlagsChanged value)?  flagsChanged,TResult Function( MuteToggled value)?  muteToggled,TResult Function( RadioToggled value)?  radioToggled,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( Initialize value)?  initialize,TResult Function( LoadingProgressed value)?  loadingProgressed,TResult Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult Function( Tapped value)?  tapped,TResult Function( LogoHoverLapsed value)?  logoHoverLapsed,TResult Function( LogoExitCompleted value)?  logoExitCompleted,TResult Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult Function( AdvanceRequested value)?  advanceRequested,TResult Function( BoldTextCompleted value)?  boldTextCompleted,TResult Function( GalleryExited value)?  galleryExited,TResult Function( GalleryExitRequested value)?  galleryExitRequested,TResult Function( ContactRequested value)?  contactRequested,TResult Function( GalleryRequested value)?  galleryRequested,TResult Function( HomeRequested value)?  homeRequested,TResult Function( FlagsChanged value)?  flagsChanged,TResult Function( MuteToggled value)?  muteToggled,TResult Function( RadioToggled value)?  radioToggled,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted(_that);case Tapped() when tapped != null:
-return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
+return tapped(_that);case LogoHoverLapsed() when logoHoverLapsed != null:
+return logoHoverLapsed(_that);case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
 return advanceRequested(_that);case BoldTextCompleted() when boldTextCompleted != null:
@@ -93,14 +94,15 @@ return radioToggled(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,required TResult Function( GalleryExited value)  galleryExited,required TResult Function( GalleryExitRequested value)  galleryExitRequested,required TResult Function( ContactRequested value)  contactRequested,required TResult Function( GalleryRequested value)  galleryRequested,required TResult Function( HomeRequested value)  homeRequested,required TResult Function( FlagsChanged value)  flagsChanged,required TResult Function( MuteToggled value)  muteToggled,required TResult Function( RadioToggled value)  radioToggled,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( Initialize value)  initialize,required TResult Function( LoadingProgressed value)  loadingProgressed,required TResult Function( LogoEntranceCompleted value)  logoEntranceCompleted,required TResult Function( Tapped value)  tapped,required TResult Function( LogoHoverLapsed value)  logoHoverLapsed,required TResult Function( LogoExitCompleted value)  logoExitCompleted,required TResult Function( TitleEntranceCompleted value)  titleEntranceCompleted,required TResult Function( AdvanceRequested value)  advanceRequested,required TResult Function( BoldTextCompleted value)  boldTextCompleted,required TResult Function( GalleryExited value)  galleryExited,required TResult Function( GalleryExitRequested value)  galleryExitRequested,required TResult Function( ContactRequested value)  contactRequested,required TResult Function( GalleryRequested value)  galleryRequested,required TResult Function( HomeRequested value)  homeRequested,required TResult Function( FlagsChanged value)  flagsChanged,required TResult Function( MuteToggled value)  muteToggled,required TResult Function( RadioToggled value)  radioToggled,}){
 final _that = this;
 switch (_that) {
 case Initialize():
 return initialize(_that);case LoadingProgressed():
 return loadingProgressed(_that);case LogoEntranceCompleted():
 return logoEntranceCompleted(_that);case Tapped():
-return tapped(_that);case LogoExitCompleted():
+return tapped(_that);case LogoHoverLapsed():
+return logoHoverLapsed(_that);case LogoExitCompleted():
 return logoExitCompleted(_that);case TitleEntranceCompleted():
 return titleEntranceCompleted(_that);case AdvanceRequested():
 return advanceRequested(_that);case BoldTextCompleted():
@@ -129,14 +131,15 @@ return radioToggled(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,TResult? Function( GalleryExited value)?  galleryExited,TResult? Function( GalleryExitRequested value)?  galleryExitRequested,TResult? Function( ContactRequested value)?  contactRequested,TResult? Function( GalleryRequested value)?  galleryRequested,TResult? Function( HomeRequested value)?  homeRequested,TResult? Function( FlagsChanged value)?  flagsChanged,TResult? Function( MuteToggled value)?  muteToggled,TResult? Function( RadioToggled value)?  radioToggled,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( Initialize value)?  initialize,TResult? Function( LoadingProgressed value)?  loadingProgressed,TResult? Function( LogoEntranceCompleted value)?  logoEntranceCompleted,TResult? Function( Tapped value)?  tapped,TResult? Function( LogoHoverLapsed value)?  logoHoverLapsed,TResult? Function( LogoExitCompleted value)?  logoExitCompleted,TResult? Function( TitleEntranceCompleted value)?  titleEntranceCompleted,TResult? Function( AdvanceRequested value)?  advanceRequested,TResult? Function( BoldTextCompleted value)?  boldTextCompleted,TResult? Function( GalleryExited value)?  galleryExited,TResult? Function( GalleryExitRequested value)?  galleryExitRequested,TResult? Function( ContactRequested value)?  contactRequested,TResult? Function( GalleryRequested value)?  galleryRequested,TResult? Function( HomeRequested value)?  homeRequested,TResult? Function( FlagsChanged value)?  flagsChanged,TResult? Function( MuteToggled value)?  muteToggled,TResult? Function( RadioToggled value)?  radioToggled,}){
 final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize(_that);case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted(_that);case Tapped() when tapped != null:
-return tapped(_that);case LogoExitCompleted() when logoExitCompleted != null:
+return tapped(_that);case LogoHoverLapsed() when logoHoverLapsed != null:
+return logoHoverLapsed(_that);case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted(_that);case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted(_that);case AdvanceRequested() when advanceRequested != null:
 return advanceRequested(_that);case BoldTextCompleted() when boldTextCompleted != null:
@@ -165,13 +168,14 @@ return radioToggled(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function()?  tapped,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,TResult Function()?  galleryExited,TResult Function( GalleryExit to)?  galleryExitRequested,TResult Function()?  contactRequested,TResult Function()?  galleryRequested,TResult Function()?  homeRequested,TResult Function( ButtonFlags flags)?  flagsChanged,TResult Function()?  muteToggled,TResult Function()?  radioToggled,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  initialize,TResult Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult Function()?  logoEntranceCompleted,TResult Function( bool touch)?  tapped,TResult Function()?  logoHoverLapsed,TResult Function()?  logoExitCompleted,TResult Function()?  titleEntranceCompleted,TResult Function()?  advanceRequested,TResult Function()?  boldTextCompleted,TResult Function()?  galleryExited,TResult Function( GalleryExit to)?  galleryExitRequested,TResult Function()?  contactRequested,TResult Function()?  galleryRequested,TResult Function()?  homeRequested,TResult Function( ButtonFlags flags)?  flagsChanged,TResult Function()?  muteToggled,TResult Function()?  radioToggled,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted();case Tapped() when tapped != null:
-return tapped();case LogoExitCompleted() when logoExitCompleted != null:
+return tapped(_that.touch);case LogoHoverLapsed() when logoHoverLapsed != null:
+return logoHoverLapsed();case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
 return advanceRequested();case BoldTextCompleted() when boldTextCompleted != null:
@@ -201,13 +205,14 @@ return radioToggled();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function()  tapped,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,required TResult Function()  galleryExited,required TResult Function( GalleryExit to)  galleryExitRequested,required TResult Function()  contactRequested,required TResult Function()  galleryRequested,required TResult Function()  homeRequested,required TResult Function( ButtonFlags flags)  flagsChanged,required TResult Function()  muteToggled,required TResult Function()  radioToggled,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  initialize,required TResult Function( LoadingPhase phase,  double value)  loadingProgressed,required TResult Function()  logoEntranceCompleted,required TResult Function( bool touch)  tapped,required TResult Function()  logoHoverLapsed,required TResult Function()  logoExitCompleted,required TResult Function()  titleEntranceCompleted,required TResult Function()  advanceRequested,required TResult Function()  boldTextCompleted,required TResult Function()  galleryExited,required TResult Function( GalleryExit to)  galleryExitRequested,required TResult Function()  contactRequested,required TResult Function()  galleryRequested,required TResult Function()  homeRequested,required TResult Function( ButtonFlags flags)  flagsChanged,required TResult Function()  muteToggled,required TResult Function()  radioToggled,}) {final _that = this;
 switch (_that) {
 case Initialize():
 return initialize();case LoadingProgressed():
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted():
 return logoEntranceCompleted();case Tapped():
-return tapped();case LogoExitCompleted():
+return tapped(_that.touch);case LogoHoverLapsed():
+return logoHoverLapsed();case LogoExitCompleted():
 return logoExitCompleted();case TitleEntranceCompleted():
 return titleEntranceCompleted();case AdvanceRequested():
 return advanceRequested();case BoldTextCompleted():
@@ -236,13 +241,14 @@ return radioToggled();case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function()?  tapped,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,TResult? Function()?  galleryExited,TResult? Function( GalleryExit to)?  galleryExitRequested,TResult? Function()?  contactRequested,TResult? Function()?  galleryRequested,TResult? Function()?  homeRequested,TResult? Function( ButtonFlags flags)?  flagsChanged,TResult? Function()?  muteToggled,TResult? Function()?  radioToggled,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  initialize,TResult? Function( LoadingPhase phase,  double value)?  loadingProgressed,TResult? Function()?  logoEntranceCompleted,TResult? Function( bool touch)?  tapped,TResult? Function()?  logoHoverLapsed,TResult? Function()?  logoExitCompleted,TResult? Function()?  titleEntranceCompleted,TResult? Function()?  advanceRequested,TResult? Function()?  boldTextCompleted,TResult? Function()?  galleryExited,TResult? Function( GalleryExit to)?  galleryExitRequested,TResult? Function()?  contactRequested,TResult? Function()?  galleryRequested,TResult? Function()?  homeRequested,TResult? Function( ButtonFlags flags)?  flagsChanged,TResult? Function()?  muteToggled,TResult? Function()?  radioToggled,}) {final _that = this;
 switch (_that) {
 case Initialize() when initialize != null:
 return initialize();case LoadingProgressed() when loadingProgressed != null:
 return loadingProgressed(_that.phase,_that.value);case LogoEntranceCompleted() when logoEntranceCompleted != null:
 return logoEntranceCompleted();case Tapped() when tapped != null:
-return tapped();case LogoExitCompleted() when logoExitCompleted != null:
+return tapped(_that.touch);case LogoHoverLapsed() when logoHoverLapsed != null:
+return logoHoverLapsed();case LogoExitCompleted() when logoExitCompleted != null:
 return logoExitCompleted();case TitleEntranceCompleted() when titleEntranceCompleted != null:
 return titleEntranceCompleted();case AdvanceRequested() when advanceRequested != null:
 return advanceRequested();case BoldTextCompleted() when boldTextCompleted != null:
@@ -398,7 +404,73 @@ String toString() {
 
 
 class Tapped implements SceneEvent {
-  const Tapped();
+  const Tapped({this.touch = false});
+  
+
+@JsonKey() final  bool touch;
+
+/// Create a copy of SceneEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$TappedCopyWith<Tapped> get copyWith => _$TappedCopyWithImpl<Tapped>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Tapped&&(identical(other.touch, touch) || other.touch == touch));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,touch);
+
+@override
+String toString() {
+  return 'SceneEvent.tapped(touch: $touch)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $TappedCopyWith<$Res> implements $SceneEventCopyWith<$Res> {
+  factory $TappedCopyWith(Tapped value, $Res Function(Tapped) _then) = _$TappedCopyWithImpl;
+@useResult
+$Res call({
+ bool touch
+});
+
+
+
+
+}
+/// @nodoc
+class _$TappedCopyWithImpl<$Res>
+    implements $TappedCopyWith<$Res> {
+  _$TappedCopyWithImpl(this._self, this._then);
+
+  final Tapped _self;
+  final $Res Function(Tapped) _then;
+
+/// Create a copy of SceneEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? touch = null,}) {
+  return _then(Tapped(
+touch: null == touch ? _self.touch : touch // ignore: cast_nullable_to_non_nullable
+as bool,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class LogoHoverLapsed implements SceneEvent {
+  const LogoHoverLapsed();
   
 
 
@@ -408,7 +480,7 @@ class Tapped implements SceneEvent {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Tapped);
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is LogoHoverLapsed);
 }
 
 
@@ -417,7 +489,7 @@ int get hashCode => runtimeType.hashCode;
 
 @override
 String toString() {
-  return 'SceneEvent.tapped()';
+  return 'SceneEvent.logoHoverLapsed()';
 }
 
 
@@ -1036,11 +1108,11 @@ return contact(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult Function( bool isInteractive,  ButtonFlags flags,  bool muted)?  logo,TResult Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult Function( ButtonFlags flags,  bool muted)?  title,TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)?  gallery,TResult Function( ButtonFlags flags,  bool muted)?  contact,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult Function( bool isInteractive,  bool touchHovered,  ButtonFlags flags,  bool muted)?  logo,TResult Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult Function( ButtonFlags flags,  bool muted)?  title,TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)?  gallery,TResult Function( ButtonFlags flags,  bool muted)?  contact,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
 return loading(_that.progress,_that.flags,_that.muted);case Logo() when logo != null:
-return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logo(_that.isInteractive,_that.touchHovered,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading() when titleLoading != null:
 return titleLoading(_that.flags,_that.muted);case Title() when title != null:
 return title(_that.flags,_that.muted);case Active() when active != null:
@@ -1064,11 +1136,11 @@ return contact(_that.flags,_that.muted);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)  loading,required TResult Function( bool isInteractive,  ButtonFlags flags,  bool muted)  logo,required TResult Function( ButtonFlags flags,  bool muted)  logoOverlayRemoving,required TResult Function( ButtonFlags flags,  bool muted)  titleLoading,required TResult Function( ButtonFlags flags,  bool muted)  title,required TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)  active,required TResult Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)  gallery,required TResult Function( ButtonFlags flags,  bool muted)  contact,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)  loading,required TResult Function( bool isInteractive,  bool touchHovered,  ButtonFlags flags,  bool muted)  logo,required TResult Function( ButtonFlags flags,  bool muted)  logoOverlayRemoving,required TResult Function( ButtonFlags flags,  bool muted)  titleLoading,required TResult Function( ButtonFlags flags,  bool muted)  title,required TResult Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)  active,required TResult Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)  gallery,required TResult Function( ButtonFlags flags,  bool muted)  contact,}) {final _that = this;
 switch (_that) {
 case Loading():
 return loading(_that.progress,_that.flags,_that.muted);case Logo():
-return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving():
+return logo(_that.isInteractive,_that.touchHovered,_that.flags,_that.muted);case LogoOverlayRemoving():
 return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading():
 return titleLoading(_that.flags,_that.muted);case Title():
 return title(_that.flags,_that.muted);case Active():
@@ -1088,11 +1160,11 @@ return contact(_that.flags,_that.muted);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult? Function( bool isInteractive,  ButtonFlags flags,  bool muted)?  logo,TResult? Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult? Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult? Function( ButtonFlags flags,  bool muted)?  title,TResult? Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult? Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)?  gallery,TResult? Function( ButtonFlags flags,  bool muted)?  contact,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( LoadingProgress progress,  ButtonFlags flags,  bool muted)?  loading,TResult? Function( bool isInteractive,  bool touchHovered,  ButtonFlags flags,  bool muted)?  logo,TResult? Function( ButtonFlags flags,  bool muted)?  logoOverlayRemoving,TResult? Function( ButtonFlags flags,  bool muted)?  titleLoading,TResult? Function( ButtonFlags flags,  bool muted)?  title,TResult? Function( double uiOpacity,  bool isArrowVisible,  ButtonFlags flags,  bool muted)?  active,TResult? Function( ButtonFlags flags,  bool muted,  GalleryExit? leavingFor)?  gallery,TResult? Function( ButtonFlags flags,  bool muted)?  contact,}) {final _that = this;
 switch (_that) {
 case Loading() when loading != null:
 return loading(_that.progress,_that.flags,_that.muted);case Logo() when logo != null:
-return logo(_that.isInteractive,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
+return logo(_that.isInteractive,_that.touchHovered,_that.flags,_that.muted);case LogoOverlayRemoving() when logoOverlayRemoving != null:
 return logoOverlayRemoving(_that.flags,_that.muted);case TitleLoading() when titleLoading != null:
 return titleLoading(_that.flags,_that.muted);case Title() when title != null:
 return title(_that.flags,_that.muted);case Active() when active != null:
@@ -1180,10 +1252,11 @@ as bool,
 
 
 class Logo extends SceneState {
-  const Logo({this.isInteractive = false, this.flags = const ButtonFlags(), this.muted = false}): super._();
+  const Logo({this.isInteractive = false, this.touchHovered = false, this.flags = const ButtonFlags(), this.muted = false}): super._();
   
 
 @JsonKey() final  bool isInteractive;
+@JsonKey() final  bool touchHovered;
 @override@JsonKey() final  ButtonFlags flags;
 @override@JsonKey() final  bool muted;
 
@@ -1197,16 +1270,16 @@ $LogoCopyWith<Logo> get copyWith => _$LogoCopyWithImpl<Logo>(this, _$identity);
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo&&(identical(other.isInteractive, isInteractive) || other.isInteractive == isInteractive)&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is Logo&&(identical(other.isInteractive, isInteractive) || other.isInteractive == isInteractive)&&(identical(other.touchHovered, touchHovered) || other.touchHovered == touchHovered)&&(identical(other.flags, flags) || other.flags == flags)&&(identical(other.muted, muted) || other.muted == muted));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,isInteractive,flags,muted);
+int get hashCode => Object.hash(runtimeType,isInteractive,touchHovered,flags,muted);
 
 @override
 String toString() {
-  return 'SceneState.logo(isInteractive: $isInteractive, flags: $flags, muted: $muted)';
+  return 'SceneState.logo(isInteractive: $isInteractive, touchHovered: $touchHovered, flags: $flags, muted: $muted)';
 }
 
 
@@ -1217,7 +1290,7 @@ abstract mixin class $LogoCopyWith<$Res> implements $SceneStateCopyWith<$Res> {
   factory $LogoCopyWith(Logo value, $Res Function(Logo) _then) = _$LogoCopyWithImpl;
 @override @useResult
 $Res call({
- bool isInteractive, ButtonFlags flags, bool muted
+ bool isInteractive, bool touchHovered, ButtonFlags flags, bool muted
 });
 
 
@@ -1234,9 +1307,10 @@ class _$LogoCopyWithImpl<$Res>
 
 /// Create a copy of SceneState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? isInteractive = null,Object? flags = null,Object? muted = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? isInteractive = null,Object? touchHovered = null,Object? flags = null,Object? muted = null,}) {
   return _then(Logo(
 isInteractive: null == isInteractive ? _self.isInteractive : isInteractive // ignore: cast_nullable_to_non_nullable
+as bool,touchHovered: null == touchHovered ? _self.touchHovered : touchHovered // ignore: cast_nullable_to_non_nullable
 as bool,flags: null == flags ? _self.flags : flags // ignore: cast_nullable_to_non_nullable
 as ButtonFlags,muted: null == muted ? _self.muted : muted // ignore: cast_nullable_to_non_nullable
 as bool,

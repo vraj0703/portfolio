@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,19 +20,24 @@ void main() {
     recorder = _Recorder();
     return tester.pumpWidget(
       MaterialApp(
-        home: SceneInput(
-          bloc: recorder,
-          child: const SizedBox.expand(),
-        ),
+        home: SceneInput(bloc: recorder, child: const SizedBox.expand()),
       ),
     );
   }
 
-  testWidgets('a tap asks the scene to advance', (tester) async {
+  testWidgets('a click asks the scene to advance', (tester) async {
+    await host(tester);
+    await tester.tapAt(const Offset(400, 300), kind: PointerDeviceKind.mouse);
+
+    expect(recorder.events, <SceneEvent>[const SceneEvent.tapped()]);
+  });
+
+  testWidgets('a touch says so, once per tap (PORTFOLIO-27)', (tester) async {
     await host(tester);
     await tester.tapAt(const Offset(400, 300));
 
-    expect(recorder.events, <SceneEvent>[const SceneEvent.tapped()]);
+    // One event, a touch's: the logo shows its hover on the first.
+    expect(recorder.events, <SceneEvent>[const SceneEvent.tapped(touch: true)]);
   });
 
   group('a key press does the same as a tap', () {
@@ -59,9 +65,7 @@ void main() {
     expect(recorder.events, isEmpty);
   });
 
-  testWidgets('releasing a key does not advance a second time', (
-    tester,
-  ) async {
+  testWidgets('releasing a key does not advance a second time', (tester) async {
     // The handler is on key *down*. On key up it would fire again, and a
     // visitor who held the key would skip whatever came next.
     await host(tester);

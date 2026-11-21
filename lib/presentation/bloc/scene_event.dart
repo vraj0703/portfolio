@@ -27,7 +27,14 @@ class SceneEvent with _$SceneEvent {
   const factory SceneEvent.logoEntranceCompleted() = LogoEntranceCompleted;
 
   /// The user tapped the scene.
-  const factory SceneEvent.tapped() = Tapped;
+  ///
+  /// [touch]: by a finger (or a pen), not a mouse. On the logo a touch's
+  /// first tap shows the hover, and its second enters.
+  const factory SceneEvent.tapped({@Default(false) bool touch}) = Tapped;
+
+  /// The logo's touch hover was left alone for its hold (the logo layer
+  /// counts it): back to rest.
+  const factory SceneEvent.logoHoverLapsed() = LogoHoverLapsed;
 
   /// The logo layer has finished leaving: the mark has settled into its
   /// corner and the affordance has fully un-typed.
