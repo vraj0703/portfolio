@@ -1,6 +1,8 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/domain/config/cursor_config.dart';
 import 'package:portfolio/domain/config/pointer_config.dart';
+import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/domain/pointer/pointer_chooser.dart';
 import 'package:portfolio/domain/pointer/pointer_path.dart';
 import 'package:portfolio/domain/pointer/pointer_status.dart';
@@ -110,6 +112,72 @@ void main() {
         lessThan(PointerConfig.travelFor(1280, 800)),
       );
     });
+  });
+
+  group('the title parallax is a share of the name (Vishal, 2026-11-21)', () {
+    test('desktop keeps its cursor parallax', () {
+      // Measured: the name is 518 px on a 1280 px screen.
+      expect(
+        PointerConfig.parallaxFor(
+          nameWidth: 518,
+          viewportWidth: 1280,
+          share: PointerConfig.titleSweepShare,
+        ),
+        closeTo(CursorConfig.titleParallax, 0.0002),
+      );
+      expect(
+        PointerConfig.parallaxFor(
+          nameWidth: 518,
+          viewportWidth: 1280,
+          share: PointerConfig.secondarySweepShare,
+        ),
+        closeTo(CursorConfig.secondaryTitleParallax, 0.0002),
+      );
+    });
+
+    test('a phone slides its name by the same share, not the same pixels', () {
+      const name = 341.0, screen = 412.0;
+      final k = PointerConfig.parallaxFor(
+        nameWidth: name,
+        viewportWidth: screen,
+        share: PointerConfig.titleSweepShare,
+      );
+      // A finger across the screen, or the tilt's full range (edge to edge).
+      final sweep = screen * k;
+      expect(sweep / name, closeTo(PointerConfig.titleSweepShare, 1e-9));
+      expect(sweep, greaterThan(15)); // was about 5 px at 0.012
+      // The tagline slides less: the two move against each other.
+      expect(
+        PointerConfig.secondarySweepShare,
+        lessThan(PointerConfig.titleSweepShare),
+      );
+    });
+
+    test("the tilt's full range reaches the edge on a portrait phone", () {
+      final c = PointerChooser(phone: true)..sceneAppeared(0);
+      c.tilted(40, 0, 0);
+      c.tilted(40, PointerConfig.tiltRange, 0.1);
+      expect(
+        c.target(0.1 + PointerConfig.handover, phoneScreen).x,
+        closeTo(412, 1e-6),
+      );
+    });
+
+    test(
+      'at full travel the name never reaches the edge, narrowest phone up',
+      () {
+        for (var w = 320.0; w <= 480; w += 10) {
+          // The widest the name may be: the fitted share of the screen.
+          final name = w * TitleConfig.primaryMaxWidthShare;
+          final half =
+              name *
+              PointerConfig.titleSweepShare /
+              2; // half a sweep either way of the centre
+          final margin = (w - name) / 2;
+          expect(half, lessThan(margin), reason: 'screen $w');
+        }
+      },
+    );
   });
 
   group('the chooser', () {

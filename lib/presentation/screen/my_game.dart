@@ -13,7 +13,6 @@ import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/backdrop_detail.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
-import 'package:portfolio/domain/config/cursor_config.dart';
 import 'package:portfolio/domain/config/pointer_config.dart';
 import 'package:portfolio/domain/pointer/pointer_status.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
@@ -457,21 +456,27 @@ class MyGame extends FlameGame
     // the backdrop's own (PORTFOLIO-22).
     _backdrop.nameBand = _title.nameBand;
 
-    // A portrait phone's own, smaller parallax (PointerConfig).
-    final portrait = size.y > size.x;
+    // The same share of the name's width on every screen for a full sweep
+    // (PointerConfig.titleSweepShare): a phone's name slides as visibly as
+    // a desktop's does under the cursor.
+    final nameWidth = _title.nameRestWidth;
     _title
       ..lightPosition = _cursor.position
       ..primaryParallax = _cursor.parallax(
         size,
-        portrait
-            ? PointerConfig.titleParallaxPortrait
-            : CursorConfig.titleParallax,
+        PointerConfig.parallaxFor(
+          nameWidth: nameWidth,
+          viewportWidth: size.x,
+          share: PointerConfig.titleSweepShare,
+        ),
       )
       ..secondaryParallax = _cursor.parallax(
         size,
-        portrait
-            ? PointerConfig.secondaryTitleParallaxPortrait
-            : CursorConfig.secondaryTitleParallax,
+        PointerConfig.parallaxFor(
+          nameWidth: nameWidth,
+          viewportWidth: size.x,
+          share: PointerConfig.secondarySweepShare,
+        ),
       );
 
     _reportExitWhenBothDone();

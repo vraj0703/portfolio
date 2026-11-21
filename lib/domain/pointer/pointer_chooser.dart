@@ -142,7 +142,6 @@ class PointerChooser {
         baseGamma: _baseGamma!,
         viewport: viewport,
         screenAngle: _screenAngle,
-        travel: travel,
       ),
       PointerSource.drift => DriftPath.at(
         now - _driftFrom,

@@ -79,6 +79,17 @@ class TitleLayerComponent extends PositionComponent
   @visibleForTesting
   bool get isRunning => _elapsed != null;
 
+  /// The name's width at rest, fitted to the screen (logical px): what the
+  /// parallax is a share of. Zero until it has laid out.
+  double get nameRestWidth {
+    if (!isLoaded || !_primary.isMounted) return 0;
+    return _primary.size.x *
+        TitleConfig.primaryFit(
+          naturalWidth: _primary.size.x,
+          viewportWidth: _viewportWidth,
+        );
+  }
+
   /// The name as it is drawn now, for the dimming behind it
   /// (PORTFOLIO-22): its fade (the entrance's and the exit's, the one the
   /// glyphs are drawn with), its centre on screen and its width at its
