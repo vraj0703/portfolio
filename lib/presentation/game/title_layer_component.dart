@@ -79,6 +79,22 @@ class TitleLayerComponent extends PositionComponent
   @visibleForTesting
   bool get isRunning => _elapsed != null;
 
+  /// The name as it is drawn now, for the dimming behind it
+  /// (PORTFOLIO-22): its fade (the entrance's and the exit's, the one the
+  /// glyphs are drawn with), its centre on screen and its width at its
+  /// current scale. Read, not timed: the dimming follows the name's own
+  /// animation, so the two arrive and leave as one thing.
+  NameBand get nameBand {
+    if (!isLoaded || !_primary.isMounted) return NameBand.absent;
+    final centre = _primary.absolutePosition;
+    return NameBand(
+      presence: _primary.fade,
+      centreXPx: centre.x,
+      centreYPx: centre.y,
+      halfWidthPx: _primary.size.x * _primary.scale.x.abs() / 2,
+    );
+  }
+
   @override
   Future<void> onLoad() async {
     await super.onLoad();
@@ -284,9 +300,6 @@ class TitleLayerComponent extends PositionComponent
   @override
   void update(double dt) {
     super.update(dt);
-    // The name's laid-out half width, for (E)'s band (logical pixels).
-    TitleContrastConfig.nameHalfWidthPx =
-        _primary.size.x * _primary.scale.x / 2;
 
     final elapsed = _elapsed;
     if (elapsed == null) return;

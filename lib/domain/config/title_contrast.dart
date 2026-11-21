@@ -57,11 +57,7 @@ abstract final class TitleContrastConfig {
   static const double warmMargin = 0.08; // beyond the name, in uv
   static const int warmNameBase = 0xFFF0EEEA;
 
-  /// The name's measured half width in logical pixels, set by the title as
-  /// it lays out, so (E)'s band is only as wide as the name.
-  static double nameHalfWidthPx = 0;
-
-  /// The dimming strength for [way] (0 = none).
+  /// The dimming strength for [way] at rest (0 = none).
   static double dimFor(TitleContrast way) => switch (way) {
     TitleContrast.dimBand => dimStrength,
     TitleContrast.dimAndDarker => dimStrengthLight,
@@ -69,11 +65,31 @@ abstract final class TitleContrastConfig {
     _ => 0,
   };
 
-  /// The band's half width in uv for [way] on a screen [height] tall.
-  static double halfWidthFor(TitleContrast way, double height) =>
-      way == TitleContrast.warmBand && nameHalfWidthPx > 0 && height > 0
-      ? nameHalfWidthPx / height + warmMargin
+  /// The dimming strength for [way] with the name as [band] has it: none
+  /// while the name is absent, the full strength only with the name at rest,
+  /// and in between exactly as far as the name has faded in (or out).
+  static double strengthFor(TitleContrast way, NameBand band) =>
+      dimFor(way) * band.presence.clamp(0.0, 1.0);
+
+  /// The band's half width in uv for [way] on a screen [height] tall. (E)'s
+  /// follows the name's drawn width, so it grows as the name grows.
+  static double halfWidthFor(TitleContrast way, NameBand band, double height) =>
+      way == TitleContrast.warmBand && height > 0
+      ? band.halfWidthPx / height + warmMargin
       : dimHalfWidth;
+
+  /// Where the band's centre sits, in the backdrop's uv (screen height = 1,
+  /// centre 0, up positive), on a screen [width] by [height]: on the name.
+  static (double, double) centreFor(
+    NameBand band,
+    double width,
+    double height,
+  ) => height > 0
+      ? (
+          (band.centreXPx - width / 2) / height,
+          -(band.centreYPx - height / 2) / height,
+        )
+      : (0, 0);
   static double halfHeightFor(TitleContrast way) =>
       way == TitleContrast.warmBand ? warmHalfHeight : dimHalfHeight;
   static double warmFor(TitleContrast way) =>
@@ -107,4 +123,35 @@ abstract final class TitleContrastConfig {
   static final bool hideName = Uri.base.queryParameters.containsKey(
     'pc-noname',
   );
+}
+
+/// The name as the dimming behind it needs it, one frame's worth: how far it
+/// is shown and where it is drawn. Read from the title layer, which animates
+/// the name, so the dimming has no clock of its own and cannot run ahead of
+/// or behind it.
+class NameBand {
+  const NameBand({
+    required this.presence,
+    required this.centreXPx,
+    required this.centreYPx,
+    required this.halfWidthPx,
+  });
+
+  /// No name on screen: before its entrance, after it has left.
+  static const NameBand absent = NameBand(
+    presence: 0,
+    centreXPx: 0,
+    centreYPx: 0,
+    halfWidthPx: 0,
+  );
+
+  /// How far the name is shown, `0`..`1`: its own fade, the exit's included.
+  final double presence;
+
+  /// The name's centre on screen, in logical pixels.
+  final double centreXPx;
+  final double centreYPx;
+
+  /// Half the name's drawn width (its current scale included), logical px.
+  final double halfWidthPx;
 }

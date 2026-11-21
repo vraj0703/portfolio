@@ -31,6 +31,11 @@ class BackdropComponent extends PositionComponent
 
   final Paint _paint = Paint();
 
+  /// The name the dimming sits behind, as the title layer drew it this frame
+  /// (`TitleLayerComponent.nameBand`, handed over by the game). Absent until
+  /// then: no name, no dimming.
+  NameBand nameBand = NameBand.absent;
+
   double _elapsed = 0;
   double _opacity = 0;
   bool _isRising = false;
@@ -142,21 +147,8 @@ class BackdropComponent extends PositionComponent
       ..setFloat(2, TitleContrastConfig.pinnedTime ?? _elapsed)
       ..setFloat(3, detail.steps.toDouble())
       ..setFloat(4, detail.octaves.toDouble())
-      ..setFloat(5, detail.stepScale)
-      // The dimming behind the name (TitleContrastConfig). Centred where the
-      // name sits: the screen's middle, or higher for (C).
-      ..setFloat(6, TitleContrastConfig.dimFor(TitleContrastConfig.current))
-      ..setFloat(7, TitleContrastConfig.riseFor(TitleContrastConfig.current))
-      ..setFloat(
-        8,
-        TitleContrastConfig.halfWidthFor(TitleContrastConfig.current, size.y),
-      )
-      ..setFloat(
-        9,
-        TitleContrastConfig.halfHeightFor(TitleContrastConfig.current),
-      )
-      ..setFloat(10, TitleContrastConfig.warmFor(TitleContrastConfig.current))
-      ..setFloat(11, TitleContrastConfig.shapeFor(TitleContrastConfig.current));
+      ..setFloat(5, detail.stepScale);
+    _setDimming(TitleContrastConfig.current);
 
     _paint.shader = shader;
     final rect = size.toRect();
@@ -164,6 +156,22 @@ class BackdropComponent extends PositionComponent
     for (final opacity in passes) {
       _draw(canvas, rect, opacity);
     }
+  }
+
+  /// The dimming behind the name (TitleContrastConfig), from [nameBand]:
+  /// as strong as the name is shown, on the name, as wide as it is drawn.
+  /// Only uniform values change, never the program, so the rehearsal's
+  /// compile still covers it (there the name is absent: strength zero).
+  void _setDimming(TitleContrast way) {
+    final (x, y) = TitleContrastConfig.centreFor(nameBand, size.x, size.y);
+    shader
+      ..setFloat(6, TitleContrastConfig.strengthFor(way, nameBand))
+      ..setFloat(7, y)
+      ..setFloat(8, TitleContrastConfig.halfWidthFor(way, nameBand, size.y))
+      ..setFloat(9, TitleContrastConfig.halfHeightFor(way))
+      ..setFloat(10, TitleContrastConfig.warmFor(way))
+      ..setFloat(11, TitleContrastConfig.shapeFor(way))
+      ..setFloat(12, x);
   }
 
   void _draw(Canvas canvas, Rect rect, double opacity) {
