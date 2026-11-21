@@ -10,6 +10,12 @@ abstract final class PointerConfig {
   /// the scene appeared, that carry the pointer to the screen's edge.
   static const double tiltRange = 20;
 
+  /// A phone counts as being tilted while its angle has moved more than
+  /// [tiltMoved] degrees within the last [tiltRest] seconds; a phone at rest
+  /// (on a table, or held very still) gives way to the drift.
+  static const double tiltMoved = 1.5;
+  static const double tiltRest = 4;
+
   /// One pass of the idle drift, seconds. Slow enough to read as the light
   /// moving on its own, not as something trying to get attention.
   static const double driftPeriod = 16;

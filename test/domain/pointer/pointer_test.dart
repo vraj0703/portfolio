@@ -122,8 +122,11 @@ void main() {
       expect(c.sourceAt(0.3), PointerSource.touch);
       c.fingerUp();
       expect(c.sourceAt(0.4), PointerSource.tilt);
-      // A phone held still sends nothing on some browsers: still the tilt.
-      expect(c.sourceAt(60), PointerSource.tilt);
+      // Left at rest (the ROG sent nothing more): the drift.
+      expect(
+        c.sourceAt(0.1 + PointerConfig.tiltRest + 0.01),
+        PointerSource.drift,
+      );
     });
 
     test('the first reading after a scene appears is the centre', () {
@@ -144,6 +147,27 @@ void main() {
       expect(p2.x, lessThan(206));
       expect(p2.y, greaterThan(457.5));
     });
+
+    test(
+      'a phone at rest drifts; moved again, the tilt resumes from there',
+      () {
+        final c = PointerChooser(phone: true)..sceneAppeared(0);
+        c.tilted(40, 0, 0);
+        // Jitter under the threshold is rest, however often it is sent.
+        for (var t = 0.5; t < 10; t += 0.5) {
+          c.tilted(40.5, -0.4, t);
+        }
+        expect(c.sourceAt(10), PointerSource.drift);
+        // Set down at a new angle, then picked up and tipped.
+        c.tilted(10, 0, 20);
+        expect(c.sourceAt(20), PointerSource.tilt);
+        c.tilted(10, 0, 21);
+        final p = c.target(21 + PointerConfig.handover, phoneScreen);
+        expect(p.x, closeTo(206, 1e-6));
+        c.tilted(10, 10, 22);
+        expect(c.target(23, phoneScreen).x, greaterThan(206));
+      },
+    );
 
     test('desktop: the mouse, the drift after it rests, back at once', () {
       final c = PointerChooser(phone: false)..sceneAppeared(0);

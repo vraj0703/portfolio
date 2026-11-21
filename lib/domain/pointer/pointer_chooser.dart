@@ -8,8 +8,8 @@ import 'package:portfolio/domain/pointer/pointer_path.dart';
 /// and answers; it reads no sensor and runs no clock.
 ///
 /// The order: a finger while it is down; on desktop, a mouse that has moved
-/// in the last [PointerConfig.mouseIdle] seconds; on a phone with a tilt
-/// sensor, the tilt;
+/// in the last [PointerConfig.mouseIdle] seconds; on a phone being tilted,
+/// the tilt;
 /// otherwise the idle drift. Reduced motion keeps the finger and the mouse
 /// (the visitor moving them) and puts everything else at the centre.
 ///
@@ -68,12 +68,35 @@ class PointerChooser {
     _beta = beta;
     _gamma = gamma;
     _screenAngle = screenAngle;
+    final restBeta = _restBeta, restGamma = _restGamma;
+    if (restBeta == null ||
+        restGamma == null ||
+        _apart(beta, restBeta) > PointerConfig.tiltMoved ||
+        _apart(gamma, restGamma) > PointerConfig.tiltMoved) {
+      // Moving again after a rest: measured from the angle it rested at, so
+      // it starts from the centre rather than wherever the old angle puts it.
+      if (restBeta != null && !_tiltLive(now)) {
+        _baseBeta = restBeta;
+        _baseGamma = restGamma;
+      }
+      _restBeta = beta;
+      _restGamma = gamma;
+      _movedAt = now;
+    }
   }
 
-  /// A phone that has sent a reading has a sensor, and it stays the source.
-  /// Browsers differ in how often they send: some only when the angle
-  /// changes, so a phone held still is silent and still tilted. Not a clock.
-  bool get _tiltLive => _beta != null;
+  double? _restBeta, _restGamma;
+  double _movedAt = double.negativeInfinity;
+
+  static double _apart(double a, double b) => (a - b).abs();
+
+  /// The tilt drives while the phone is being moved: its angle has changed
+  /// by more than [PointerConfig.tiltMoved] within [PointerConfig.tiltRest]
+  /// seconds. Judged by the angle, not by when readings arrive: browsers
+  /// differ (the ROG's Chrome sent one reading and then nothing for a phone
+  /// lying still). A phone at rest is no tilt: the drift takes over.
+  bool _tiltLive(double now) =>
+      _beta != null && now - _movedAt <= PointerConfig.tiltRest;
 
   /// Which source drives the pointer at [now].
   PointerSource sourceAt(double now) {
@@ -84,7 +107,7 @@ class PointerChooser {
     }
     if (reducedMotion) return PointerSource.still;
     if (phone) {
-      return _tiltLive ? PointerSource.tilt : PointerSource.drift;
+      return _tiltLive(now) ? PointerSource.tilt : PointerSource.drift;
     }
     // A desktop whose mouse has not moved: the centre, until it has been
     // idle as long as a mouse at rest would be.
