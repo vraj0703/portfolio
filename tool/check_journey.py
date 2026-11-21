@@ -15,6 +15,8 @@ already open with `pc-profile=1` in its URL). Each profile walks the same journe
                  failing if any project frame is focused on the way (PR 19: the stick's
                  corridor rule fired past the back wall and jumped to the last project)
   7. drawer      the menu opens the drawer, with the gallery's radio in it
+  8. contact hover (desktop) "let's connect" reaches the contact page, and the mouse on a word
+                 lights it (Vishal, 2026-11-21: "on contact page hover is not working")
 
 It fails on a HANG (no step done within its limit, or the screen frozen while input is going in)
 and on any console error or uncaught exception. Prints one JSON line per profile and exits
@@ -34,7 +36,7 @@ PORT = 9335
 
 # How long each step may take before it counts as a hang, in seconds.
 LIMITS = {"load": 150, "enter": 30, "gallery": 30, "back wall": 40, "testimonial": 30, "hall": 40,
-          "drawer": 10}
+          "drawer": 10, "contact hover": 40}
 # The screen must change at least this often while input is going in.
 FROZEN_S = 6
 
@@ -328,7 +330,83 @@ async def journey(cdp, p, url):
                 raise Hang("drawer: did not open with the gallery's radio in it")
             await asyncio.sleep(0.25)
     steps["drawer"] = round(time.monotonic() - t0, 1)
+    if not p["touch"]:
+        await contact_hover(cdp, p, steps)
     return steps
+
+
+async def png_shot(cdp):
+    """A lossless screen: a hover's lift is a few grey levels, which a JPEG blurs away."""
+    r = await cdp("Page.captureScreenshot", format="png")
+    return Image.open(io.BytesIO(base64.b64decode(r["data"]))).convert("RGB")
+
+
+async def label_box(cdp, label):
+    """The rectangle of the semantics node whose label is `label`, or None."""
+    # The one on screen: the drawer keeps a copy of its entries out of view.
+    js = f"""(() => {{ const e = [...document.querySelectorAll('flt-semantics')]
+      .filter(n => (n.getAttribute('aria-label') || n.textContent || '').trim() === {json.dumps(label)})
+      .map(n => n.getBoundingClientRect())
+      .find(r => r.width > 0 && r.x >= 0 && r.x + r.width <= innerWidth && r.y >= 0 && r.y + r.height <= innerHeight);
+      return e ? [e.x, e.y, e.width, e.height] : null; }})()"""
+    r = await cdp("Runtime.evaluate", expression=js, returnByValue=True)
+    return r["result"].get("value")
+
+
+async def contact_hover(cdp, p, steps):
+    """Desktop: the drawer's "let's connect" to the contact page; the mouse on "github" must
+    light the word (its letters brighten). A mouse parked in a corner first, so the word is
+    measured at rest and then under the pointer."""
+    t0 = time.monotonic()
+    # A real click where the entry is: a JS click on its semantics node did not navigate.
+    # The drawer slides in: wait for the entry to be on screen before clicking it.
+    entry = await label_box(cdp, "let's connect")
+    while entry is None:
+        if time.monotonic() - t0 > 10:
+            raise Hang("contact hover: 'let's connect' never came on screen in the drawer")
+        await asyncio.sleep(0.25)
+        entry = await label_box(cdp, "let's connect")
+    await asyncio.sleep(0.5)
+    entry = await label_box(cdp, "let's connect") or entry
+    await click(cdp, entry[0] + entry[2] / 2, entry[1] + entry[3] / 2)
+    while not await marked(cdp, "/#/contact"):
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            r = await cdp("Runtime.evaluate", returnByValue=True, expression=
+                          "performance.getEntriesByType('mark').map(m => m.name).filter(n => n.startsWith('scene:'))")
+            raise Hang(f"contact hover: the contact page was not reached (clicked {entry}; marks {r['result'].get('value')})")
+        await asyncio.sleep(0.25)
+    box = None
+    while box is None:
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            raise Hang("contact hover: no 'github' on the contact page")
+        await asyncio.sleep(0.5)
+        box = await label_box(cdp, "github")
+    # The row types itself on, centred, so its words slide until it is done: wait for
+    # the row to be still, with the mouse parked in a corner.
+    await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=5, y=p["h"] - 5)
+    rest = await png_shot(cdp)
+    while True:
+        await asyncio.sleep(0.5)
+        now = await png_shot(cdp)
+        band = (0, int(box[1]), p["w"], int(box[1] + box[3]))
+        if not any(v > 12 for v in ImageChops.difference(rest.crop(band), now.crop(band)).convert("L").getdata()):
+            break
+        rest = now
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            raise Hang("contact hover: the row never settled")
+    x, y, w, h = await label_box(cdp, "github") or box
+    await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x + w / 2, y=y + h / 2)
+    await asyncio.sleep(0.6)
+    lit = await png_shot(cdp)
+    crop = (int(x), int(y + h * 0.25), int(x + w), int(y + h * 0.75))
+    diff = ImageChops.difference(rest.crop(crop), lit.crop(crop)).convert("L")
+    lifted = sum(1 for v in diff.getdata() if v > 12)
+    if os.environ.get("JOURNEY_DEBUG"):
+        rest.save(os.path.join(tempfile.gettempdir(), "journey-contact-rest.png"))
+        lit.save(os.path.join(tempfile.gettempdir(), "journey-contact-lit.png"))
+    if lifted < 40:
+        raise Hang(f"contact hover: the mouse on 'github' did not light it ({lifted} px changed)")
+    steps["contact hover"] = round(time.monotonic() - t0, 1)
 
 
 async def run_profile(p, url, remote=None):
