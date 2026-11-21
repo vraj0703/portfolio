@@ -452,6 +452,11 @@ class MyGame extends FlameGame
     // skip its full-screen pass rather than rendering into a covered buffer.
     _shadow.isOccluded = _backdrop.isOpaque;
 
+    // The dimming behind the name follows the name as drawn this frame:
+    // its fade, place and width come from the title, never from a clock of
+    // the backdrop's own (PORTFOLIO-22).
+    _backdrop.nameBand = _title.nameBand;
+
     // A portrait phone's own, smaller parallax (PointerConfig).
     final portrait = size.y > size.x;
     _title

@@ -5,6 +5,7 @@ import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/domain/config/backdrop_detail.dart';
+import 'package:portfolio/domain/config/title_contrast.dart';
 import 'package:portfolio/domain/config/title_config.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 
@@ -29,6 +30,11 @@ class BackdropComponent extends PositionComponent
   final BackdropDetail detail;
 
   final Paint _paint = Paint();
+
+  /// The name the dimming sits behind, as the title layer drew it this frame
+  /// (`TitleLayerComponent.nameBand`, handed over by the game). Absent until
+  /// then: no name, no dimming.
+  NameBand nameBand = NameBand.absent;
 
   double _elapsed = 0;
   double _opacity = 0;
@@ -138,10 +144,11 @@ class BackdropComponent extends PositionComponent
     shader
       ..setFloat(0, size.x)
       ..setFloat(1, size.y)
-      ..setFloat(2, _elapsed)
+      ..setFloat(2, TitleContrastConfig.pinnedTime ?? _elapsed)
       ..setFloat(3, detail.steps.toDouble())
       ..setFloat(4, detail.octaves.toDouble())
       ..setFloat(5, detail.stepScale);
+    _setDimming(TitleContrastConfig.current);
 
     _paint.shader = shader;
     final rect = size.toRect();
@@ -149,6 +156,22 @@ class BackdropComponent extends PositionComponent
     for (final opacity in passes) {
       _draw(canvas, rect, opacity);
     }
+  }
+
+  /// The dimming behind the name (TitleContrastConfig), from [nameBand]:
+  /// as strong as the name is shown, on the name, as wide as it is drawn.
+  /// Only uniform values change, never the program, so the rehearsal's
+  /// compile still covers it (there the name is absent: strength zero).
+  void _setDimming(TitleContrast way) {
+    final (x, y) = TitleContrastConfig.centreFor(nameBand, size.x, size.y);
+    shader
+      ..setFloat(6, TitleContrastConfig.strengthFor(way, nameBand))
+      ..setFloat(7, y)
+      ..setFloat(8, TitleContrastConfig.halfWidthFor(way, nameBand, size.y))
+      ..setFloat(9, TitleContrastConfig.halfHeightFor(way))
+      ..setFloat(10, TitleContrastConfig.warmFor(way))
+      ..setFloat(11, TitleContrastConfig.shapeFor(way))
+      ..setFloat(12, x);
   }
 
   void _draw(Canvas canvas, Rect rect, double opacity) {
