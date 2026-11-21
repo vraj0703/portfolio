@@ -14,6 +14,8 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/backdrop_detail.dart';
 import 'package:portfolio/domain/config/bold_text_config.dart';
 import 'package:portfolio/domain/config/cursor_config.dart';
+import 'package:portfolio/domain/config/pointer_config.dart';
+import 'package:portfolio/domain/pointer/pointer_status.dart';
 import 'package:portfolio/domain/config/scene_layers.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
@@ -27,6 +29,7 @@ import 'package:portfolio/presentation/game/bold_text_component.dart';
 import 'package:portfolio/presentation/game/contact_dim_component.dart';
 import 'package:portfolio/presentation/game/logo_layer.dart';
 import 'package:portfolio/presentation/game/logo_overlay_component.dart';
+import 'package:portfolio/presentation/game/pointer_adapter.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 import 'package:portfolio/presentation/game/scroll_cue_component.dart';
 import 'package:portfolio/presentation/game/title_layer_component.dart';
@@ -51,7 +54,20 @@ class MyGame extends FlameGame
         PointerMoveCallbacks,
         MouseMovementDetector,
         HoverCallbacks {
-  MyGame({required this.bloc, required this.palette, required this.audio});
+  MyGame({
+    required this.bloc,
+    required this.palette,
+    required this.audio,
+    PointerStatus? pointerStatus,
+  }) : pointer = PointerAdapter(
+         phone: Browser.isPhone(),
+         status: pointerStatus,
+       );
+
+  /// Where the scene's one pointer comes from: the mouse, a finger, the
+  /// tilt or the idle drift (PORTFOLIO-27). It feeds [_cursor]; nothing else
+  /// reads input for the light or the parallax.
+  final PointerAdapter pointer;
 
   final SceneBloc bloc;
   final ScenePalette palette;
@@ -237,9 +253,13 @@ class MyGame extends FlameGame
     await add(
       FlameBlocListener<SceneBloc, SceneState>(
         bloc: bloc,
-        onNewState: _playCueFor,
+        onNewState: (state) {
+          _playCueFor(state);
+          pointer.scene(state);
+        },
       ),
     );
+    pointer.scene(bloc.state);
 
     unawaited(audio.preload());
     _report(1);
@@ -409,6 +429,10 @@ class MyGame extends FlameGame
     super.update(dt);
     if (!isLoaded) return;
 
+    // The adapter says where the pointer is (a finger, the mouse, the tilt
+    // or the drift); the tracker smooths it, once, as it always has.
+    final target = pointer.update(dt, size);
+    if (target != null) _trackCursor(target);
     _cursor.update(dt);
 
     if (_boldTextActive) {
@@ -428,12 +452,21 @@ class MyGame extends FlameGame
     // skip its full-screen pass rather than rendering into a covered buffer.
     _shadow.isOccluded = _backdrop.isOpaque;
 
+    // A portrait phone's own, smaller parallax (PointerConfig).
+    final portrait = size.y > size.x;
     _title
       ..lightPosition = _cursor.position
-      ..primaryParallax = _cursor.parallax(size, CursorConfig.titleParallax)
+      ..primaryParallax = _cursor.parallax(
+        size,
+        portrait
+            ? PointerConfig.titleParallaxPortrait
+            : CursorConfig.titleParallax,
+      )
       ..secondaryParallax = _cursor.parallax(
         size,
-        CursorConfig.secondaryTitleParallax,
+        portrait
+            ? PointerConfig.secondaryTitleParallaxPortrait
+            : CursorConfig.secondaryTitleParallax,
       );
 
     _reportExitWhenBothDone();
@@ -477,6 +510,8 @@ class MyGame extends FlameGame
     super.onDragStart(event);
     _dragTravelled = 0;
     _dragStroked = false;
+    _dragFinger = !_isMouse(event.deviceKind);
+    if (_dragFinger) pointer.fingerDown(event.canvasPosition);
     // A finger or a pen strokes, when the scene's rule says so; a mouse
     // drag scrolls, as it always has. Asked as "not a mouse": some touch
     // reaches Flutter web with an unknown kind (seen with adb and CDP touch),
@@ -490,6 +525,7 @@ class MyGame extends FlameGame
   @override
   void onDragUpdate(DragUpdateEvent event) {
     super.onDragUpdate(event);
+    if (_dragFinger) pointer.fingerMoved(event.canvasEndPosition);
     if (!_dragStrokes) {
       // A finger moving *up* is a wheel turning down: both mean "onward".
       _advanceBy(-event.localDelta.y * dragScrollGain);
@@ -519,6 +555,9 @@ class MyGame extends FlameGame
     if (delta <= 0) return;
     _scrollCue.requestAdvance();
   }
+
+  /// Whether the drag under way is a finger's (asked once, at its start).
+  bool _dragFinger = false;
 
   /// The finger's stroke state.
   double _dragTravelled = 0;
@@ -582,25 +621,62 @@ class MyGame extends FlameGame
   @override
   void onTapDown(TapDownEvent event) {
     super.onTapDown(event);
+    // A finger is the pointer while it is down. Asked as "not a mouse", as
+    // the drag is: some touch reaches Flutter web with an unknown kind.
+    if (_isMouse(event.deviceKind)) {
+      pointer.mouseMoved(event.canvasPosition);
+    } else {
+      pointer.fingerDown(event.canvasPosition);
+    }
     // The bloc decides whether a tap means anything yet.
     queuer.queue(event: const SceneEvent.tapped());
   }
 
   @override
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    pointer.fingerUp();
+    // The logo's tap, inside its own handler: the one moment iOS lets the
+    // page ask for the phone's motion. Asked once, there.
+    if (bloc.state is Logo) pointer.logoTapped();
+  }
+
+  @override
+  void onTapCancel(TapCancelEvent event) {
+    super.onTapCancel(event);
+    pointer.fingerUp();
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    pointer.fingerUp();
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    pointer.fingerUp();
+  }
+
+  static bool _isMouse(PointerDeviceKind? kind) =>
+      kind == PointerDeviceKind.mouse || kind == PointerDeviceKind.trackpad;
+
+  @override
   void onMouseMove(PointerHoverInfo info) {
     super.onMouseMove(info);
-    _trackCursor(info.eventPosition.widget);
+    pointer.mouseMoved(info.eventPosition.widget);
   }
 
   @override
   void onPointerMove(PointerMoveEvent event) {
     super.onPointerMove(event);
-    _trackCursor(event.localPosition);
+    pointer.mouseMoved(event.localPosition);
   }
 
-  /// Records where the pointer is. Nothing reads it directly — the tracker
-  /// smooths it on the frame clock, so a fast flick does not whip the light
-  /// across the scene.
+  /// Hands the tracker where the pointer is this frame, as the adapter chose
+  /// it. Nothing reads it directly — the tracker smooths it on the frame
+  /// clock, so a fast flick does not whip the light across the scene.
   void _trackCursor(Vector2 position) {
     if (!isLoaded) return;
 
@@ -654,6 +730,7 @@ class MyGame extends FlameGame
   @override
   void onRemove() {
     if (stage.value == this) stage.value = null;
+    pointer.dispose();
     super.onRemove();
   }
 

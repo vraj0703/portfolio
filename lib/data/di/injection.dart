@@ -1,3 +1,5 @@
+import 'package:portfolio/domain/pointer/pointer_status.dart';
+
 import 'dart:ui' show PlatformDispatcher;
 
 import 'package:portfolio/data/analytics/analytics_setup.dart';
@@ -44,9 +46,12 @@ Future<void> initDependencies() async {
   // Analytics: PostHog with a token, silence without one. A build with no
   // token sends nothing and loads nothing (docs/analytics/README.md).
   di.registerLazySingleton<Analytics>(createAnalytics);
+  // The pointer's source, written by the game, read by the analytics.
+  di.registerLazySingleton<PointerStatus>(PointerStatus.new);
   di.registerLazySingleton<SiteEvents>(
     () => SiteEvents(
       di.get<Analytics>(),
+      pointer: di.get<PointerStatus>(),
       viewport: () {
         final view = PlatformDispatcher.instance.implicitView;
         if (view == null) return (0, 0);
