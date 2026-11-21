@@ -63,8 +63,9 @@ class LogoOverlayComponent extends PositionComponent
   bool _isOnShow = false;
 
   /// A touch's first tap is showing the hover (`Logo.touchHovered`): the
-  /// lines spread as a mouse at the edge spreads them, and the label types
-  /// itself on again. Held for [LogoConfig.touchHoverHold], then reported.
+  /// light and the lines follow the held finger as they follow a cursor, and
+  /// the label types itself on again. Held for [LogoConfig.touchHoverHold],
+  /// then reported.
   bool _armed = false;
   double _armedFor = 0;
   double _retype = 1;
@@ -209,10 +210,7 @@ class LogoOverlayComponent extends PositionComponent
 
     // Lines trail the pointer, mapped from its distance off centre.
     if (_viewport.x > 0) {
-      // A touch's hover: spread as far as a mouse at the edge spreads them.
-      final reach = _armed
-          ? 1.0
-          : (cursor.x.abs() / (_viewport.x / 2)).clamp(0.0, 1.0);
+      final reach = (cursor.x.abs() / (_viewport.x / 2)).clamp(0.0, 1.0);
       final travel = reach * LogoConfig.lineTravel;
       _right.target = travel;
       _left.target = -travel;

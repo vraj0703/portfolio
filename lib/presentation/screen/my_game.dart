@@ -255,8 +255,14 @@ class MyGame extends FlameGame
         onNewState: (state) {
           _playCueFor(state);
           pointer.scene(state);
-          // The touch hover lapsed: the held light goes back to its source.
-          if (state is Logo && !state.touchHovered) pointer.fingerUp();
+          // A touch's hover on the logo holds the light where the finger
+          // was until the second tap or the lapse. Keyed to the state, not
+          // to the tap's lift: the lift can arrive before the bloc has armed.
+          if (state is Logo && state.touchHovered) {
+            pointer.holdLastFinger();
+          } else {
+            pointer.release();
+          }
         },
       ),
     );
@@ -648,10 +654,7 @@ class MyGame extends FlameGame
   @override
   void onTapUp(TapUpEvent event) {
     super.onTapUp(event);
-    // A touch's hover on the logo holds the light where the finger was,
-    // until the second tap or the hover's lapse.
-    final state = bloc.state;
-    if (!(state is Logo && state.touchHovered)) pointer.fingerUp();
+    pointer.fingerUp();
     // The logo's tap, inside its own handler: the one moment iOS lets the
     // page ask for the phone's motion. Asked once, there.
     if (bloc.state is Logo) pointer.logoTapped();

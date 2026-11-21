@@ -72,6 +72,8 @@ class PointerAdapter {
   void fingerDown(Vector2 at) => chooser.fingerDown(at);
   void fingerMoved(Vector2 at) => chooser.fingerMoved(at);
   void fingerUp() => chooser.fingerUp();
+  void holdLastFinger() => chooser.holdLastFinger();
+  void release() => chooser.release();
 
   /// Advances the clock by [dt] and answers where the pointer is on
   /// [viewport], or null where the pointer lights nothing (the gallery, the

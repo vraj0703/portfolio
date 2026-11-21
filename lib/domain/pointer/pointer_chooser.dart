@@ -56,9 +56,35 @@ class PointerChooser {
     _mouseAt = now;
   }
 
-  void fingerDown(Vector2 at) => _finger = at.clone();
-  void fingerMoved(Vector2 at) => _finger = at.clone();
-  void fingerUp() => _finger = null;
+  void fingerDown(Vector2 at) => _finger = (_lastFinger = at.clone()).clone();
+  void fingerMoved(Vector2 at) => _finger = (_lastFinger = at.clone()).clone();
+
+  /// The finger lifted. Ignored while [holdLastFinger] holds it: the lift
+  /// of the very tap that asked for the hold can arrive after it.
+  void fingerUp() {
+    if (!_held) _finger = null;
+  }
+
+  Vector2? _lastFinger;
+  bool _held = false;
+
+  /// Holds the pointer where the last finger was, as if still down, until
+  /// [release]: the logo's touch hover, which outlasts the tap that asked
+  /// for it.
+  void holdLastFinger() {
+    final at = _lastFinger;
+    if (at == null) return;
+    _finger = at.clone();
+    _held = true;
+  }
+
+  /// Ends a hold (the hover lapsed, or the logo was left). A finger that is
+  /// not held is left alone.
+  void release() {
+    if (!_held) return;
+    _held = false;
+    _finger = null;
+  }
 
   /// A tilt reading. With no angle held yet, this is it: the pointer starts
   /// at the centre and moves from there.

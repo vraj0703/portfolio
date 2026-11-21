@@ -279,6 +279,24 @@ void main() {
       );
     });
 
+    test("the logo's touch hover holds the light at the last finger", () {
+      final c = PointerChooser(phone: true)..sceneAppeared(0);
+      c.fingerDown(Vector2(80, 500));
+      c.fingerUp(); // the lift, before the bloc has armed
+      expect(c.sourceAt(0.1), PointerSource.drift);
+      c.holdLastFinger(); // armed
+      expect(c.target(0.2, phoneScreen), Vector2(80, 500));
+      // The lift of the same tap, arriving after the bloc armed: still held.
+      c.fingerUp();
+      expect(c.target(0.25, phoneScreen), Vector2(80, 500));
+      c.release(); // lapsed, or entered
+      expect(c.sourceAt(0.3), PointerSource.drift);
+      // A finger that is not held is not released by a state change.
+      c.fingerDown(Vector2(10, 10));
+      c.release();
+      expect(c.sourceAt(0.4), PointerSource.touch);
+    });
+
     test('reduced motion: no drift, no tilt, the light at the centre', () {
       final c = PointerChooser(phone: true, reducedMotion: true)
         ..sceneAppeared(0);
