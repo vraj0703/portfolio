@@ -113,6 +113,8 @@ class CreditsDialog extends StatelessWidget {
               // the contact row does.
               const SizedBox(height: 18),
               const _Closing(),
+              // Room under the last line, so it does not sit on the edge.
+              const SizedBox(height: 12),
             ],
           ),
         ),
