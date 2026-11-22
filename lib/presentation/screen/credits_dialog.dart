@@ -1,3 +1,6 @@
+import 'package:portfolio/domain/contact/contact_links.dart';
+import 'package:portfolio/domain/analytics/analytics.dart';
+import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/presentation/widgets/close_icon.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -105,6 +108,11 @@ class CreditsDialog extends StatelessWidget {
 
               for (final group in Credits.groups)
                 _CreditGroupBlock(group: group),
+
+              // Vishal's closing lines; "write to me" opens the same e-mail
+              // the contact row does.
+              const SizedBox(height: 18),
+              const _Closing(),
             ],
           ),
         ),
@@ -143,6 +151,46 @@ class _CreditGroupBlock extends StatelessWidget {
                 style: type.creditsBody.copyWith(color: colors.creditsBody),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The dialog's last words, with the way to write in them.
+class _Closing extends StatelessWidget {
+  const _Closing();
+
+  @override
+  Widget build(BuildContext context) {
+    final strings = context.strings;
+    final style = context.typography.creditsBody.copyWith(
+      color: context.colors.creditsBody,
+    );
+    return Text.rich(
+      TextSpan(
+        style: style,
+        children: <InlineSpan>[
+          TextSpan(text: strings.creditsClosingBefore),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.baseline,
+            baseline: TextBaseline.alphabetic,
+            child: Semantics(
+              link: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  locate<SiteEvents>().contactLinkClicked('email');
+                  locate<ContactLinks>().composeEmail();
+                },
+                child: Text(
+                  strings.creditsClosingLink,
+                  style: style.copyWith(decoration: TextDecoration.underline),
+                ),
+              ),
+            ),
+          ),
+          TextSpan(text: strings.creditsClosingAfter),
         ],
       ),
     );
