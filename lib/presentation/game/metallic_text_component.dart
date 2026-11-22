@@ -2,6 +2,7 @@ import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
+import 'package:portfolio/domain/config/title_shine.dart';
 import 'package:portfolio/presentation/game/rehearsal_pass.dart';
 
 /// Text painted with the metallic shader, so the glyphs read as brushed metal
@@ -97,7 +98,8 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
       ..setFloat(7, baseColor.b)
       ..setFloat(8, shown.clamp(0.0, 1.0))
       ..setFloat(9, lightPosition.x * dpr)
-      ..setFloat(10, lightPosition.y * dpr);
+      ..setFloat(10, lightPosition.y * dpr)
+      ..setFloat(11, TitleShine.inUse);
 
     super.render(canvas);
   }

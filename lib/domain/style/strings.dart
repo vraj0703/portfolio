@@ -8,6 +8,10 @@ abstract class AppStrings {
   String get appTitle;
   String get tapToEnter;
 
+  /// The logo's label on a phone, where the first tap shows the hover and
+  /// the second enters (PORTFOLIO-30).
+  String get doubleTap;
+
   /// The hero title and the line beneath it.
   String get primaryTitle;
   String get secondaryTitle;
@@ -108,6 +112,9 @@ class DefaultAppStrings implements AppStrings {
 
   @override
   String get tapToEnter => 'TAP TO ENTER';
+
+  @override
+  String get doubleTap => 'DOUBLE TAP';
 
   @override
   String get primaryTitle => 'VISHAL RAJ';

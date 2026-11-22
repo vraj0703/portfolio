@@ -36,6 +36,23 @@ abstract class AppColors {
   Color get contactMenuText;
   Color get contactMenuTextActive;
 
+  /// The theme's panel: one surface for the Made with heart dialog, the
+  /// menu drawer and the contact links on a phone (Vishal, 2026-11-22:
+  /// "make the contact options background similar to the made with heart
+  /// dialog or the menu drawer"). Its hairline edge, and the ink that reads
+  /// on it at 4.5:1 or better, resting and active, and a pressed row.
+  Color get panelSurface;
+  Color get panelBorder;
+  Color get panelInk;
+  Color get panelInkActive;
+  Color get panelPressed;
+
+  /// The contact links' plate on a phone: the panel.
+  Color get contactPlate;
+
+  /// A pressed link's row on that plate.
+  Color get contactPressed;
+
   /// The dots between one destination and the next.
   Color get contactSeparator;
 
@@ -191,8 +208,34 @@ class DefaultAppColors implements AppColors {
   @override
   Color get contactMenuText => _menuInk.withValues(alpha: 0.82);
 
+  /// A real step from the resting ink, not a few grey levels (PORTFOLIO-29:
+  /// the hover was 2-3 levels on desktop): white.
   @override
-  Color get contactMenuTextActive => _menuInk;
+  Color get contactMenuTextActive => const Color(0xFFFFFFFF);
+
+  @override
+  Color get panelSurface => sceneBackground;
+
+  @override
+  Color get panelBorder => _ink.withValues(alpha: 0.18);
+
+  /// The brick of the logo's label, deepened until it reads on the panel:
+  /// the label's own #9A482F reaches only 2.2:1 there; this, about 5.5:1.
+  @override
+  Color get panelInk => const Color(0xFF3F190E);
+
+  /// Darker again: a press is a real step, not a few grey levels.
+  @override
+  Color get panelInkActive => const Color(0xFF1E0B05);
+
+  @override
+  Color get panelPressed => _ink.withValues(alpha: 0.16);
+
+  @override
+  Color get contactPlate => panelSurface;
+
+  @override
+  Color get contactPressed => panelPressed;
 
   @override
   Color get contactSeparator => _menuInk.withValues(alpha: 0.4);
@@ -208,7 +251,7 @@ class DefaultAppColors implements AppColors {
 
   /// The drawer's ground: the room's own dark, not a slate of its own.
   @override
-  Color get menuPanel => sceneBackground;
+  Color get menuPanel => panelSurface;
 
   /// What the scene is dimmed by behind it. The same veil the contact screen
   /// uses, so a panel over the scene reads the same way twice.
@@ -235,10 +278,10 @@ class DefaultAppColors implements AppColors {
   Color get sceneVeil => const Color(0xFF000000);
 
   @override
-  Color get creditsPanel => sceneBackground;
+  Color get creditsPanel => panelSurface;
 
   @override
-  Color get creditsBorder => _ink.withValues(alpha: 0.18);
+  Color get creditsBorder => panelBorder;
 
   @override
   Color get creditsBarrier => sceneBackground.withValues(alpha: 0.72);

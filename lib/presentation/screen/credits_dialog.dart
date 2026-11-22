@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/credits.dart';
+import 'package:portfolio/domain/style/panel_shape.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
 import 'package:portfolio/domain/style/strings.dart';
@@ -42,7 +43,7 @@ class CreditsDialog extends StatelessWidget {
       backgroundColor: colors.creditsPanel,
       insetPadding: const EdgeInsets.all(24),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: BorderRadius.circular(PanelShape.radius),
         // A hairline rather than a shadow. The ground behind is the same
         // colour as the dialog, so without an edge the panel has no outline
         // at all and the credits read as printed on the scene.

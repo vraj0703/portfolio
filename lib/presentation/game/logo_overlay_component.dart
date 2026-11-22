@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/contact/contact_layout.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
@@ -21,7 +22,11 @@ import 'package:portfolio/presentation/game/bouncy_line.dart';
 /// entrance is *actually* finished instead of guessing at a duration.
 class LogoOverlayComponent extends PositionComponent
     with FlameBlocListenable<SceneBloc, SceneState> {
-  LogoOverlayComponent({required this.palette, required this.queuer});
+  LogoOverlayComponent({
+    required this.palette,
+    required this.queuer,
+    this.touch = false,
+  });
 
   final ScenePalette palette;
   final Queuer queuer;
@@ -32,7 +37,16 @@ class LogoOverlayComponent extends PositionComponent
   /// what they flank. Blanking the label rather than hiding the component is
   /// what keeps the lines' spring, their entrance and their pointer-tracking
   /// as one piece of behaviour instead of two.
-  String get label => _isContact ? '' : palette.tapToEnter;
+  String get label => _isContact
+      ? ''
+      : touch
+      ? palette.doubleTap
+      : palette.tapToEnter;
+
+  /// A phone: the label says what a touch does there (PORTFOLIO-30). After
+  /// the first tap it types the same words again: the gesture is under way,
+  /// and the next tap enters, so "double tap" still holds.
+  final bool touch;
 
   bool _isContact = false;
 
@@ -93,7 +107,7 @@ class LogoOverlayComponent extends PositionComponent
       text: '',
       textRenderer: TextPaint(style: palette.enterStyle),
       anchor: Anchor.center,
-    );
+    )..scale = Vector2.all(_scale);
     add(_text);
   }
 
@@ -102,6 +116,12 @@ class LogoOverlayComponent extends PositionComponent
     super.onGameResize(size);
     _viewport = size;
     position = Vector2(size.x / 2, size.y - LogoConfig.overlayBottomMargin);
+    _scale = LogoConfig.labelScaleFor(
+      viewportWidth: size.x,
+      viewportHeight: size.y,
+      labelHalfWidth: _labelHalfWidth,
+    );
+    if (isLoaded) _text.scale = Vector2.all(_scale);
   }
 
   @override
@@ -160,9 +180,32 @@ class LogoOverlayComponent extends PositionComponent
     _right.reset();
   }
 
+  /// The lines' gap, length and travel on this screen: the desktop values,
+  /// or on a portrait phone fitted around the label (or the contact row) so
+  /// nothing leaves the screen (PORTFOLIO-29).
+  ({double gap, double length, double travel}) get _lines =>
+      LogoConfig.linesFor(
+        viewportWidth: _viewport.x,
+        viewportHeight: _viewport.y,
+        // On the contact screen, around the links as they stand (on a
+        // phone: a block nearly the screen's width, so no lines).
+        innerHalfWidth: _isContact
+            ? ContactLayout.forScreen(_viewport.x, _viewport.y).blockWidth / 2
+            : _labelHalfWidth * _scale,
+        baseGap: _isContact
+            ? LogoConfig.contactGap(_viewport.x)
+            : LogoConfig.lineGap,
+      );
+
   /// Half the clear space the lines leave between them.
-  double get _gap =>
-      _isContact ? LogoConfig.contactGap(_viewport.x) : LogoConfig.lineGap;
+  double get _gap => _lines.gap;
+
+  /// The label and its lines scale with the mark at home (PORTFOLIO-29).
+  double _scale = 1;
+
+  /// Half the full label's width at its own size, measured once.
+  late final double _labelHalfWidth =
+      TextPaint(style: palette.enterStyle).getLineMetrics(label).width / 2;
 
   @override
   void update(double dt) {
@@ -211,7 +254,7 @@ class LogoOverlayComponent extends PositionComponent
     // Lines trail the pointer, mapped from its distance off centre.
     if (_viewport.x > 0) {
       final reach = (cursor.x.abs() / (_viewport.x / 2)).clamp(0.0, 1.0);
-      final travel = reach * LogoConfig.lineTravel;
+      final travel = reach * _lines.travel;
       _right.target = travel;
       _left.target = -travel;
     }
@@ -232,8 +275,8 @@ class LogoOverlayComponent extends PositionComponent
     );
 
     // Both lines fling outward as the layer leaves.
-    _right.target = LogoConfig.lineTravel;
-    _left.target = -LogoConfig.lineTravel;
+    _right.target = _lines.travel;
+    _left.target = -_lines.travel;
   }
 
   /// Fraction of the label that has typed on.
@@ -271,7 +314,8 @@ class LogoOverlayComponent extends PositionComponent
     required Path path,
     required double gap,
   }) {
-    final length = LogoConfig.lineLength * line.scale;
+    final length = _lines.length * line.scale;
+    if (length <= 0) return;
     final startX = line.position + gap;
     final endX = startX + (gap > 0 ? length : -length);
 

@@ -181,8 +181,11 @@ class MyGame extends FlameGame
           ..homeSize = markSize.clone()
           ..viewport = size.clone();
 
-    _overlay = LogoOverlayComponent(palette: palette, queuer: queuer)
-      ..priority = SceneLayers.affordance;
+    _overlay = LogoOverlayComponent(
+      palette: palette,
+      queuer: queuer,
+      touch: Browser.isPhone(),
+    )..priority = SceneLayers.affordance;
 
     _title = TitleLayerComponent(
       palette: palette,

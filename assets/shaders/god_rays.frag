@@ -7,6 +7,10 @@ uniform vec2 uLightPos;// Light Position
 uniform vec2 uLogoPos;// Logo Center
 uniform vec2 uLogoSize;// Logo Size
 uniform vec2 uCursorPos;
+// The light's size against the mark's: the mark's own scale at home (1 on
+// desktop; 1 + LogoConfig.phoneMarkBoost on a portrait phone), so the light
+// does not read smaller beside a larger mark (PORTFOLIO-29).
+uniform float uLightScale;
 uniform sampler2D uLogoTexture;// Your current logo image
 
 out vec4 fragColor;
@@ -101,7 +105,7 @@ void main() {
 
     vec3 finalColor = mix(noisyFloor, shadowColor, t);
 
-    float d = distToLight / uSize.y;
+    float d = distToLight / (uSize.y * uLightScale);
 
     // 2. The Core (The physical light bulb)
     // 0.015 = roughly 1.5% of screen height

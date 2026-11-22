@@ -279,6 +279,8 @@ class LogoShadowComponent extends PositionComponent {
       ..setFloat(7, markSize.y)
       ..setFloat(8, cursorPosition.x)
       ..setFloat(9, cursorPosition.y)
+      // The light grows with the mark at home (one factor, the same rule).
+      ..setFloat(10, LogoConfig.homeScaleFor(size.x, size.y))
       ..setImageSampler(0, artwork);
 
     _paint.shader = shader;
@@ -301,7 +303,8 @@ class LogoShadowComponent extends PositionComponent {
 /// as it is on the loading curtain — they show the same logo either side of
 /// the reveal, and any difference reads as the logo changing size.
 Vector2 markSizeFor(Vector2 viewport) {
-  final width = LogoConfig.logoMarkWidthFor(
+  // At home: a little larger on a portrait phone (PORTFOLIO-29).
+  final width = LogoConfig.homeMarkWidthFor(
     viewportWidth: viewport.x,
     viewportHeight: viewport.y,
   );

@@ -78,6 +78,108 @@ abstract final class LogoConfig {
     return capped < heightLimited ? capped : heightLimited;
   }
 
+  /* -- The mark at home on a phone (PORTFOLIO-29) ---------------------- */
+
+  /// How much larger the mark stands at home on a portrait phone (the logo
+  /// screen and the contact screen, which share it), as a share of the
+  /// desktop rule's size. Vishal, 2026-11-22: "make logo on both logo and
+  /// contact screen take little more space in the phone". Shot at 0, 0.20,
+  /// 0.35, 0.50 and 0.70 on the ROG; Vishal picked 0.50 (2026-11-22). The
+  /// others one constant away (`?pc-mark=35|50|70` to compare).
+  static const double phoneMarkBoost = 0.50;
+
+  /// The boost in use: [phoneMarkBoost], or `?pc-mark=N` (percent) on the URL.
+  static final double phoneMarkBoostInUse = _boostFromUrl() ?? phoneMarkBoost;
+
+  static double? _boostFromUrl() {
+    final v = double.tryParse(Uri.base.queryParameters['pc-mark'] ?? '');
+    return v == null ? null : v / 100;
+  }
+
+  /// The widest short side that counts as a phone (as `Browser.isPhone`).
+  static const double phoneShortSide = 600;
+
+  /// A portrait phone: taller than wide, and narrow.
+  static bool isPortraitPhone(double width, double height) =>
+      height > width && width <= phoneShortSide;
+
+  /// How much the mark, its label and the label's lines are scaled at home
+  /// on a screen [width] by [height]: 1 everywhere but a portrait phone.
+  static double homeScaleFor(double width, double height) =>
+      isPortraitPhone(width, height) ? 1 + phoneMarkBoostInUse : 1;
+
+  /// The mark's width at home (centred on the logo and contact screens). The
+  /// desktop rule ([logoMarkWidthFor]) times [homeScaleFor]. The parked
+  /// corner mark on a phone has its own rectangle (`TitleChrome`) and does
+  /// not grow with it.
+  static double homeMarkWidthFor({
+    required double viewportWidth,
+    required double viewportHeight,
+  }) =>
+      logoMarkWidthFor(
+        viewportWidth: viewportWidth,
+        viewportHeight: viewportHeight,
+      ) *
+      homeScaleFor(viewportWidth, viewportHeight);
+
+  /// The label's two lines on a screen [viewportWidth] wide, around a label
+  /// (or row) [innerHalfWidth] from the centre: the gap from the centre to
+  /// each line, its length at rest, and how far it may travel. Anything but a
+  /// portrait phone keeps [baseGap], [lineLength] and [lineTravel] exactly
+  /// (desktop unchanged). On a portrait phone (at 411 px they sat at or past
+  /// the edge), the gap hugs
+  /// the label and the room left to the edge, less [lineEdgeMargin], is
+  /// shared between the length and the travel, so nothing leaves the screen.
+  /// No room at all: length zero, the lines are not drawn.
+  static ({double gap, double length, double travel}) linesFor({
+    required double viewportWidth,
+    required double viewportHeight,
+    required double innerHalfWidth,
+    double baseGap = lineGap,
+  }) {
+    if (!isPortraitPhone(viewportWidth, viewportHeight)) {
+      return (gap: baseGap, length: lineLength, travel: lineTravel);
+    }
+    final half = viewportWidth / 2;
+    final gap = innerHalfWidth + lineLabelClearance;
+    final room = half - lineEdgeMargin - gap;
+    if (room <= 0) return (gap: gap, length: 0, travel: 0);
+    final length = room / 2 < lineLength ? room / 2 : lineLength;
+    final travel = room - length < lineTravel ? room - length : lineTravel;
+    return (gap: gap, length: length, travel: travel);
+  }
+
+  /// The label's scale on a screen [viewportWidth] by [viewportHeight]: the
+  /// mark's ([homeScaleFor]), but capped where its lines would fall under
+  /// [minLineLength] (PORTFOLIO-29: at +70 % they were stubs). Never below
+  /// 1: the desktop label is never shrunk.
+  static double labelScaleFor({
+    required double viewportWidth,
+    required double viewportHeight,
+    required double labelHalfWidth,
+  }) {
+    final mark = homeScaleFor(viewportWidth, viewportHeight);
+    if (mark <= 1 || labelHalfWidth <= 0) return mark;
+    final roomForLabel =
+        viewportWidth / 2 -
+        lineEdgeMargin -
+        lineLabelClearance -
+        2 * minLineLength;
+    final cap = roomForLabel / labelHalfWidth;
+    final capped = mark < cap ? mark : cap;
+    return capped < 1 ? 1 : capped;
+  }
+
+  /// The shortest a label line may get before the label stops growing.
+  static const double minLineLength = 24;
+
+  /// Clear space between a line's outer end and the screen's edge.
+  static const double lineEdgeMargin = 12;
+
+  /// Clear space between the label and a line's inner end, where the gap
+  /// hugs the label.
+  static const double lineLabelClearance = 14;
+
   /* -- Overlay --------------------------------------------------------- */
 
   /// Distance from the bottom of the viewport to the affordance.
