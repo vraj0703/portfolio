@@ -11,16 +11,32 @@ abstract final class LiveFrames {
     'shunya-systems': 'https://shunya.systems',
   };
 
+  /// The sites that allow this origin to frame them today. A site that
+  /// refuses (X-Frame-Options, or a frame-ancestors without us) still fires
+  /// the iframe's load, with the browser's "refused to connect" page in it,
+  /// and a cross-origin parent cannot tell that from the real page: so it is
+  /// declared here, not detected. shunya.systems joins once its
+  /// frame-ancestors change (vraj0703/shunya-site) is live.
+  static const Set<String> _frameable = <String>{};
+
   /// A testing aid, never set by a visitor: `?pc-live=URL` points every live
   /// frame at URL (a local copy of a site served with the new header).
   static final String? _override = Uri.base.queryParameters['pc-live'];
 
-  /// The live site for project [id], or null when its frame has none.
+  /// The live site for project [id], or null when its frame has none, or
+  /// has one that does not allow framing yet (then the frame keeps its
+  /// picture and the link to open the site). `?pc-live=` overrides both.
   static String? urlFor(String id) {
     final site = _sites[id];
     if (site == null) return null;
-    return _override ?? site;
+    final override = _override;
+    if (override != null) return override;
+    return _frameable.contains(id) ? site : null;
   }
+
+  /// The site to open in its own tab from project [id]'s frame, framed or
+  /// not.
+  static String? siteFor(String id) => _sites[id];
 
   /// The camera counts as arrived when it is this close to its focus pose
   /// (world units): square to the frame, so the card is an upright rectangle

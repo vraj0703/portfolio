@@ -395,7 +395,7 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     if (current.live.projectId == event.projectId && current.live.isUp) {
       return null;
     }
-    if (LiveFrames.urlFor(event.projectId) == null) return null;
+    if (LiveFrames.siteFor(event.projectId) == null) return null;
     emit(
       current.copyWith(
         live: LiveFrame(

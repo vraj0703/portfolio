@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/live_frames.dart';
+import 'package:portfolio/presentation/gallery/live_frame_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/swipe_map.dart';
 import 'package:portfolio/domain/gallery/wall_steps.dart';
@@ -275,6 +277,12 @@ class _GalleryViewState extends State<GalleryView> {
   /// rebuilding one from the scroll position would answer for a different
   /// frame than the one on screen.
   PerspectiveCamera? _lastCamera;
+
+  /// Where the focused frame's card is on the screen, while its live site
+  /// is up (PORTFOLIO-6): a rectangle, so a notifier, not the bloc.
+  final ValueNotifier<FocusedCard?> _liveRect = ValueNotifier<FocusedCard?>(
+    null,
+  );
   Size _viewSize = Size.zero;
 
   /// Clock the gate reasons in. Started with the view, so a gesture already
@@ -378,6 +386,9 @@ class _GalleryViewState extends State<GalleryView> {
   void _focus(Placement? frame) {
     if (frame?.project?.id == _focused?.project?.id) return;
 
+    // The live site comes down the moment focus leaves its frame.
+    _liveRect.value = null;
+    context.read<SceneBloc>().queue(event: const SceneEvent.liveFrameEnded());
     setState(() => _focused = frame);
     _placeControls(frame);
     locate<SiteTelemetry>().onPiece(frame?.project?.id);
@@ -805,6 +816,7 @@ class _GalleryViewState extends State<GalleryView> {
 
   @override
   void dispose() {
+    _liveRect.dispose();
     _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
@@ -947,6 +959,13 @@ class _GalleryViewState extends State<GalleryView> {
                 },
                 child: _surface(context),
               ),
+
+              // The focused frame's live site over its card (PORTFOLIO-6),
+              // above the scene and below the controls' fallback row.
+              // Only once the corridor is built: before that there is no frame
+              // to focus, and nothing for it to read.
+              if (_gallery != null)
+                Positioned.fill(child: LiveFrameOverlay(cardRect: _liveRect)),
 
               // A sibling above the gate, not a child of it. Nested, every tap
               // on a control also reached the listener's `onPointerUp` —
@@ -1112,6 +1131,7 @@ class _GalleryViewState extends State<GalleryView> {
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);
+        _arriveLive();
         if (_probe) {
           final eye = _eye;
           Browser.mark(
@@ -1411,6 +1431,33 @@ class _GalleryViewState extends State<GalleryView> {
   /// Frame-rate independent, rather than a fixed fraction per frame: the
   /// latter closes a different amount of the gap at 60fps than at 120, so
   /// the same move reads as a different speed on a different machine.
+  /// The focused frame's live site, once the camera has arrived square to
+  /// it (PORTFOLIO-6): asks the scene for it, and keeps the card's screen
+  /// rectangle where the iframe lies. Before arrival the card is still
+  /// turning on the screen and an iframe could not lie flat over it.
+  void _arriveLive() {
+    final frame = _focused;
+    final id = frame?.project?.id;
+    final camera = _lastCamera;
+    if (frame == null || id == null || camera == null) return;
+    // A frame with a site gets the link to it; one that may be framed gets
+    // the site itself as well.
+    if (LiveFrames.siteFor(id) == null) return;
+    if (_cameraGap() > LiveFrames.arrivalGap) return;
+    final rect = FramePicker.cardRectOf(
+      frame,
+      (world) => camera.worldToScreen(world, _viewSize),
+    );
+    final card = rect == null ? null : FocusedCard(projectId: id, rect: rect);
+    if (card != _liveRect.value) _liveRect.value = card;
+    if (LiveFrames.urlFor(id) == null) return;
+    final bloc = context.read<SceneBloc>();
+    final state = bloc.state;
+    if (state is Gallery && state.live.projectId != id) {
+      bloc.queue(event: SceneEvent.liveFrameRequested(projectId: id));
+    }
+  }
+
   /// How far the camera is from where the path puts it (world units).
   double _cameraGap() {
     final eye = _eye;
