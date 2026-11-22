@@ -27,10 +27,9 @@ const double _flashStrength = 0.42;
 /// leaving the flash to finish alone.
 const double _dissolveEnd = 0.75;
 
-/// Gap between the mark and the readout, and the readout's approximate line
-/// height. The height only anchors the burst on the mark, so an estimate is
-/// enough — no layout depends on it.
-const double _readoutGap = 20;
+/// The readout's approximate line height. It only anchors the burst on the
+/// mark, so an estimate is enough — no layout depends on it. The gap above it
+/// is [LoadingLayout.readoutGapFor].
 const double _readoutHeight = 18;
 
 /// How far the mark and aura have cleared, `0`..`1`.
@@ -100,7 +99,8 @@ class LoadingScreen extends StatelessWidget {
     // Anchor the burst on the mark rather than the viewport. The column also
     // holds the readout, so the mark sits above centre; without this the
     // light appears to originate just below the logo.
-    final blockHeight = logoHeight + _readoutGap + _readoutHeight;
+    final gap = LoadingLayout.readoutGapFor(size, logoHeight);
+    final blockHeight = logoHeight + gap + _readoutHeight;
     final markOffset = logoHeight / 2 - blockHeight / 2;
     final flashCenter = Alignment(0, markOffset / (size.height / 2));
 
@@ -140,7 +140,7 @@ class LoadingScreen extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(height: _readoutGap),
+                  SizedBox(height: gap),
                   _LoadingReadout(
                     width: LoadingLayout.readoutWidthFor(size, logoWidth),
                     alignRight: LoadingLayout.readoutAlignsRight(size),

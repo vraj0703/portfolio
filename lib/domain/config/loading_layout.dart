@@ -50,6 +50,17 @@ abstract final class LoadingLayout {
 
   static bool isPortrait(Size size) => size.width < size.height;
 
+  /// The air between the mark and the readout: on a portrait screen a share
+  /// of the mark's height, so the larger phone mark is not crowded by the
+  /// text under it (Vishal, 2026-11-22: "we need some space between logo
+  /// and loading text"); elsewhere the fixed gap it always had.
+  static double readoutGapFor(Size size, double markHeight) =>
+      isPortrait(size) ? markHeight * portraitGapShare : landscapeGap;
+
+  /// A quarter to a third of the mark's height, as asked: 0.3.
+  static const double portraitGapShare = 0.3;
+  static const double landscapeGap = 20;
+
   /// How much the readout's type is scaled on a screen of [size], 0.8 to 1.
   static double readoutScaleFor(Size size) =>
       (size.shortestSide / readoutDesignShortSide).clamp(minReadoutScale, 1.0);
