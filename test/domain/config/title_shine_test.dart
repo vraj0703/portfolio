@@ -6,7 +6,7 @@ import 'package:portfolio/domain/config/title_shine.dart';
 void main() {
   group('the title\'s shine (PORTFOLIO-30)', () {
     test('wider than it was by default, within reason', () {
-      expect(TitleShine.radiusScale, 1.5);
+      expect(TitleShine.radiusScale, 2);
       expect(TitleShine.inUse, TitleShine.radiusScale);
     });
 
