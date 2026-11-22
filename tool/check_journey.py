@@ -270,9 +270,20 @@ async def point(cdp, p, side):
         for k in range(5):
             await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=p["h"] * 0.4 + k)
             await asyncio.sleep(0.1)
-    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer.
+    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer. Then, until the
+    # screen holds still (at most 4 s more): a fixed wait once shot the contact scene still on
+    # its way back, and the control (left, then left again) read as a scene that ignored the
+    # mouse (2026-11-22, run 6 of 6).
     await asyncio.sleep(3.0 if p["touch"] else 1.5)
-    return await png_shot(cdp)
+    last = await png_shot(cdp)
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 4.0:
+        await asyncio.sleep(0.5)
+        now = await png_shot(cdp)
+        if changed_share(last, now) < 0.003:
+            return now
+        last = now
+    return last
 
 
 def name_shift(a, b, p):

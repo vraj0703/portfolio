@@ -9,6 +9,13 @@ import 'package:portfolio/domain/gallery/project_data.dart';
 
 void main() {
   group('a frame shows its live site, captured (PORTFOLIO-6)', () {
+    test(
+      'shunya.systems allows framing (shunya-site#9): its frame goes live',
+      () {
+        expect(LiveFrames.urlFor('shunya-systems'), 'https://shunya.systems');
+      },
+    );
+
     test('Shunya Systems has a capture; a project without one has none', () {
       expect(FrameCaptures.assetFor('shunya-systems'), isNotNull);
       expect(FrameCaptures.assetFor('twin-health'), isNull);

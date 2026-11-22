@@ -15,9 +15,10 @@ abstract final class LiveFrames {
   /// refuses (X-Frame-Options, or a frame-ancestors without us) still fires
   /// the iframe's load, with the browser's "refused to connect" page in it,
   /// and a cross-origin parent cannot tell that from the real page: so it is
-  /// declared here, not detected. shunya.systems joins once its
-  /// frame-ancestors change (vraj0703/shunya-site) is live.
-  static const Set<String> _frameable = <String>{};
+  /// declared here, not detected. shunya.systems allows us since
+  /// vraj0703/shunya-site#9 (merged 2026-11-22; its frame-ancestors names
+  /// vishalraj.space, www and this PR's preview host).
+  static const Set<String> _frameable = <String>{'shunya-systems'};
 
   /// A testing aid, never set by a visitor: `?pc-live=URL` points every live
   /// frame at URL (a local copy of a site served with the new header).
