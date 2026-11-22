@@ -270,7 +270,8 @@ async def point(cdp, p, side):
         for k in range(5):
             await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=p["h"] * 0.4 + k)
             await asyncio.sleep(0.1)
-    await asyncio.sleep(1.5)
+    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer.
+    await asyncio.sleep(3.0 if p["touch"] else 1.5)
     return await png_shot(cdp)
 
 
@@ -294,6 +295,10 @@ async def pointer_follows(cdp, p, scene, steps):
     left = await point(cdp, p, -1)
     right = await point(cdp, p, 1)
     again = await point(cdp, p, -1)
+    if p["touch"]:
+        # Level again: the next screen measures its tilt from how the phone is held when it
+        # appears, and must start at the centre for its own full left and right.
+        await cdp("DeviceOrientation.setDeviceOrientationOverride", alpha=0, beta=40, gamma=0)
     if scene == "title":
         # The name slides with the parallax: in px, and back again.
         moved, control = abs(name_shift(left, right, p)), abs(name_shift(left, again, p))
