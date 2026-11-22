@@ -40,7 +40,8 @@ abstract final class CreditsLayout {
   static const double phoneBelow = 600;
   static const double desktopFrom = 1024;
 
-  /// Two columns only from here, and only when asked for.
+  /// Two columns from here: at 1440 x 900 one column outgrew the panel's
+  /// height and scrolled, two show every credit at once (shots on PR 29).
   static const double twoColumnsFrom = 1280;
 
   /// A desktop's reading measure: lines of about 60 to 75 characters at the
@@ -65,11 +66,10 @@ abstract final class CreditsLayout {
   /// A tap target's least size (Material's 48 dp): "write to me".
   static const double linkTarget = 48;
 
-  /// `?pc-credits=2` shows the groups in two columns on a wide desktop, to
-  /// compare (one column ships).
-  static final int columnsInUse = Uri.base.queryParameters['pc-credits'] == '2'
-      ? 2
-      : 1;
+  /// `?pc-credits=1` keeps one column on a wide desktop, to compare.
+  static final int columnsInUse = Uri.base.queryParameters['pc-credits'] == '1'
+      ? 1
+      : 2;
 
   /// The dialog on a [width] x [height] screen whose safe area takes
   /// [safeLeft], [safeRight], [safeTop] and [safeBottom] from its edges.

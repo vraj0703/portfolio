@@ -4,7 +4,7 @@ import 'package:portfolio/domain/contact/credits_layout.dart';
 void main() {
   group('the credits dialog fits the screen (PORTFOLIO-31)', () {
     test('desktop 1440 x 900: a reading measure, wider than the old 460', () {
-      final s = CreditsLayout.forScreen(1440, 900);
+      final s = CreditsLayout.forScreen(1440, 900, columns: 1);
       expect(s.width, inInclusiveRange(560, 640));
       expect(s.width, greaterThan(460));
       expect(s.maxHeight, closeTo(900 * 0.85, 1e-9));
@@ -16,7 +16,7 @@ void main() {
       final tablet = CreditsLayout.forScreen(820, 1180).width;
       expect(
         tablet,
-        lessThanOrEqualTo(CreditsLayout.forScreen(1440, 900).width),
+        lessThanOrEqualTo(CreditsLayout.forScreen(1440, 900, columns: 1).width),
       );
       expect(tablet, greaterThan(460));
       expect(tablet, lessThanOrEqualTo(820 - 2 * CreditsLayout.tabletMargin));
@@ -57,8 +57,10 @@ void main() {
       expect(s.maxHeight, closeTo(411 * 0.85, 1e-9));
     });
 
-    test('two columns only when asked for, and only on a wide desktop', () {
-      expect(CreditsLayout.forScreen(1440, 900).columns, 1);
+    test('a wide desktop gets two columns; nothing narrower does', () {
+      expect(CreditsLayout.forScreen(1440, 900).columns, 2);
+      expect(CreditsLayout.forScreen(1440, 900, columns: 1).columns, 1);
+      expect(CreditsLayout.forScreen(1024, 768).columns, 1);
       expect(CreditsLayout.forScreen(1440, 900, columns: 2).columns, 2);
       expect(
         CreditsLayout.forScreen(1440, 900, columns: 2).width,
