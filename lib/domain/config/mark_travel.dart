@@ -37,7 +37,7 @@ abstract final class MarkTravel {
   static MarkPlacement at(double journey, {required Size viewport}) {
     final travelled = journey.clamp(0.0, 1.0);
 
-    final width = LogoConfig.logoMarkWidthFor(
+    final width = LogoConfig.homeMarkWidthFor(
       viewportWidth: viewport.width,
       viewportHeight: viewport.height,
     );
