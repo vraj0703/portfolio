@@ -291,7 +291,23 @@ def name_shift(a, b, p):
     return best / scale
 
 
+async def still_screen(cdp, limit=12.0):
+    """Waits for the screen to stop changing (an entrance or a reveal still playing would
+    read as the pointer's doing, or spoil the control). Gives up after `limit` s: the title's
+    backdrop never stops, and its step measures the name instead."""
+    t0 = time.monotonic()
+    last = await png_shot(cdp)
+    while time.monotonic() - t0 < limit:
+        await asyncio.sleep(0.7)
+        now = await png_shot(cdp)
+        if changed_share(last, now) < 0.003:
+            return
+        last = now
+
+
 async def pointer_follows(cdp, p, scene, steps):
+    if scene != "title":
+        await still_screen(cdp)
     left = await point(cdp, p, -1)
     right = await point(cdp, p, 1)
     again = await point(cdp, p, -1)
@@ -564,6 +580,20 @@ async def run_profile(p, url, remote=None):
     finally:
         if proc:
             proc.terminate()
+            # Gone before the next profile's Chrome takes the same port: a browser still
+            # shutting down there answered the next profile's first calls (seen as the phone
+            # profile's pointer steps failing only after the desktop one, 2026-11-22).
+            try:
+                proc.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                proc.wait(timeout=5)
+            for _ in range(50):
+                try:
+                    urllib.request.urlopen(f"http://127.0.0.1:{PORT}/json/version", timeout=0.5)
+                    time.sleep(0.2)
+                except Exception:
+                    break
     return result
 
 
