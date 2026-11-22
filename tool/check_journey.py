@@ -259,7 +259,7 @@ def changed_share(a, b, thr=20):
     return sum(1 for v in d.get_flattened_data() if v > thr) / (d.width * d.height)
 
 
-async def point(cdp, p, side):
+async def point(cdp, p, side, settle=False):
     """Desktop: the mouse near one edge. Phone: the tilt, full range one way (a finger on the
     logo would tap it)."""
     if p["touch"]:
@@ -270,12 +270,16 @@ async def point(cdp, p, side):
         for k in range(5):
             await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=p["h"] * 0.4 + k)
             await asyncio.sleep(0.1)
-    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer. Then, until the
-    # screen holds still (at most 4 s more): a fixed wait once shot the contact scene still on
-    # its way back, and the control (left, then left again) read as a scene that ignored the
-    # mouse (2026-11-22, run 6 of 6).
+    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer.
     await asyncio.sleep(3.0 if p["touch"] else 1.5)
     last = await png_shot(cdp)
+    # [settle]: then until the screen holds still, at most 4 s more. A fixed wait once shot
+    # the contact scene still on its way back, and the control (left, then left again) read as
+    # a scene that ignored the mouse (2026-11-22, run 6 of 6). Only where the screen does come
+    # to rest: the logo's backdrop never does, and waiting it out let its own animation move
+    # on between the three shots.
+    if not settle:
+        return last
     t0 = time.monotonic()
     while time.monotonic() - t0 < 4.0:
         await asyncio.sleep(0.5)
@@ -347,9 +351,10 @@ async def corridor_live_seen(cdp, p, present, steps):
 async def pointer_follows(cdp, p, scene, steps):
     if scene != "title":
         await still_screen(cdp)
-    left = await point(cdp, p, -1)
-    right = await point(cdp, p, 1)
-    again = await point(cdp, p, -1)
+    settle = scene == "contact"
+    left = await point(cdp, p, -1, settle)
+    right = await point(cdp, p, 1, settle)
+    again = await point(cdp, p, -1, settle)
     if p["touch"]:
         # Level again: the next screen measures its tilt from how the phone is held when it
         # appears, and must start at the centre for its own full left and right.
