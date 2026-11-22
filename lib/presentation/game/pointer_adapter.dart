@@ -10,7 +10,9 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 /// hands the answer to the game, which puts it in the `CursorTracker`. No
 /// component reads a sensor, and nothing here smooths: the tracker does.
 ///
-/// The tilt is listened to only on the logo and title scenes, where the
+/// The tilt is listened to only on the scenes that read the tracker (the
+/// logo, the title and the contact screen, which stands on the logo's
+/// composition), where the
 /// pointer lights anything, and the listener is removed on leaving them.
 class PointerAdapter {
   PointerAdapter({
@@ -30,13 +32,19 @@ class PointerAdapter {
 
   bool _active = false;
 
-  /// Whether the pointer is lit by anything in [state]: the logo and title.
+  /// Whether the pointer lights anything in [state]: every scene that reads
+  /// the tracker. The logo and the title; and the contact screen, whose
+  /// light and god rays are the logo's and follow the pointer on desktop
+  /// (Vishal, 2026-11-22: "contact page still doesn't move on hover or
+  /// tilt"; PR 26 had left it out, so even a mouse stopped moving it).
+  /// Off elsewhere: the gallery has its own input.
   static bool drivesIn(SceneState state) => state.maybeMap(
     logo: (_) => true,
     logoOverlayRemoving: (_) => true,
     titleLoading: (_) => true,
     title: (_) => true,
     active: (_) => true,
+    contact: (_) => true,
     orElse: () => false,
   );
 
@@ -47,6 +55,7 @@ class PointerAdapter {
     final appears = state.maybeMap(
       logo: (_) => true,
       titleLoading: (_) => true,
+      contact: (_) => true,
       orElse: () => false,
     );
     if (appears) chooser.sceneAppeared(_now);

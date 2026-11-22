@@ -41,7 +41,7 @@ void main() {
   final screen = Vector2(412, 915);
 
   group('the pointer adapter (PORTFOLIO-27)', () {
-    test('listens to the tilt on the logo and title only', () {
+    test('listens to the tilt on the logo, title and contact only', () {
       final sensor = FakeSensor();
       final a = PointerAdapter(phone: true, sensor: sensor);
       a.scene(const SceneState.loading());
@@ -55,12 +55,22 @@ void main() {
       expect(sensor.starts, 1, reason: 'one listener across the two scenes');
       a.scene(const SceneState.gallery());
       expect(sensor.listening, isFalse);
+      // The contact screen stands on the logo's light: it follows too.
       a.scene(const SceneState.contact());
+      expect(sensor.listening, isTrue);
+      a.scene(const SceneState.gallery());
       expect(sensor.listening, isFalse);
       a.scene(const SceneState.titleLoading());
       expect(sensor.listening, isTrue);
       a.dispose();
       expect(sensor.listening, isFalse);
+    });
+
+    test('drives the contact screen, mouse and all (regression, PR 26)', () {
+      final a = PointerAdapter(phone: false, sensor: FakeSensor());
+      a.scene(const SceneState.contact());
+      a.mouseMoved(Vector2(60, 300));
+      expect(a.update(1 / 60, Vector2(1280, 800)), Vector2(60, 300));
     });
 
     test('moves nothing where the pointer lights nothing', () {

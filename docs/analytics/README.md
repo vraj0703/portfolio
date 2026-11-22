@@ -138,7 +138,7 @@ properties on events already sent, not new events:
   - On `site_loaded`, the source at that moment: before the logo's tap, so on a phone `tilt` (Android) or
     `drift`, and on desktop `still`.
   - On `scene_health`, the source that drove the pointer longest during that scene visit. It is counted on the
-    logo and title only, where the pointer lights anything; other scenes carry the last one.
+    logo, title and contact screen, where the pointer lights anything; the gallery carries the last one.
   - `still` means the light is at the centre: reduced motion is on, or a desktop mouse has not moved yet.
 - `tilt_permission` (`granted` | `denied` | `not_asked` | `not_needed`): what became of the motion permission.
   - Only iOS Safari asks, once, on the logo's tap.
