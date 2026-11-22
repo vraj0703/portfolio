@@ -22,7 +22,11 @@ import 'package:portfolio/presentation/game/bouncy_line.dart';
 /// entrance is *actually* finished instead of guessing at a duration.
 class LogoOverlayComponent extends PositionComponent
     with FlameBlocListenable<SceneBloc, SceneState> {
-  LogoOverlayComponent({required this.palette, required this.queuer});
+  LogoOverlayComponent({
+    required this.palette,
+    required this.queuer,
+    this.touch = false,
+  });
 
   final ScenePalette palette;
   final Queuer queuer;
@@ -33,7 +37,16 @@ class LogoOverlayComponent extends PositionComponent
   /// what they flank. Blanking the label rather than hiding the component is
   /// what keeps the lines' spring, their entrance and their pointer-tracking
   /// as one piece of behaviour instead of two.
-  String get label => _isContact ? '' : palette.tapToEnter;
+  String get label => _isContact
+      ? ''
+      : touch
+      ? palette.doubleTap
+      : palette.tapToEnter;
+
+  /// A phone: the label says what a touch does there (PORTFOLIO-30). After
+  /// the first tap it types the same words again: the gesture is under way,
+  /// and the next tap enters, so "double tap" still holds.
+  final bool touch;
 
   bool _isContact = false;
 

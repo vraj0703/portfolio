@@ -26,6 +26,7 @@ ScenePalette scenePalette() {
     lineStops: colors.logoLineStops,
     enterStyle: type.enter,
     tapToEnter: strings.tapToEnter,
+    doubleTap: strings.doubleTap,
     primaryTitle: strings.primaryTitle,
     secondaryTitle: strings.secondaryTitle,
     titlePrimaryStyle: type.titlePrimary,

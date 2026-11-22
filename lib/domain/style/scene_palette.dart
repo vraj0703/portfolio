@@ -23,6 +23,7 @@ class ScenePalette {
     required this.lineStops,
     required this.enterStyle,
     required this.tapToEnter,
+    required this.doubleTap,
     required this.primaryTitle,
     required this.secondaryTitle,
     required this.titlePrimaryStyle,
@@ -49,6 +50,7 @@ class ScenePalette {
         color: colors.logoOverlayText,
       ),
       tapToEnter: context.strings.tapToEnter,
+      doubleTap: context.strings.doubleTap,
       primaryTitle: context.strings.primaryTitle,
       secondaryTitle: context.strings.secondaryTitle,
       titlePrimaryStyle: context.typography.titlePrimary,
@@ -76,6 +78,9 @@ class ScenePalette {
   final TextStyle enterStyle;
 
   final String tapToEnter;
+
+  /// The label on a phone (PORTFOLIO-30).
+  final String doubleTap;
   final String primaryTitle;
   final String secondaryTitle;
 
@@ -102,7 +107,6 @@ class ScenePalette {
   final String boldText;
   final TextStyle boldTextStyle;
 
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -112,6 +116,7 @@ class ScenePalette {
           overlayTextShadow == other.overlayTextShadow &&
           enterStyle == other.enterStyle &&
           tapToEnter == other.tapToEnter &&
+          doubleTap == other.doubleTap &&
           primaryTitle == other.primaryTitle &&
           secondaryTitle == other.secondaryTitle;
 
@@ -122,6 +127,7 @@ class ScenePalette {
     overlayTextShadow,
     enterStyle,
     tapToEnter,
+    doubleTap,
     primaryTitle,
     secondaryTitle,
   );
