@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/card_homography.dart';
+import 'package:portfolio/data/live_frame/corridor_frame.dart';
 import 'package:portfolio/domain/gallery/live_frames.dart';
 import 'package:portfolio/presentation/gallery/live_frame_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
@@ -964,6 +966,18 @@ class _GalleryViewState extends State<GalleryView> {
               // above the scene and below the controls' fallback row.
               // Only once the corridor is built: before that there is no frame
               // to focus, and nothing for it to read.
+              // The live site on its frame in the corridor (prototype): a
+              // full-screen layer that takes no input.
+              if (_gallery != null && _corridorLiveUrl != null)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CorridorFrame.view(
+                      _corridorLiveUrl,
+                      LiveFrames.virtualWidth,
+                      LiveFrames.virtualHeight,
+                    ),
+                  ),
+                ),
               if (_gallery != null)
                 Positioned.fill(child: LiveFrameOverlay(cardRect: _liveRect)),
 
@@ -1132,6 +1146,7 @@ class _GalleryViewState extends State<GalleryView> {
         }
         _advanceCamera(deltaSeconds);
         _arriveLive();
+        _placeCorridorLive();
         if (_probe) {
           final eye = _eye;
           Browser.mark(
@@ -1158,18 +1173,24 @@ class _GalleryViewState extends State<GalleryView> {
         _wasSnapping = snapping;
       },
       cameraBuilder: (_) {
-        final camera = PerspectiveCamera(
-          fovRadiansY: _shape.fovRadians,
-          // The camera crosses the same boundary as the room, or it would
-          // pan away from the wall it is meant to be tracking.
-          position: SceneAxes.position(_eye ?? _targetPose().position),
-          target: SceneAxes.position(_look ?? _targetPose().target),
-        );
+        final camera = _cameraNow();
         _lastCamera = camera;
         return camera;
       },
     );
   }
+
+  /// The camera this frame draws with. Built from the pose the tick has just
+  /// advanced, so whatever is laid over the scene from the tick (the
+  /// corridor's live page) uses the very camera the frame is drawn with,
+  /// not the last frame's.
+  PerspectiveCamera _cameraNow() => PerspectiveCamera(
+    fovRadiansY: _shape.fovRadians,
+    // The camera crosses the same boundary as the room, or it would
+    // pan away from the wall it is meant to be tracking.
+    position: SceneAxes.position(_eye ?? _targetPose().position),
+    target: SceneAxes.position(_look ?? _targetPose().target),
+  );
 
   /// The view's shape, width over height; a laptop's before the first
   /// layout.
@@ -1461,6 +1482,75 @@ class _GalleryViewState extends State<GalleryView> {
       bloc.queue(event: SceneEvent.liveFrameRequested(projectId: id));
     }
   }
+
+  /// The live site on its corridor frame, in perspective (prototype): the
+  /// card's corners projected by the scene's own camera, and the homography
+  /// that lays the page on them. Hidden when the card is behind the camera,
+  /// facing away, small on the screen (the hybrid: the picture shows there),
+  /// or while that frame is focused (the axis-aligned live layer takes it).
+  void _placeCorridorLive() {
+    final url = _corridorLiveUrl;
+    if (_lastCamera == null || url == null) return;
+    final camera = _cameraNow();
+    final frame = _corridorLiveFrame;
+    if (frame == null || _focused?.project?.id == frame.project?.id) {
+      CorridorFrame.place(null);
+      return;
+    }
+    final halfW = frame.extents.x / 2 - GalleryLayout.frameBorder;
+    final halfH = frame.extents.y / 2 - GalleryLayout.frameBorder;
+    final p = frame.position;
+    final points = <(double, double)>[];
+    for (final (dy, dz) in <(double, double)>[
+      (halfH, -halfW),
+      (halfH, halfW),
+      (-halfH, halfW),
+      (-halfH, -halfW),
+    ]) {
+      final screen = camera.worldToScreen(
+        SceneAxes.position(Vector3(p.x, p.y + dy, p.z + dz)),
+        _viewSize,
+      );
+      if (screen == null) {
+        CorridorFrame.place(null);
+        return;
+      }
+      points.add((screen.dx, screen.dy));
+    }
+    // Top pair, then each pair left to right: the page's own order.
+    final top = points.sublist(0, 2)..sort((a, b) => a.$1.compareTo(b.$1));
+    final bottom = points.sublist(2)..sort((a, b) => a.$1.compareTo(b.$1));
+    final quad = <(double, double)>[top[0], top[1], bottom[1], bottom[0]];
+    final share = quadShare(quad, _viewSize.width, _viewSize.height);
+    // The hybrid: the picture while small, the page once it is a real size
+    // on the screen, faded across a short band so it does not pop.
+    final opacity =
+        ((share - LiveFrames.corridorShareFrom) /
+                (LiveFrames.corridorShareFull - LiveFrames.corridorShareFrom))
+            .clamp(0.0, 1.0);
+    if (quadArea(quad) <= 0 || opacity <= 0) {
+      CorridorFrame.place(null);
+      return;
+    }
+    CorridorFrame.place(
+      cardMatrix3d(
+        width: LiveFrames.virtualWidth.toDouble(),
+        height: LiveFrames.virtualHeight.toDouble(),
+        corners: quad,
+      ),
+      opacity: opacity,
+    );
+  }
+
+  /// The frame whose live site walks with the visitor, and its URL (the
+  /// prototype: desktop only, a frameable site only).
+  late final Placement? _corridorLiveFrame = _pickable
+      .where((p) => p.project?.id == 'shunya-systems')
+      .firstOrNull;
+  late final String? _corridorLiveUrl =
+      Browser.isPhone() && !LiveFrames.overridden
+      ? null
+      : LiveFrames.urlFor('shunya-systems');
 
   /// How far the camera is from where the path puts it (world units).
   double _cameraGap() {

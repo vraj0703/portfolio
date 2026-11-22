@@ -23,6 +23,9 @@ abstract final class LiveFrames {
   /// frame at URL (a local copy of a site served with the new header).
   static final String? _override = Uri.base.queryParameters['pc-live'];
 
+  /// Whether a test page was named with `?pc-live` (the measuring hook).
+  static bool get overridden => _override != null;
+
   /// The live site for project [id], or null when its frame has none, or
   /// has one that does not allow framing yet (then the frame keeps its
   /// picture and the link to open the site). `?pc-live=` overrides both.
@@ -45,6 +48,14 @@ abstract final class LiveFrames {
   /// the card's shape, 3.56 : 2.56.
   static const int virtualWidth = 1424;
   static const int virtualHeight = 1024;
+
+  /// The corridor's live page (prototype, the hybrid): it starts to fade in
+  /// over the picture when the card covers [corridorShareFrom] of the
+  /// screen, and is fully up at [corridorShareFull].
+  /// `?pc-live-share=` overrides the start (a measuring hook, prototype).
+  static final double corridorShareFrom =
+      double.tryParse(Uri.base.queryParameters['pc-live-share'] ?? '') ?? 0.03;
+  static double get corridorShareFull => corridorShareFrom + 0.03;
 
   /// The camera counts as arrived when it is this close to its focus pose
   /// (world units): square to the frame, so the card is an upright rectangle
