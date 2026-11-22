@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:portfolio/domain/gallery/frame_captures.dart';
 import 'package:portfolio/data/analytics/analytics_setup.dart' show Browser;
 import 'package:portfolio/domain/gallery/gallery_detail.dart';
 import 'package:portfolio/domain/gallery/lightmap_bake.dart';
@@ -1000,6 +1001,33 @@ class GalleryScene {
       return;
     }
 
+    // A project whose live site is captured (PORTFOLIO-6): the picture, made
+    // by tool/capture_frame.py at the card's exact shape, decoded as it is
+    // and uploaded here, behind the loading screen, like every other
+    // texture. Unlit, as the testimonial cards are: a printed surface. A
+    // picture that fails to load leaves the card blank, not the room broken.
+    final capture = FrameCaptures.assetFor(piece.project?.id ?? '');
+    if (capture != null) {
+      final image = await _decodeCapture(capture);
+      if (image != null) {
+        images.add(image);
+        final texture = await BuildTiming.upload(
+          'gallery_scene_builder.capture',
+          image,
+          () => GpuUpload.image(image),
+        );
+        textures.add(texture);
+        scene.add(
+          Node(
+            mesh: Mesh(cardShape, UnlitMaterial(colorTexture: texture)),
+            localTransform: card,
+          ),
+        );
+        await BuildYield.frame();
+        return;
+      }
+    }
+
     // Blank on purpose, for now — the card is the surface the work will be
     // presented on, and an empty one states the shape of the room without
     // pretending to content it does not have yet.
@@ -1016,6 +1044,26 @@ class GalleryScene {
         localTransform: card,
       ),
     );
+  }
+
+  /// A frame's captured picture, decoded at its own size (it is made at the
+  /// card's shape already; the square decode the surface maps use would
+  /// stretch it). Null when it cannot be had.
+  static Future<ui.Image?> _decodeCapture(String asset) async {
+    try {
+      final data = await BuildTiming.span(
+        BuildPhase.fetch,
+        () => MapPrefetch.shared.load(asset),
+      );
+      return await BuildTiming.span(BuildPhase.decode, () async {
+        final codec = await ui.instantiateImageCodec(data.buffer.asUint8List());
+        final frame = await codec.getNextFrame();
+        codec.dispose();
+        return frame.image;
+      });
+    } catch (_) {
+      return null;
+    }
   }
 
   static PhysicallyBasedMaterial _surfaceOf(
