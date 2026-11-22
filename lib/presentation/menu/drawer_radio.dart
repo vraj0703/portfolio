@@ -31,6 +31,18 @@ abstract final class DrawerRadioConfig {
   /// The look that ships. One line to change.
   static const DrawerRadioLook chosen = DrawerRadioLook.text;
 
+  /// Spacing on Material's 8 / 16 / 24 steps (PORTFOLIO-30, Vishal:
+  /// "improve the padding and spacing for radio interface in the menu"):
+  /// clear of the close icon above, the drawer's own side margins (the bar's
+  /// below them), an even rhythm between the station, its status and the
+  /// controls, and 48 dp targets for PLAY / STOP and NEXT.
+  static const double topInset = 24;
+  static const double sideMargin = 16;
+  static const double statusGap = 8;
+  static const double controlsGap = 24;
+  static const double target = 48;
+  static const double targetPadding = 16;
+
   /// [chosen], or `?pc-radio=face|text` on the URL, for shooting both.
   static final DrawerRadioLook current =
       switch (Uri.base.queryParameters['pc-radio']) {
@@ -51,7 +63,12 @@ class DrawerRadio extends StatelessWidget {
   Widget build(BuildContext context) {
     final radio = locate<RadioPlayer>();
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        DrawerRadioConfig.sideMargin,
+        DrawerRadioConfig.topInset,
+        DrawerRadioConfig.sideMargin,
+        0,
+      ),
       child: StreamBuilder<RadioState>(
         stream: radio.changes,
         initialData: radio.state,
@@ -176,12 +193,15 @@ class _Lettering extends StatelessWidget {
               state.tuned.name.toUpperCase(),
               style: at(sign.fontSize ?? 170, sign.letterSpacing ?? 18),
             ),
+            const SizedBox(height: DrawerRadioConfig.statusGap),
             Text(state.readout, style: at(93, 12)),
-            SizedBox(height: RadioFace.stationGap * k),
+            const SizedBox(height: DrawerRadioConfig.controlsGap),
+            // Spread as the bar's icons are below, each a 48 dp target.
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: <Widget>[
                 TextButton(
+                  style: _control,
                   onPressed: () => _toggle(context, radio, state),
                   child: Text(
                     on ? 'STOP' : 'PLAY',
@@ -192,6 +212,7 @@ class _Lettering extends StatelessWidget {
                   ),
                 ),
                 TextButton(
+                  style: _control,
                   onPressed: () => _next(context, radio, state),
                   child: Text(
                     'NEXT',
@@ -207,3 +228,11 @@ class _Lettering extends StatelessWidget {
     );
   }
 }
+
+/// PLAY / STOP and NEXT: at least 48 dp each way, with room either side.
+final ButtonStyle _control = TextButton.styleFrom(
+  minimumSize: const Size(DrawerRadioConfig.target, DrawerRadioConfig.target),
+  padding: const EdgeInsets.symmetric(
+    horizontal: DrawerRadioConfig.targetPadding,
+  ),
+);
