@@ -99,4 +99,29 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+
+  testWidgets('while the credits are up the contact links stand aside', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showCreditsDialog(context),
+              child: const Text('open'),
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(CreditsDialog.open.value, isFalse);
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CreditsDialog), findsOneWidget);
+    expect(CreditsDialog.open.value, isTrue);
+    tester.state<NavigatorState>(find.byType(Navigator)).pop();
+    await tester.pumpAndSettle();
+    expect(CreditsDialog.open.value, isFalse);
+  });
 }

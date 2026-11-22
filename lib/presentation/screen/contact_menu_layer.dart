@@ -91,6 +91,23 @@ class _ContactMenuState extends State<_ContactMenu> {
 
   @override
   Widget build(BuildContext context) {
+    // The links stand aside while the credits are up, so only the dialog
+    // reads (on a phone their panel showed under the dialog's edge).
+    return ValueListenableBuilder<bool>(
+      valueListenable: CreditsDialog.open,
+      builder: (context, open, menu) => IgnorePointer(
+        ignoring: open,
+        child: AnimatedOpacity(
+          opacity: open ? 0 : 1,
+          duration: const Duration(milliseconds: 180),
+          child: menu,
+        ),
+      ),
+      child: _menu(context),
+    );
+  }
+
+  Widget _menu(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final width = size.width;
     final spec = ContactLayout.forScreen(size.width, size.height);

@@ -19,7 +19,19 @@ import 'package:portfolio/domain/style/strings.dart';
 /// itself is [CreditsDialog] below, and this is only the route. Kept next to
 /// it so the barrier colour and the dialog's own ground are decided in one
 /// place.
-Future<void> showCreditsDialog(BuildContext context) {
+Future<void> showCreditsDialog(BuildContext context) async {
+  // While it is up, the contact links stand aside (CreditsDialog.open): on a
+  // phone their panel showed under and below the dialog's edge, and two
+  // panels of the same colour read as one muddle.
+  CreditsDialog.open.value = true;
+  try {
+    await _show(context);
+  } finally {
+    CreditsDialog.open.value = false;
+  }
+}
+
+Future<void> _show(BuildContext context) {
   return showDialog<void>(
     context: context,
     // Dark enough that the scene reads as having stepped back, light enough
@@ -35,6 +47,9 @@ class CreditsDialog extends StatelessWidget {
   const CreditsDialog({super.key});
 
   static const double markSize = 26;
+
+  /// Whether the dialog is up: what the contact links watch to stand aside.
+  static final ValueNotifier<bool> open = ValueNotifier<bool>(false);
 
   /// The key of the hit target over "write to me" (for tests).
   static const Key writeToMeKey = ValueKey<String>('credits-write-to-me');

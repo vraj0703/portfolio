@@ -287,19 +287,22 @@ class DefaultAppColors implements AppColors {
   Color get creditsBarrier => sceneBackground.withValues(alpha: 0.72);
 
   @override
-  Color get creditsTitle => _ink;
+  // The credits read on the panel in the contact row's dark ink (PORTFOLIO-31):
+  // the brick measured 1.96:1 for the body at 0.85 and 1.42:1 for the headings
+  // at 0.45 on #C78E53; #3F190E is 5.47:1, and at 0.75 for the headings 3.60:1.
+  Color get creditsTitle => panelInk;
 
   @override
-  Color get creditsSubtitle => _ink.withValues(alpha: 0.6);
+  Color get creditsSubtitle => panelInk;
 
   @override
-  Color get creditsHeading => _ink.withValues(alpha: 0.45);
+  Color get creditsHeading => panelInk.withValues(alpha: 0.75);
 
   @override
-  Color get creditsBody => _ink.withValues(alpha: 0.85);
+  Color get creditsBody => panelInk;
 
   @override
-  Color get creditsAction => _ink.withValues(alpha: 0.8);
+  Color get creditsAction => panelInk;
 
   @override
   Color get galleryChromeInk => const Color(0xFF5E4318);
