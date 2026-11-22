@@ -305,6 +305,9 @@ async def pointer_follows(cdp, p, scene, steps):
     else:
         moved, control = changed_share(left, right), changed_share(left, again)
     steps.setdefault("pointer", {})[scene] = [round(moved, 3), round(control, 3)]
+    if os.environ.get("JOURNEY_DEBUG"):
+        for tag, im in (("left", left), ("right", right), ("again", again)):
+            im.save(os.path.join(tempfile.gettempdir(), f"journey-pointer-{p['name']}-{scene}-{tag}.png"))
     if POINTER_MEASURE_ONLY:
         return
     if moved < POINTER_FLOOR[scene] or moved < 2 * control:
