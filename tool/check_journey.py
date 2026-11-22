@@ -351,7 +351,9 @@ async def corridor_live_seen(cdp, p, present, steps):
 async def pointer_follows(cdp, p, scene, steps):
     if scene != "title":
         await still_screen(cdp)
-    settle = scene == "contact"
+    # Desktop only: a phone's contact screen takes its tilt as relative to how the phone is
+    # held, so waiting it out shot the scene re-centred (left->right 0.001, 2026-11-22).
+    settle = scene == "contact" and not p["touch"]
     left = await point(cdp, p, -1, settle)
     right = await point(cdp, p, 1, settle)
     again = await point(cdp, p, -1, settle)
