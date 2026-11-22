@@ -320,6 +320,9 @@ class TitleLayerComponent extends PositionComponent
     // they are lit by one source, not each by their own.
     _primary.lightPosition = lightPosition;
     _secondary.lightPosition = lightPosition;
+    // The shine is a share of the name's width on every screen.
+    _primary.nameWidth = nameRestWidth;
+    _secondary.nameWidth = nameRestWidth;
 
     if (!_primarySounded && elapsed >= TitleTimeline.primaryStart) {
       _primarySounded = true;

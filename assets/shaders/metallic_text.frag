@@ -8,9 +8,11 @@ uniform float uTime;
 uniform vec3 uBaseColor;
 uniform float uOpacity;
 uniform vec2 uLightPos;
-// How wide the shine is against the light's own falloff (TitleShine): 1 =
-// as it was, 1.5 = half again as wide (PORTFOLIO-30).
-uniform float uShineScale;
+// The shine's radius in physical pixels (TitleShine.radiusFor): a share of
+// the name's drawn width, so it covers the same part of the name on every
+// screen (PORTFOLIO-30; it was 800 px on any device, far narrower against
+// the name at a phone's DPR).
+uniform float uShineRadius;
 
 out vec4 fragColor;
 
@@ -47,7 +49,7 @@ void main() {
     // SHINE LOGIC:
     // High-intensity specular 'hit', over its own radius: widening it
     // leaves the ambient below exactly as it was.
-    float shineGlow = smoothstep(lightRadius * uShineScale, 0.0, dist);
+    float shineGlow = smoothstep(uShineRadius, 0.0, dist);
     float glint = pow(shineGlow, 60.0) * 25.0;
 
     // Base ambient glow from the sun/cursor

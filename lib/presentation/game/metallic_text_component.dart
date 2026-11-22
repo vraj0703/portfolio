@@ -58,6 +58,10 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
   /// pixels at render time, because that is the space the shader works in.
   Vector2 lightPosition = Vector2.zero();
 
+  /// The title's name width (logical px), which the shine is a share of:
+  /// set by the title layer, the same for the name and the line beneath.
+  double nameWidth = 0;
+
   @override
   void update(double dt) {
     super.update(dt);
@@ -99,7 +103,13 @@ class MetallicTextComponent extends TextComponent with HasGameReference {
       ..setFloat(8, shown.clamp(0.0, 1.0))
       ..setFloat(9, lightPosition.x * dpr)
       ..setFloat(10, lightPosition.y * dpr)
-      ..setFloat(11, TitleShine.inUse);
+      ..setFloat(
+        11,
+        TitleShine.radiusFor(
+          nameWidth: nameWidth > 0 ? nameWidth : TitleShine.fallbackNameWidth,
+          devicePixelRatio: dpr,
+        ),
+      );
 
     super.render(canvas);
   }
