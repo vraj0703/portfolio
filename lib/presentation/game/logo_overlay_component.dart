@@ -116,7 +116,11 @@ class LogoOverlayComponent extends PositionComponent
     super.onGameResize(size);
     _viewport = size;
     position = Vector2(size.x / 2, size.y - LogoConfig.overlayBottomMargin);
-    _scale = LogoConfig.homeScaleFor(size.x, size.y);
+    _scale = LogoConfig.labelScaleFor(
+      viewportWidth: size.x,
+      viewportHeight: size.y,
+      labelHalfWidth: _labelHalfWidth,
+    );
     if (isLoaded) _text.scale = Vector2.all(_scale);
   }
 

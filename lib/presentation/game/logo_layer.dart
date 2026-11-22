@@ -279,6 +279,8 @@ class LogoShadowComponent extends PositionComponent {
       ..setFloat(7, markSize.y)
       ..setFloat(8, cursorPosition.x)
       ..setFloat(9, cursorPosition.y)
+      // The light grows with the mark at home (one factor, the same rule).
+      ..setFloat(10, LogoConfig.homeScaleFor(size.x, size.y))
       ..setImageSampler(0, artwork);
 
     _paint.shader = shader;

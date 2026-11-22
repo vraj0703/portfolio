@@ -83,9 +83,10 @@ abstract final class LogoConfig {
   /// How much larger the mark stands at home on a portrait phone (the logo
   /// screen and the contact screen, which share it), as a share of the
   /// desktop rule's size. Vishal, 2026-11-22: "make logo on both logo and
-  /// contact screen take little more space in the phone". Shot at 0, 0.20
-  /// and 0.35 on the ROG; one constant away (`?pc-mark=0|20|35` to compare).
-  static const double phoneMarkBoost = 0.35;
+  /// contact screen take little more space in the phone". Shot at 0, 0.20,
+  /// 0.35, 0.50 and 0.70 on the ROG; Vishal picked 0.50 (2026-11-22). The
+  /// others one constant away (`?pc-mark=35|50|70` to compare).
+  static const double phoneMarkBoost = 0.50;
 
   /// The boost in use: [phoneMarkBoost], or `?pc-mark=N` (percent) on the URL.
   static final double phoneMarkBoostInUse = _boostFromUrl() ?? phoneMarkBoost;
@@ -147,6 +148,30 @@ abstract final class LogoConfig {
     final travel = room - length < lineTravel ? room - length : lineTravel;
     return (gap: gap, length: length, travel: travel);
   }
+
+  /// The label's scale on a screen [viewportWidth] by [viewportHeight]: the
+  /// mark's ([homeScaleFor]), but capped where its lines would fall under
+  /// [minLineLength] (PORTFOLIO-29: at +70 % they were stubs). Never below
+  /// 1: the desktop label is never shrunk.
+  static double labelScaleFor({
+    required double viewportWidth,
+    required double viewportHeight,
+    required double labelHalfWidth,
+  }) {
+    final mark = homeScaleFor(viewportWidth, viewportHeight);
+    if (mark <= 1 || labelHalfWidth <= 0) return mark;
+    final roomForLabel =
+        viewportWidth / 2 -
+        lineEdgeMargin -
+        lineLabelClearance -
+        2 * minLineLength;
+    final cap = roomForLabel / labelHalfWidth;
+    final capped = mark < cap ? mark : cap;
+    return capped < 1 ? 1 : capped;
+  }
+
+  /// The shortest a label line may get before the label stops growing.
+  static const double minLineLength = 24;
 
   /// Clear space between a line's outer end and the screen's edge.
   static const double lineEdgeMargin = 12;

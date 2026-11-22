@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 
@@ -32,8 +34,8 @@ void main() {
       }
     });
 
-    test('"a little more", not dominant', () {
-      expect(LogoConfig.phoneMarkBoost, inInclusiveRange(0, 0.35));
+    test('Vishal's pick: +50 %', () {
+      expect(LogoConfig.phoneMarkBoost, 0.5);
     });
   });
 
@@ -79,6 +81,54 @@ void main() {
       );
       expect(l.length, greaterThan(20));
       expect(l.travel, greaterThan(20));
+    });
+  });
+
+  group('the label stops growing before its lines get too short', () {
+    test('320 to 480 wide: the lines keep their minimum', () {
+      for (var w = 320.0; w <= 480; w += 10) {
+        for (final half in <double>[70, 95, 120]) {
+          final scale = LogoConfig.labelScaleFor(
+            viewportWidth: w,
+            viewportHeight: w * 2.1,
+            labelHalfWidth: half,
+          );
+          expect(scale, greaterThanOrEqualTo(1));
+          expect(
+            scale,
+            lessThanOrEqualTo(LogoConfig.homeScaleFor(w, w * 2.1) + 1e-9),
+          );
+          final l = LogoConfig.linesFor(
+            viewportWidth: w,
+            viewportHeight: w * 2.1,
+            innerHalfWidth: half * scale,
+          );
+          if (scale > 1) {
+            expect(
+              l.length,
+              greaterThanOrEqualTo(LogoConfig.minLineLength - 1e-9),
+              reason: 'w $w label $half',
+            );
+          }
+        }
+      }
+    });
+
+    test('desktop: the label is never scaled', () {
+      expect(
+        LogoConfig.labelScaleFor(
+          viewportWidth: 1280,
+          viewportHeight: 800,
+          labelHalfWidth: 95,
+        ),
+        1,
+      );
+    });
+
+    test('the light grows with the mark: the shader reads the factor', () {
+      final frag = File('assets/shaders/god_rays.frag').readAsStringSync();
+      expect(frag, contains('uniform float uLightScale;'));
+      expect(frag, contains('distToLight / (uSize.y * uLightScale)'));
     });
   });
 }
