@@ -467,16 +467,24 @@ class _ItemBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (minHeight <= 0) return child;
-    return Container(
-      constraints: BoxConstraints(minHeight: minHeight),
-      width: fill ? double.infinity : null,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
-      alignment: Alignment.center,
+    // Its own width unless it fills: an alignment alone would stretch it to
+    // the whole run, one link per line.
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: lit ? context.colors.contactPressed : null,
         borderRadius: BorderRadius.circular(ContactLayout.plateRadius),
       ),
-      child: child,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(minHeight: minHeight),
+        child: Align(
+          widthFactor: fill ? null : 1,
+          heightFactor: 1,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: child,
+          ),
+        ),
+      ),
     );
   }
 }

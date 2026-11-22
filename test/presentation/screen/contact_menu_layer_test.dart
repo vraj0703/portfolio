@@ -235,6 +235,13 @@ void main() {
       expect(row.right, lessThanOrEqualTo(411));
     }
 
+    // (a), the default: the row wrapped, several links to a line, not one
+    // per line (a box stretching to the run's width did that).
+    expect(
+      tester.getCenter(find.text(strings.contactCv)).dy,
+      tester.getCenter(find.text(strings.contactEmail)).dy,
+    );
+
     // A tap still does what it says.
     await tester.tap(
       find.bySemanticsLabel(

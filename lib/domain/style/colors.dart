@@ -204,7 +204,7 @@ class DefaultAppColors implements AppColors {
   Color get contactMenuTextActive => const Color(0xFFFFFFFF);
 
   @override
-  Color get contactPlate => const Color(0xFF1A120A).withValues(alpha: 0.42);
+  Color get contactPlate => const Color(0xFF1A120A).withValues(alpha: 0.5);
 
   @override
   Color get contactPressed => const Color(0xFFF6E3C4).withValues(alpha: 0.16);
