@@ -1,5 +1,4 @@
-/// The live site laid on a corridor frame in perspective (the live-in-the-
-/// corridor prototype, PORTFOLIO-6). Web only; elsewhere nothing.
+/// The live site laid on a corridor frame in perspective (PORTFOLIO-6). Web only; elsewhere nothing.
 library;
 
 export 'corridor_frame_stub.dart'

@@ -23,9 +23,6 @@ abstract final class LiveFrames {
   /// frame at URL (a local copy of a site served with the new header).
   static final String? _override = Uri.base.queryParameters['pc-live'];
 
-  /// Whether a test page was named with `?pc-live` (the measuring hook).
-  static bool get overridden => _override != null;
-
   /// The live site for project [id], or null when its frame has none, or
   /// has one that does not allow framing yet (then the frame keeps its
   /// picture and the link to open the site). `?pc-live=` overrides both.
@@ -49,13 +46,16 @@ abstract final class LiveFrames {
   static const int virtualWidth = 1424;
   static const int virtualHeight = 1024;
 
-  /// The corridor's live page (prototype, the hybrid): it starts to fade in
+  /// The corridor's live page (the hybrid): it starts to fade in
   /// over the picture when the card covers [corridorShareFrom] of the
   /// screen, and is fully up at [corridorShareFull].
-  /// `?pc-live-share=` overrides the start (a measuring hook, prototype).
-  static final double corridorShareFrom =
-      double.tryParse(Uri.base.queryParameters['pc-live-share'] ?? '') ?? 0.03;
-  static double get corridorShareFull => corridorShareFrom + 0.03;
+  static const double corridorShareFrom = 0.03;
+  static const double corridorShareFull = 0.06;
+
+  /// The corridor's live page does not take the gallery's light (nor does
+  /// the picture, which is unlit): a touch of dimming and warmth so it sits
+  /// in the room rather than glowing on it. A CSS filter.
+  static const String corridorTint = 'brightness(0.88) sepia(0.10)';
 
   /// The camera counts as arrived when it is this close to its focus pose
   /// (world units): square to the frame, so the card is an upright rectangle

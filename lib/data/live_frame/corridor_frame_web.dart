@@ -15,7 +15,17 @@ abstract final class CorridorFrame {
   static List<double>? _pending;
   static double _opacity = 0;
 
-  static Widget view(String url, int width, int height) {
+  static int? _loadedMs;
+
+  /// Milliseconds from the view's creation to its page's load, once loaded.
+  static int? get loadedMs => _loadedMs;
+
+  static Widget view(
+    String url,
+    int width,
+    int height, {
+    required String tint,
+  }) {
     final type = 'corridor-frame:$url';
     if (_registered.add(type)) {
       ui_web.platformViewRegistry.registerViewFactory(type, (int _) {
@@ -24,8 +34,10 @@ abstract final class CorridorFrame {
           ..style.height = '100%'
           ..style.overflow = 'hidden'
           ..style.pointerEvents = 'none';
+        final asked = DateTime.now();
         final frame = web.HTMLIFrameElement()
           ..src = url
+          ..setAttribute('data-live', 'corridor')
           ..style.position = 'absolute'
           ..style.left = '0'
           ..style.top = '0'
@@ -34,15 +46,16 @@ abstract final class CorridorFrame {
           ..style.height = '${height}px'
           ..style.transformOrigin = '0 0'
           ..style.pointerEvents = 'none'
-          // The page does not take the gallery's light: a touch of warmth
-          // and dimming so it sits in the room rather than glowing on it.
-          ..style.filter = 'brightness(0.88) sepia(0.10)'
+          ..style.filter = tint
           // Its own compositor layer, rastered once and moved by the GPU,
           // rather than re-rastered at every new transform; and hidden by
           // visibility, which keeps the page laid out, rather than display,
           // which would lay out 1424 x 1024 again each time it shows.
           ..style.willChange = 'transform, opacity'
           ..style.visibility = 'hidden';
+        frame.onLoad.first.then((_) {
+          _loadedMs = DateTime.now().difference(asked).inMilliseconds;
+        });
         root.append(frame);
         _frame = frame;
         place(_pending, opacity: _opacity);

@@ -56,6 +56,7 @@ void main() {
           expect(viewed, hasLength(1));
           expect(viewed.single.$2['id'], 'shunya-systems');
           expect(viewed.single.$2['ms_to_load'], 840);
+          expect(viewed.single.$2['where'], 'focus');
         },
       );
 

@@ -71,3 +71,68 @@ double quadArea(List<(double, double)> c) {
 /// the picture while small, the live page once large).
 double quadShare(List<(double, double)> c, double viewW, double viewH) =>
     math.max(0, quadArea(c)).toDouble() / (viewW * viewH);
+
+/// The share rule (the hybrid): how far the live page is faded in over the
+/// picture when the card covers [share] of the screen. None below [from],
+/// all of it from [full] on, linear between, so it never pops.
+double corridorOpacity(
+  double share, {
+  required double from,
+  required double full,
+}) {
+  if (share <= from) return 0;
+  if (share >= full) return 1;
+  return (share - from) / (full - from);
+}
+
+/// Where the corridor's live page goes this frame, and how strongly.
+class CorridorPlacement {
+  const CorridorPlacement({required this.matrix, required this.opacity});
+
+  /// Column-major matrix3d laying the page onto the card.
+  final List<double> matrix;
+
+  /// Over the picture: 0 none, 1 all.
+  final double opacity;
+}
+
+/// The live page's placement for a card whose corners the camera projected
+/// to [corners]: its two top corners, then its two bottom ones, each null
+/// when that corner is behind the camera. Null (the page hidden, the picture
+/// showing) when any corner is behind the camera, when the card is not
+/// [facing] the camera, when the corners make no quad, or when the card is
+/// too small on the [viewWidth] x [viewHeight] screen by the share rule.
+CorridorPlacement? corridorPlacement({
+  required List<(double, double)?> corners,
+  required bool facing,
+  required double viewWidth,
+  required double viewHeight,
+  required double pageWidth,
+  required double pageHeight,
+  required double shareFrom,
+  required double shareFull,
+}) {
+  if (!facing || corners.length != 4 || corners.any((c) => c == null)) {
+    return null;
+  }
+  final points = corners.cast<(double, double)>();
+  // Each pair left to right on the screen: the page's own order, top-left,
+  // top-right, bottom-right, bottom-left.
+  final top = points.sublist(0, 2)..sort((a, b) => a.$1.compareTo(b.$1));
+  final bottom = points.sublist(2)..sort((a, b) => a.$1.compareTo(b.$1));
+  final quad = <(double, double)>[top[0], top[1], bottom[1], bottom[0]];
+  if (quadArea(quad) <= 0) return null;
+  final opacity = corridorOpacity(
+    quadShare(quad, viewWidth, viewHeight),
+    from: shareFrom,
+    full: shareFull,
+  );
+  if (opacity <= 0) return null;
+  final matrix = cardMatrix3d(
+    width: pageWidth,
+    height: pageHeight,
+    corners: quad,
+  );
+  if (matrix == null) return null;
+  return CorridorPlacement(matrix: matrix, opacity: opacity);
+}

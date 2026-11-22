@@ -235,12 +235,18 @@ class SiteEvents {
   void projectCaseOpened(String project) =>
       _send('project_case_opened', <String, Object?>{'project': project});
 
-  /// A frame's live site loaded over its picture (PORTFOLIO-6), [msToLoad]
-  /// after it was asked for.
-  void projectLiveViewed(String project, {required int msToLoad}) => _send(
-    'project_live_viewed',
-    <String, Object?>{'id': project, 'ms_to_load': msToLoad},
-  );
+  /// A frame's live site came up over its picture (PORTFOLIO-6), [msToLoad]
+  /// after it was asked for: on the focused frame, or on its frame in the
+  /// corridor as the visitor walked by.
+  void projectLiveViewed(
+    String project, {
+    required int msToLoad,
+    required LiveWhere where,
+  }) => _send('project_live_viewed', <String, Object?>{
+    'id': project,
+    'ms_to_load': msToLoad,
+    'where': where.name,
+  });
   void projectLinkOpened(String project, String host) => _send(
     'project_link_opened',
     <String, Object?>{'project': project, 'host': host},
@@ -305,3 +311,7 @@ class SiteEvents {
   bool walksByStick() => _sink.flag(walkStickFlag, orElse: true);
   Listenable get flagsChanged => _sink.flagsChanged;
 }
+
+/// Where a frame's live site was seen: on its frame in the corridor, or on
+/// the focused frame.
+enum LiveWhere { corridor, focus }

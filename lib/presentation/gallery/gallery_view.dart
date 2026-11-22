@@ -966,8 +966,8 @@ class _GalleryViewState extends State<GalleryView> {
               // above the scene and below the controls' fallback row.
               // Only once the corridor is built: before that there is no frame
               // to focus, and nothing for it to read.
-              // The live site on its frame in the corridor (prototype): a
-              // full-screen layer that takes no input.
+              // The live site on its frame in the corridor: a full-screen
+              // layer that takes no input.
               if (_gallery != null && _corridorLiveUrl != null)
                 Positioned.fill(
                   child: IgnorePointer(
@@ -975,6 +975,7 @@ class _GalleryViewState extends State<GalleryView> {
                       _corridorLiveUrl,
                       LiveFrames.virtualWidth,
                       LiveFrames.virtualHeight,
+                      tint: LiveFrames.corridorTint,
                     ),
                   ),
                 ),
@@ -1483,74 +1484,76 @@ class _GalleryViewState extends State<GalleryView> {
     }
   }
 
-  /// The live site on its corridor frame, in perspective (prototype): the
-  /// card's corners projected by the scene's own camera, and the homography
-  /// that lays the page on them. Hidden when the card is behind the camera,
-  /// facing away, small on the screen (the hybrid: the picture shows there),
-  /// or while that frame is focused (the axis-aligned live layer takes it).
+  /// The live site on its corridor frame, in perspective: the card's
+  /// corners projected by the camera this frame is drawn with, and the
+  /// homography that lays the page on them. The picture shows instead when
+  /// the card is behind the camera, facing away, small on the screen (the
+  /// hybrid), or focused (the axis-aligned live layer takes it then).
   void _placeCorridorLive() {
-    final url = _corridorLiveUrl;
-    if (_lastCamera == null || url == null) return;
-    final camera = _cameraNow();
     final frame = _corridorLiveFrame;
-    if (frame == null || _focused?.project?.id == frame.project?.id) {
+    if (_lastCamera == null || _corridorLiveUrl == null || frame == null) {
+      return;
+    }
+    if (_focused?.project?.id == frame.project?.id) {
       CorridorFrame.place(null);
       return;
     }
+    final camera = _cameraNow();
     final halfW = frame.extents.x / 2 - GalleryLayout.frameBorder;
     final halfH = frame.extents.y / 2 - GalleryLayout.frameBorder;
     final p = frame.position;
-    final points = <(double, double)>[];
-    for (final (dy, dz) in <(double, double)>[
-      (halfH, -halfW),
-      (halfH, halfW),
-      (-halfH, halfW),
-      (-halfH, -halfW),
-    ]) {
-      final screen = camera.worldToScreen(
-        SceneAxes.position(Vector3(p.x, p.y + dy, p.z + dz)),
-        _viewSize,
-      );
-      if (screen == null) {
-        CorridorFrame.place(null);
-        return;
-      }
-      points.add((screen.dx, screen.dy));
-    }
-    // Top pair, then each pair left to right: the page's own order.
-    final top = points.sublist(0, 2)..sort((a, b) => a.$1.compareTo(b.$1));
-    final bottom = points.sublist(2)..sort((a, b) => a.$1.compareTo(b.$1));
-    final quad = <(double, double)>[top[0], top[1], bottom[1], bottom[0]];
-    final share = quadShare(quad, _viewSize.width, _viewSize.height);
-    // The hybrid: the picture while small, the page once it is a real size
-    // on the screen, faded across a short band so it does not pop.
-    final opacity =
-        ((share - LiveFrames.corridorShareFrom) /
-                (LiveFrames.corridorShareFull - LiveFrames.corridorShareFrom))
-            .clamp(0.0, 1.0);
-    if (quadArea(quad) <= 0 || opacity <= 0) {
-      CorridorFrame.place(null);
-      return;
-    }
-    CorridorFrame.place(
-      cardMatrix3d(
-        width: LiveFrames.virtualWidth.toDouble(),
-        height: LiveFrames.virtualHeight.toDouble(),
-        corners: quad,
-      ),
-      opacity: opacity,
+    final eye = _eye ?? _targetPose().position;
+    final placement = corridorPlacement(
+      corners: <(double, double)?>[
+        for (final (dy, dz) in <(double, double)>[
+          (halfH, -halfW),
+          (halfH, halfW),
+          (-halfH, halfW),
+          (-halfH, -halfW),
+        ])
+          switch (camera.worldToScreen(
+            SceneAxes.position(Vector3(p.x, p.y + dy, p.z + dz)),
+            _viewSize,
+          )) {
+            final s? => (s.dx, s.dy),
+            null => null,
+          },
+      ],
+      // A frame hangs on a side wall and faces the corridor: the eye must
+      // be on the corridor's side of that wall.
+      facing: (eye.x - p.x) * -p.x.sign > 0,
+      viewWidth: _viewSize.width,
+      viewHeight: _viewSize.height,
+      pageWidth: LiveFrames.virtualWidth.toDouble(),
+      pageHeight: LiveFrames.virtualHeight.toDouble(),
+      shareFrom: LiveFrames.corridorShareFrom,
+      shareFull: LiveFrames.corridorShareFull,
     );
+    CorridorFrame.place(placement?.matrix, opacity: placement?.opacity ?? 0);
+
+    // Seen: the page loaded and fully up on its frame, once a visit.
+    final ms = CorridorFrame.loadedMs;
+    if (!_corridorLiveSeen && ms != null && (placement?.opacity ?? 0) >= 1) {
+      _corridorLiveSeen = true;
+      locate<SiteEvents>().projectLiveViewed(
+        frame.project!.id,
+        msToLoad: ms,
+        where: LiveWhere.corridor,
+      );
+    }
   }
 
-  /// The frame whose live site walks with the visitor, and its URL (the
-  /// prototype: desktop only, a frameable site only).
+  bool _corridorLiveSeen = false;
+
+  /// The frame whose live site shows in the corridor, and its URL: a
+  /// frameable site, on a desktop or a tablet (a phone keeps the picture).
   late final Placement? _corridorLiveFrame = _pickable
-      .where((p) => p.project?.id == 'shunya-systems')
+      .where((p) => p.project?.id == _corridorLiveId)
       .firstOrNull;
-  late final String? _corridorLiveUrl =
-      Browser.isPhone() && !LiveFrames.overridden
+  static const String _corridorLiveId = 'shunya-systems';
+  late final String? _corridorLiveUrl = Browser.isPhone()
       ? null
-      : LiveFrames.urlFor('shunya-systems');
+      : LiveFrames.urlFor(_corridorLiveId);
 
   /// How far the camera is from where the path puts it (world units).
   double _cameraGap() {

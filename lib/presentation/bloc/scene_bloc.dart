@@ -426,7 +426,11 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
         ),
       ),
     );
-    _events?.projectLiveViewed(live.projectId!, msToLoad: event.ms);
+    _events?.projectLiveViewed(
+      live.projectId!,
+      msToLoad: event.ms,
+      where: LiveWhere.focus,
+    );
   }
 
   FutureOr<void> _onLiveFrameFailed(
