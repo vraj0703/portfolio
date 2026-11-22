@@ -8,6 +8,7 @@ import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_links.dart';
+import 'package:portfolio/domain/contact/contact_layout.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/contact_typing.dart';
 import 'package:portfolio/domain/style/colors.dart';
@@ -89,7 +90,10 @@ class _ContactMenuState extends State<_ContactMenu> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
+    final size = MediaQuery.sizeOf(context);
+    final width = size.width;
+    final spec = ContactLayout.forScreen(size.width, size.height);
+    if (spec.onPlate) return _PhoneMenu(spec: spec);
 
     return Stack(
       fit: StackFit.expand,
@@ -234,9 +238,24 @@ class _Separator extends StatelessWidget {
 /// which word the cursor is over — and without it a row of small grey words
 /// gives no sign it can be pressed at all.
 class _MenuItem extends StatefulWidget {
-  const _MenuItem({required this.entry, required this.reveal});
+  const _MenuItem({
+    required this.entry,
+    required this.reveal,
+    this.fontScale = 1,
+    this.minHeight = 0,
+    this.fill = false,
+  });
 
   final ContactEntry entry;
+
+  /// The words' size against their design, and the touch height (on a
+  /// phone: 18 px type, 48 dp rows; PORTFOLIO-29).
+  final double fontScale;
+  final double minHeight;
+
+  /// Fill the width it is given (the list's full-width rows), and show a
+  /// press as the row lighting up.
+  final bool fill;
 
   /// How much of this entry has arrived, `0`..`1`.
   ///
@@ -279,9 +298,11 @@ class _MenuItemState extends State<_MenuItem> {
     final strings = context.strings;
     final destination = widget.entry.destination;
 
-    final colour = _hovered || _pressed
+    final active = _hovered || _pressed;
+    final colour = active
         ? colors.contactMenuTextActive
         : colors.contactMenuText;
+    final scale = widget.fontScale;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -305,39 +326,50 @@ class _MenuItemState extends State<_MenuItem> {
           child: Padding(
             // Padding, not margin: it is the tap target on a touch screen,
             // where there is no hover to find the word with first.
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (!widget.entry.isMark || widget.entry.hasWords)
-                  Text(
-                    _typedWord(strings, wordFor(strings, destination)),
-                    style: context.typography.contactMenu.copyWith(
-                      color: colour,
+            padding: widget.minHeight > 0
+                ? const EdgeInsets.symmetric(horizontal: 4, vertical: 2)
+                : const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
+            child: _ItemBox(
+              minHeight: widget.minHeight,
+              fill: widget.fill,
+              lit: widget.minHeight > 0 && active,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  if (!widget.entry.isMark || widget.entry.hasWords)
+                    Text(
+                      _typedWord(strings, wordFor(strings, destination)),
+                      style: context.typography.contactMenu.copyWith(
+                        color: colour,
+                        fontSize:
+                            context.typography.contactMenu.fontSize! * scale,
+                      ),
                     ),
-                  ),
-                if (widget.entry.isMark) ...<Widget>[
-                  if (widget.entry.hasWords) const SizedBox(width: 6),
-                  Opacity(
-                    // The mark's own beat, not the entry's. "Made with" has
-                    // to be written before the heart it is about arrives.
-                    opacity: ContactTyping.markOf(
-                      reveal: widget.reveal,
-                      weight: weightOf(strings, widget.entry),
+                  if (widget.entry.isMark) ...<Widget>[
+                    if (widget.entry.hasWords) const SizedBox(width: 6),
+                    Opacity(
+                      // The mark's own beat, not the entry's. "Made with" has
+                      // to be written before the heart it is about arrives.
+                      opacity: ContactTyping.markOf(
+                        reveal: widget.reveal,
+                        weight: weightOf(strings, widget.entry),
+                      ),
+                      child: SvgPicture.asset(
+                        widget.entry.icon!,
+                        height:
+                            (widget.entry.hasWords
+                                ? _MenuItem.markSize
+                                : _MenuItem.doorwayMarkSize) *
+                            scale,
+                        // The marks are drawn in their own dark ink; without
+                        // this they arrive as near-black shapes on a near-black
+                        // ground.
+                        colorFilter: ColorFilter.mode(colour, BlendMode.srcIn),
+                      ),
                     ),
-                    child: SvgPicture.asset(
-                      widget.entry.icon!,
-                      height: widget.entry.hasWords
-                          ? _MenuItem.markSize
-                          : _MenuItem.doorwayMarkSize,
-                      // The marks are drawn in their own dark ink; without
-                      // this they arrive as near-black shapes on a near-black
-                      // ground.
-                      colorFilter: ColorFilter.mode(colour, BlendMode.srcIn),
-                    ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         ),
@@ -413,5 +445,119 @@ class _MenuItemState extends State<_MenuItem> {
         locate<SiteEvents>().contactLinkClicked('linkedin');
         locate<ContactLinks>().openLinkedIn();
     }
+  }
+}
+
+/// A phone link's touch row: at least [minHeight] tall, centred, the full
+/// width when [fill], and lit while [lit] (pressed): a clear step, not a few
+/// grey levels (PORTFOLIO-29). On desktop ([minHeight] 0) it is just its child.
+class _ItemBox extends StatelessWidget {
+  const _ItemBox({
+    required this.minHeight,
+    required this.fill,
+    required this.lit,
+    required this.child,
+  });
+
+  final double minHeight;
+  final bool fill;
+  final bool lit;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (minHeight <= 0) return child;
+    return Container(
+      constraints: BoxConstraints(minHeight: minHeight),
+      width: fill ? double.infinity : null,
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: lit ? context.colors.contactPressed : null,
+        borderRadius: BorderRadius.circular(ContactLayout.plateRadius),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// The links on a phone (PORTFOLIO-29): on a soft plate at the bottom, in
+/// the arrangement [spec] names, with 18 px type and 48 dp touch rows. The
+/// typing entrance is the desktop row's, link by link.
+class _PhoneMenu extends StatelessWidget {
+  const _PhoneMenu({required this.spec});
+
+  final ContactLayoutSpec spec;
+
+  @override
+  Widget build(BuildContext context) {
+    const entries = ContactMenu.entries;
+    final costs = _MenuRow(typed: 0).weights(context.strings);
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0, end: 1),
+      duration: LogoConfig.contactMenuDuration,
+      curve: Curves.linear,
+      builder: (context, entrance, _) {
+        final typed = LogoConfig.typedAt(
+          entrance,
+          from: LogoConfig.contactMenuTextStart,
+        );
+        Widget item(int i, {bool fill = false}) => _MenuItem(
+          entry: entries[i],
+          reveal: ContactTyping.revealOf(
+            index: i,
+            typed: typed,
+            weights: costs,
+          ),
+          fontScale: spec.fontScale,
+          minHeight: spec.targetHeight,
+          fill: fill,
+        );
+        final inner = spec.blockWidth - ContactLayout.platePadding * 2;
+        final Widget links = switch (spec.arrangement) {
+          ContactArrangement.list => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              for (var i = 0; i < entries.length; i++) item(i, fill: true),
+            ],
+          ),
+          ContactArrangement.columns => Wrap(
+            alignment: WrapAlignment.center,
+            children: <Widget>[
+              for (var i = 0; i < entries.length; i++)
+                SizedBox(width: inner / 2, child: item(i, fill: true)),
+            ],
+          ),
+          _ => Wrap(
+            alignment: WrapAlignment.center,
+            runAlignment: WrapAlignment.center,
+            spacing: ContactLayout.wrapSpacing,
+            children: <Widget>[
+              for (var i = 0; i < entries.length; i++) item(i),
+            ],
+          ),
+        };
+        return Align(
+          alignment: Alignment.bottomCenter,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: spec.bottom),
+            child: Opacity(
+              opacity: entrance.clamp(0.0, 1.0),
+              child: Container(
+                width: spec.blockWidth,
+                padding: const EdgeInsets.all(ContactLayout.platePadding),
+                decoration: BoxDecoration(
+                  color: context.colors.contactPlate,
+                  borderRadius: BorderRadius.circular(
+                    ContactLayout.plateRadius,
+                  ),
+                ),
+                child: links,
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

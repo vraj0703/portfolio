@@ -36,6 +36,13 @@ abstract class AppColors {
   Color get contactMenuText;
   Color get contactMenuTextActive;
 
+  /// The soft plate behind the contact links on a phone, so they read
+  /// against the bright ground (PORTFOLIO-29: 4.5:1 or better).
+  Color get contactPlate;
+
+  /// A pressed link's row on that plate.
+  Color get contactPressed;
+
   /// The dots between one destination and the next.
   Color get contactSeparator;
 
@@ -191,8 +198,16 @@ class DefaultAppColors implements AppColors {
   @override
   Color get contactMenuText => _menuInk.withValues(alpha: 0.82);
 
+  /// A real step from the resting ink, not a few grey levels (PORTFOLIO-29:
+  /// the hover was 2-3 levels on desktop): white.
   @override
-  Color get contactMenuTextActive => _menuInk;
+  Color get contactMenuTextActive => const Color(0xFFFFFFFF);
+
+  @override
+  Color get contactPlate => const Color(0xFF1A120A).withValues(alpha: 0.42);
+
+  @override
+  Color get contactPressed => const Color(0xFFF6E3C4).withValues(alpha: 0.16);
 
   @override
   Color get contactSeparator => _menuInk.withValues(alpha: 0.4);

@@ -205,6 +205,47 @@ void main() {
     });
   });
 
+  testWidgets('on a phone: big enough to read and to touch (PORTFOLIO-29)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(411, 880);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await arrive(tester);
+
+    for (final word in <String>[
+      strings.contactCv,
+      strings.contactEmail,
+      strings.contactGithub,
+      strings.contactLinkedIn,
+    ]) {
+      final text = tester.widget<Text>(find.text(word));
+      expect(text.style!.fontSize, greaterThanOrEqualTo(16), reason: word);
+      // The touch row around it: at least 48 tall.
+      final row = tester.getRect(
+        find
+            .ancestor(
+              of: find.text(word),
+              matching: find.byType(GestureDetector),
+            )
+            .first,
+      );
+      expect(row.height, greaterThanOrEqualTo(48), reason: word);
+      expect(row.left, greaterThanOrEqualTo(0));
+      expect(row.right, lessThanOrEqualTo(411));
+    }
+
+    // A tap still does what it says.
+    await tester.tap(
+      find.bySemanticsLabel(
+        strings.contactMarkLabel(ContactDestination.gallery),
+      ),
+    );
+    await tester.pump();
+    expect(created!.state, isA<Gallery>());
+    await tester.pump(AudioCue.galleryEntry.length);
+  });
+
   testWidgets('offers all seven destinations', (tester) async {
     await arrive(tester);
 

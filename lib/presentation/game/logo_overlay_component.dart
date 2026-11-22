@@ -4,6 +4,7 @@ import 'package:flame/components.dart';
 import 'package:flame_bloc/flame_bloc.dart';
 import 'package:flutter/material.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
+import 'package:portfolio/domain/contact/contact_layout.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
@@ -169,8 +170,10 @@ class LogoOverlayComponent extends PositionComponent
       LogoConfig.linesFor(
         viewportWidth: _viewport.x,
         viewportHeight: _viewport.y,
+        // On the contact screen, around the links as they stand (on a
+        // phone: a block nearly the screen's width, so no lines).
         innerHalfWidth: _isContact
-            ? LogoConfig.contactGap(_viewport.x)
+            ? ContactLayout.forScreen(_viewport.x, _viewport.y).blockWidth / 2
             : _labelHalfWidth * _scale,
         baseGap: _isContact
             ? LogoConfig.contactGap(_viewport.x)
