@@ -48,9 +48,6 @@ class SecondaryTitleComponent extends PositionComponent {
   /// carrying its own.
   Vector2 lightPosition = Vector2.zero();
 
-  /// The name's width, for the shine on each glyph (`TitleShine`).
-  double nameWidth = 0;
-
   /// Fade applied by the following stage, multiplied into each glyph's own.
   double stageFade = 1;
 
@@ -148,7 +145,6 @@ class SecondaryTitleComponent extends PositionComponent {
     for (var i = 0; i < _glyphs.length; i++) {
       _glyphs[i]
         ..lightPosition = lightPosition
-        ..nameWidth = nameWidth
         ..fade = SecondaryTitleTimeline.opacityOf(elapsed, i) * stageFade
         ..position = Vector2(
           _restX[i] + slide,

@@ -13,23 +13,6 @@ abstract final class TitleShine {
   /// 2). One constant away (`?pc-shine=1|1.5|2` to compare).
   static const double radiusScale = 2;
 
-  /// The shine's radius at scale 1, as a share of the name's drawn width:
-  /// the shader's original 800 px against the desktop name's 518 px
-  /// (1280 wide, measured 2026-11-21), so a desktop looks exactly as before.
-  static const double nameShare = 800 / 518;
-
-  /// The radius in physical pixels for a name [nameWidth] logical pixels
-  /// wide at [devicePixelRatio], at [scale]. Desktop (518 px, DPR 1, 2x):
-  /// 1600, as shipped; a phone gets the same share of its own name.
-  static double radiusFor({
-    required double nameWidth,
-    required double devicePixelRatio,
-    double? scale,
-  }) => nameWidth * devicePixelRatio * nameShare * (scale ?? inUse);
-
-  /// The name's width before the title has laid out: the desktop's.
-  static const double fallbackNameWidth = 518;
-
   /// The scale in use: [radiusScale], or `?pc-shine=N` on the URL.
   static final double inUse =
       double.tryParse(Uri.base.queryParameters['pc-shine'] ?? '') ??
