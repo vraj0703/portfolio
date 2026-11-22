@@ -11,6 +11,7 @@ import 'package:portfolio/domain/contact/contact_links.dart';
 import 'package:portfolio/domain/contact/contact_layout.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/contact/contact_typing.dart';
+import 'package:portfolio/domain/style/panel_shape.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/strings.dart';
 import 'package:portfolio/domain/style/text_styles.dart';
@@ -299,7 +300,11 @@ class _MenuItemState extends State<_MenuItem> {
     final destination = widget.entry.destination;
 
     final active = _hovered || _pressed;
-    final colour = active
+    // On a phone the links stand on the theme's panel and take its ink.
+    final onPanel = widget.minHeight > 0;
+    final colour = onPanel
+        ? (active ? colors.panelInkActive : colors.panelInk)
+        : active
         ? colors.contactMenuTextActive
         : colors.contactMenuText;
     final scale = widget.fontScale;
@@ -472,7 +477,7 @@ class _ItemBox extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: lit ? context.colors.contactPressed : null,
-        borderRadius: BorderRadius.circular(ContactLayout.plateRadius),
+        borderRadius: BorderRadius.circular(PanelShape.radius),
       ),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: minHeight),
@@ -554,10 +559,13 @@ class _PhoneMenu extends StatelessWidget {
               child: Container(
                 width: spec.blockWidth,
                 padding: const EdgeInsets.all(ContactLayout.platePadding),
+                // The theme's panel, as the Made with heart dialog has it.
                 decoration: BoxDecoration(
                   color: context.colors.contactPlate,
-                  borderRadius: BorderRadius.circular(
-                    ContactLayout.plateRadius,
+                  borderRadius: BorderRadius.circular(PanelShape.radius),
+                  border: Border.all(
+                    color: context.colors.panelBorder,
+                    width: PanelShape.borderWidth,
                   ),
                 ),
                 child: links,

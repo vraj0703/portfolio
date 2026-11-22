@@ -77,9 +77,8 @@ abstract final class ContactLayout {
   static const double sideMargin = 16;
   static const double phoneBottom = 28;
 
-  /// The plate: its corner radius and inner padding; the wrapped row's gap
-  /// between links.
-  static const double plateRadius = 14;
+  /// The plate's inner padding (its shape is the theme's panel:
+  /// `PanelShape`), and the wrapped row's gap between links.
   static const double platePadding = 8;
   static const double wrapSpacing = 6;
 
