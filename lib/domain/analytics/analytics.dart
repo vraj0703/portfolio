@@ -164,6 +164,7 @@ class SiteEvents {
     'contact_link_clicked',
     'project_case_opened',
     'project_link_opened',
+    'project_live_viewed',
     'publication_opened',
     'testimonial_form_opened',
     'testimonial_text_copied',
@@ -233,6 +234,13 @@ class SiteEvents {
   );
   void projectCaseOpened(String project) =>
       _send('project_case_opened', <String, Object?>{'project': project});
+
+  /// A frame's live site loaded over its picture (PORTFOLIO-6), [msToLoad]
+  /// after it was asked for.
+  void projectLiveViewed(String project, {required int msToLoad}) => _send(
+    'project_live_viewed',
+    <String, Object?>{'id': project, 'ms_to_load': msToLoad},
+  );
   void projectLinkOpened(String project, String host) => _send(
     'project_link_opened',
     <String, Object?>{'project': project, 'host': host},

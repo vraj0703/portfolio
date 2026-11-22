@@ -68,6 +68,7 @@ The fragment is for analytics only at first; whether it also becomes a real deep
 | `contact_link_clicked` | a contact link is opened | `channel` (`email`, `linkedin`, `github`), `from` | recruiter or collaborator |
 | `project_case_opened` | the sheet of a piece is opened | `project` | someone studying the work |
 | `project_link_opened` | the link out of a piece is followed | `project`, `host` | strong interest in that product |
+| `project_live_viewed` | a focused frame's live site loaded over its picture (PORTFOLIO-6) | `id`, `ms_to_load` | the visitor stayed long enough for the real site to come up in the frame |
 | `publication_opened` | a package or the Play listing is opened | `registry` (`npm`, `pypi`, `play`), `name` | developer |
 
 These are signals, not labels: nothing is written onto the visitor. The groups are built in PostHog as saved

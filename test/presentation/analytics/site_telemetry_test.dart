@@ -84,8 +84,10 @@ void main() {
     test(
       'fifteen from the plan, the one control it names, the menu and the radio',
       () {
-        expect(SiteEvents.names, hasLength(20));
+        expect(SiteEvents.names, hasLength(21));
         expect(SiteEvents.names, contains('sound_toggled'));
+        // A frame's live site loaded over its picture (PORTFOLIO-6).
+        expect(SiteEvents.names, contains('project_live_viewed'));
         expect(
           SiteEvents.names,
           containsAll(<String>[
