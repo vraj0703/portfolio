@@ -34,7 +34,7 @@ void main() {
       }
     });
 
-    test('Vishal's pick: +50 %', () {
+    test("Vishal's pick: +50 %", () {
       expect(LogoConfig.phoneMarkBoost, 0.5);
     });
   });
