@@ -49,7 +49,13 @@ class LiveFrameOverlay extends StatelessWidget {
                 if (url != null && live.isUp && live.projectId == id)
                   Positioned.fromRect(
                     rect: rect,
-                    child: _Loader(key: ValueKey<String>(id), url: url),
+                    child: ClipRect(
+                      child: _Loader(
+                        key: ValueKey<String>(id),
+                        url: url,
+                        scale: rect.width / LiveFrames.virtualWidth,
+                      ),
+                    ),
                   ),
                 // Up, failed or loading alike: the way to the site is never
                 // lost (a blocked frame shows the picture and this).
@@ -75,9 +81,12 @@ class LiveFrameOverlay extends StatelessWidget {
 /// allow: it owns a timer (the load's timeout), which it reports, as it
 /// reports the load, to the scene.
 class _Loader extends StatefulWidget {
-  const _Loader({required this.url, super.key});
+  const _Loader({required this.url, required this.scale, super.key});
 
   final String url;
+
+  /// The card's width over the page's virtual width (LiveFrames).
+  final double scale;
 
   @override
   State<_Loader> createState() => _LoaderState();
@@ -121,6 +130,9 @@ class _LoaderState extends State<_Loader> {
     url: widget.url,
     onLoaded: _loaded,
     fade: LiveFrames.crossFade,
+    virtualWidth: LiveFrames.virtualWidth,
+    virtualHeight: LiveFrames.virtualHeight,
+    scale: widget.scale,
   );
 }
 

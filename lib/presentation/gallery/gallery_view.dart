@@ -1451,6 +1451,10 @@ class _GalleryViewState extends State<GalleryView> {
     final card = rect == null ? null : FocusedCard(projectId: id, rect: rect);
     if (card != _liveRect.value) _liveRect.value = card;
     if (LiveFrames.urlFor(id) == null) return;
+    // Not on a phone, for now: the page scaled to a phone's frame is too
+    // small to use (PORTFOLIO-6). A phone keeps the picture and "open site"
+    // while Vishal picks between a full-screen sheet and pinch to zoom.
+    if (Browser.isPhone()) return;
     final bloc = context.read<SceneBloc>();
     final state = bloc.state;
     if (state is Gallery && state.live.projectId != id) {

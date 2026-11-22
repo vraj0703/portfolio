@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/frame_captures.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
+import 'package:portfolio/domain/gallery/live_frames.dart';
 import 'package:portfolio/domain/gallery/project_data.dart';
 
 void main() {
@@ -36,6 +37,23 @@ void main() {
         final cardW = GalleryLayout.frameWidth - GalleryLayout.frameBorder * 2;
         final cardH = 3.0 - GalleryLayout.frameBorder * 2;
         expect(size.first / size.last, closeTo(cardW / cardH, 0.01));
+      }
+    });
+
+    test('the capture and the live iframe share one page size', () {
+      // tool/capture_frame.py reads LiveFrames.virtualWidth/Height; the
+      // iframe is that size scaled to the card, so both show one layout.
+      final tool = File('tool/capture_frame.py').readAsStringSync();
+      expect(tool, contains('static const int virtualWidth'));
+      expect(tool, contains('static const int virtualHeight'));
+      for (final id in FrameCaptures.projects) {
+        final record =
+            jsonDecode(File(FrameCaptures.recordFor(id)).readAsStringSync())
+                as Map<String, dynamic>;
+        expect(
+          record['viewport'],
+          '${LiveFrames.virtualWidth}x${LiveFrames.virtualHeight}',
+        );
       }
     });
   });

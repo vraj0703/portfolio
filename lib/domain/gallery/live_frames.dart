@@ -38,6 +38,14 @@ abstract final class LiveFrames {
   /// not.
   static String? siteFor(String id) => _sites[id];
 
+  /// The page size a frame's site is laid out at, both for its capture
+  /// (tool/capture_frame.py reads these two lines) and for its live iframe,
+  /// which is this size scaled down to the card: so the cross-fade is the
+  /// picture becoming the same page, alive, not a different layout. Exactly
+  /// the card's shape, 3.56 : 2.56.
+  static const int virtualWidth = 1424;
+  static const int virtualHeight = 1024;
+
   /// The camera counts as arrived when it is this close to its focus pose
   /// (world units): square to the frame, so the card is an upright rectangle
   /// on the screen and the iframe can lie exactly over it.

@@ -18,7 +18,7 @@ Could CI refresh it on a schedule later? Yes in principle: a scheduled workflow 
 on ubuntu-latest (it has Chrome), commit the two files and open a PR, so a person sees the new
 picture before it ships. Not added (PORTFOLIO-6: say, do not add).
 """
-import argparse, asyncio, base64, datetime, io, json, os, subprocess, sys, tempfile, time, urllib.request
+import argparse, asyncio, base64, datetime, io, json, os, re, subprocess, sys, tempfile, time, urllib.request
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHROME = os.environ.get("CHROME", r"C:\Program Files\Google\Chrome\Application\chrome.exe")
@@ -29,11 +29,21 @@ SITES = {
     "shunya-systems": "https://shunya.systems",
 }
 
-# The card's shape (GalleryLayout: 4 x 3 frame less a 0.22 border each side) and the desktop
-# width the page is laid out at. 1424 x 1024 is exactly 3.56 : 2.56.
+# The card's shape (GalleryLayout: 4 x 3 frame less a 0.22 border each side).
 CARD_W, CARD_H = 3.56, 2.56
-VIEW_W = 1424
-VIEW_H = round(VIEW_W * CARD_H / CARD_W)
+
+
+def _virtual_size():
+    """The page size the site is laid out at: ONE constant, LiveFrames.virtualWidth/Height in
+    lib/domain/gallery/live_frames.dart, read here so the capture and the live iframe (which is
+    that size scaled down to the card) show the same layout."""
+    src = open(os.path.join(ROOT, "lib", "domain", "gallery", "live_frames.dart"), encoding="utf-8").read()
+    w = int(re.search(r"static const int virtualWidth = (\d+);", src).group(1))
+    h = int(re.search(r"static const int virtualHeight = (\d+);", src).group(1))
+    return w, h
+
+
+VIEW_W, VIEW_H = _virtual_size()
 
 # The texture's size: the gallery decodes surfaces at 1024 on the long side.
 OUT_W = 1024

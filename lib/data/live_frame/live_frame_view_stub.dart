@@ -7,12 +7,18 @@ class LiveFrameView extends StatelessWidget {
     required this.url,
     required this.onLoaded,
     required this.fade,
+    required this.virtualWidth,
+    required this.virtualHeight,
+    required this.scale,
     super.key,
   });
 
   final String url;
   final VoidCallback onLoaded;
   final Duration fade;
+  final int virtualWidth;
+  final int virtualHeight;
+  final double scale;
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
