@@ -1,3 +1,4 @@
+import 'package:portfolio/domain/pointer/pointer_status.dart';
 import 'package:flutter/foundation.dart';
 
 /// Where the site's measurements go (docs/analytics/README.md).
@@ -129,9 +130,15 @@ abstract final class SitePath {
 /// `visit_number`, registered with PostHog when it starts ([VisitCounter]).
 /// The name is PostHog's super property, not an event, so it is not here.
 class SiteEvents {
-  SiteEvents(this._sink, {required this.viewport});
+  SiteEvents(this._sink, {required this.viewport, PointerStatus? pointer})
+    : pointer = pointer ?? PointerStatus();
 
   final Analytics _sink;
+
+  /// Which source drives the scene's pointer, and what became of the motion
+  /// permission (PORTFOLIO-27): `pointer_source` and `tilt_permission` on
+  /// `site_loaded` and `scene_health`.
+  final PointerStatus pointer;
 
   /// The viewport now, in logical pixels.
   final (double, double) Function() viewport;
@@ -203,13 +210,16 @@ class SiteEvents {
 
   // Question 1.
   void siteLoaded(Map<String, Object?> timings) =>
-      _send('site_loaded', timings);
+      _send('site_loaded', <String, Object?>{...timings, ...pointer.now});
   void loadAbandoned(Map<String, Object?> props) =>
       _send('load_abandoned', props, beacon: true);
 
   // Question 2.
   void sceneHealth(Map<String, Object?> summary, {bool closing = false}) =>
-      _send('scene_health', summary, beacon: closing);
+      _send('scene_health', <String, Object?>{
+        ...summary,
+        ...pointer.scene(),
+      }, beacon: closing);
   void hang({required int ms, required String during}) =>
       _send('hang', <String, Object?>{'ms': ms, 'during': during});
   void exception(Object error, StackTrace? stack) =>

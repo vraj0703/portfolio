@@ -62,6 +62,15 @@ class LogoOverlayComponent extends PositionComponent
   /// fires exactly once — was raised while the scene was still loading.
   bool _isOnShow = false;
 
+  /// A touch's first tap is showing the hover (`Logo.touchHovered`): the
+  /// light and the lines follow the held finger as they follow a cursor, and
+  /// the label types itself on again. Held for [LogoConfig.touchHoverHold],
+  /// then reported.
+  bool _armed = false;
+  double _armedFor = 0;
+  double _retype = 1;
+  bool _lapseReported = false;
+
   /// Cursor position in this component's own space, so the lines lean the
   /// right way regardless of where the layer sits on screen.
   Vector2 cursor = Vector2.zero();
@@ -113,7 +122,13 @@ class LogoOverlayComponent extends PositionComponent
         _isContact = true;
         _replay();
       },
-      logo: (_) {
+      logo: (logo) {
+        if (logo.touchHovered && !_armed) {
+          _armedFor = 0;
+          _retype = 0;
+          _lapseReported = false;
+        }
+        _armed = logo.touchHovered;
         _isContact = false;
         _isOnShow = true;
         // Re-entering the logo (e.g. returning from a later section) replays
@@ -176,7 +191,17 @@ class LogoOverlayComponent extends PositionComponent
       queuer.queue(event: const SceneEvent.logoEntranceCompleted());
     }
 
-    _text.text = label.substring(0, (label.length * _typed).floor());
+    if (_armed) {
+      _armedFor += dt;
+      _retype = (_retype + LogoConfig.retypeSpeed * dt).clamp(0.0, 1.0);
+      final hold = LogoConfig.touchHoverHold.inMilliseconds / 1000;
+      if (_armedFor >= hold && !_lapseReported) {
+        _lapseReported = true;
+        queuer.queue(event: const SceneEvent.logoHoverLapsed());
+      }
+    }
+    final typed = _typed < _retype ? _typed : _retype;
+    _text.text = label.substring(0, (label.length * typed).floor());
     _text.textRenderer = TextPaint(
       style: palette.enterStyle.copyWith(
         color: palette.overlayText.withValues(alpha: _layerOpacity),

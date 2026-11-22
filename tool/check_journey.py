@@ -7,7 +7,8 @@ Runs on a DESKTOP profile (1280x800, mouse and wheel) and a PHONE profile (412x9
 already open with `pc-profile=1` in its URL). Each profile walks the same journey:
 
   1. load        the logo screen appears
-  2. enter       a tap (or click) on the logo leaves it
+  2. enter       a click on the logo leaves it; a touch taps twice, the first showing the logo's
+                 hover and staying on the logo screen (PORTFOLIO-27)
   3. gallery     wheel (desktop) or swipes (phone) carry title -> bold text -> gallery
   4. back wall   the walk reaches the far end of the corridor (screen settles there)
   5. testimonial the testimonial wall's cards are in front of the visitor
@@ -15,6 +16,11 @@ already open with `pc-profile=1` in its URL). Each profile walks the same journe
                  failing if any project frame is focused on the way (PR 19: the stick's
                  corridor rule fired past the back wall and jumped to the last project)
   7. drawer      the menu opens the drawer, with the gallery's radio in it
+  pointer       on the logo (before the tap), the title (settled) and the contact screen: the
+                 pointer left, right, left again (the mouse; the tilt on a phone) must move the
+                 scene: PR 26 once left the contact screen still even under a mouse
+  8. contact hover (desktop) "let's connect" reaches the contact page, and the mouse on a word
+                 lights it (Vishal, 2026-11-21: "on contact page hover is not working")
 
 It fails on a HANG (no step done within its limit, or the screen frozen while input is going in)
 and on any console error or uncaught exception. Prints one JSON line per profile and exits
@@ -28,13 +34,13 @@ import argparse, asyncio, base64, io, json, os, subprocess, sys, tempfile, time,
 
 sys.path.insert(0, os.path.dirname(__file__))
 import web_profile as wp  # noqa: E402
-from PIL import Image, ImageChops, ImageStat  # noqa: E402
+from PIL import Image, ImageChops, ImageFilter, ImageStat  # noqa: E402
 
 PORT = 9335
 
 # How long each step may take before it counts as a hang, in seconds.
 LIMITS = {"load": 150, "enter": 30, "gallery": 30, "back wall": 40, "testimonial": 30, "hall": 40,
-          "drawer": 10}
+          "drawer": 10, "contact hover": 40}
 # The screen must change at least this often while input is going in.
 FROZEN_S = 6
 
@@ -233,18 +239,109 @@ async def has_label(cdp, label):
     return bool(r["result"].get("value"))
 
 
+# The scene's light follows the pointer on the logo, title and contact screens (PORTFOLIO-27;
+# PR 26 once left the contact screen still, even under a mouse). Each step moves the pointer
+# left, right and left again: the left -> right change must beat a floor AND be at least twice
+# the left -> left change, which is what the backdrop's own motion alone gives.
+#
+# Floors, about half the lowest seen when it works (2026-11-22, desktop / Pixel profile):
+#   logo     share of the screen changed: 0.330 / 0.178        floor 0.08
+#   title    the name's shift in CSS px:  24.0 / 11.4          floor 6
+#   contact  share of the screen changed: 0.258 / 0.132        floor 0.06
+# (master's desktop contact screen: 0.258; PR 26 before the fix: 0.0, the regression this
+# step exists for.) The control (left -> left again) was 0.000-0.062 and 0-1.1 px.
+POINTER_FLOOR = {"logo": 0.08, "title": 6, "contact": 0.06}
+POINTER_MEASURE_ONLY = os.environ.get("JOURNEY_POINTER_MEASURE") == "1"
+
+
+def changed_share(a, b, thr=20):
+    d = ImageChops.difference(a.convert("L"), b.convert("L"))
+    return sum(1 for v in d.get_flattened_data() if v > thr) / (d.width * d.height)
+
+
+async def point(cdp, p, side):
+    """Desktop: the mouse near one edge. Phone: the tilt, full range one way (a finger on the
+    logo would tap it)."""
+    if p["touch"]:
+        await cdp("DeviceOrientation.setDeviceOrientationOverride", alpha=0, beta=40,
+                  gamma=-20 if side < 0 else 20)
+    else:
+        x = p["w"] * (0.05 if side < 0 else 0.95)
+        for k in range(5):
+            await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x, y=p["h"] * 0.4 + k)
+            await asyncio.sleep(0.1)
+    # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer.
+    await asyncio.sleep(3.0 if p["touch"] else 1.5)
+    return await png_shot(cdp)
+
+
+def name_shift(a, b, p):
+    """How far the title's name moved from `a` to `b`, in CSS px: its letters' edges aligned
+    (the backdrop behind them churns; the letters are the sharpest thing in the band)."""
+    def edges(im):
+        W, H = im.size
+        band = im.convert("L").crop((int(W * .04), int(H * .44), int(W * .96), int(H * .53)))
+        return band.filter(ImageFilter.FIND_EDGES).point(lambda v: 255 if v > 40 else 0)
+    ea, eb = edges(a), edges(b)
+    scale = a.size[0] / p["w"]
+    rng = int(40 * scale)
+    best = min(range(-rng, rng + 1), key=lambda d: ImageStat.Stat(ImageChops.difference(
+        ea.crop((rng, 0, ea.width - rng, ea.height)),
+        eb.crop((rng + d, 0, eb.width - rng + d, eb.height)))).mean[0])
+    return best / scale
+
+
+async def pointer_follows(cdp, p, scene, steps):
+    left = await point(cdp, p, -1)
+    right = await point(cdp, p, 1)
+    again = await point(cdp, p, -1)
+    if p["touch"]:
+        # Level again: the next screen measures its tilt from how the phone is held when it
+        # appears, and must start at the centre for its own full left and right.
+        await cdp("DeviceOrientation.setDeviceOrientationOverride", alpha=0, beta=40, gamma=0)
+    if scene == "title":
+        # The name slides with the parallax: in px, and back again.
+        moved, control = abs(name_shift(left, right, p)), abs(name_shift(left, again, p))
+    else:
+        moved, control = changed_share(left, right), changed_share(left, again)
+    steps.setdefault("pointer", {})[scene] = [round(moved, 3), round(control, 3)]
+    if os.environ.get("JOURNEY_DEBUG"):
+        for tag, im in (("left", left), ("right", right), ("again", again)):
+            im.save(os.path.join(tempfile.gettempdir(), f"journey-pointer-{p['name']}-{scene}-{tag}.png"))
+    if POINTER_MEASURE_ONLY:
+        return
+    if moved < POINTER_FLOOR[scene] or moved < 2 * control:
+        raise Hang(f"pointer: the {scene} screen did not follow the pointer "
+                   f"(left->right {moved:.3f}, left->left {control:.3f}, floor {POINTER_FLOOR[scene]})")
+
+
 async def journey(cdp, p, url):
     W, H = p["w"], p["h"]
     steps = {}
+    if p["touch"]:
+        # Held at 40 degrees from the start: the scenes measure their tilt from it.
+        await cdp("DeviceOrientation.setDeviceOrientationOverride", alpha=0, beta=40, gamma=0)
     await cdp("Page.navigate", url=url)
 
     await until(cdp, "load", logo_like, None, steps)
-    await asyncio.sleep(1)
+    await asyncio.sleep(3)
+    await pointer_follows(cdp, p, "logo", steps)
 
     async def enter_tap():
         await tap(cdp, p, W / 2, H * (0.89 if p["touch"] else 0.5))
         await asyncio.sleep(1.5)
+    if p["touch"]:
+        # A touch taps twice (PORTFOLIO-27): the first shows the logo's hover and stays on
+        # the logo screen, the second enters. Past the logo's own entrance first, so the
+        # first tap is taken.
+        await asyncio.sleep(2.5)
+        await tap(cdp, p, W / 2, H * 0.89)
+        await asyncio.sleep(1.5)
+        if not logo_like(await shot(cdp)):
+            raise Hang("enter: the first touch tap left the logo (no hover first)")
     await until(cdp, "enter", lambda im: not logo_like(im), enter_tap, steps)
+    await asyncio.sleep(10)  # the title's entrance, settled
+    await pointer_follows(cdp, p, "title", steps)
 
     if p["touch"]:
         async def onward():
@@ -328,7 +425,94 @@ async def journey(cdp, p, url):
                 raise Hang("drawer: did not open with the gallery's radio in it")
             await asyncio.sleep(0.25)
     steps["drawer"] = round(time.monotonic() - t0, 1)
+    if not p["touch"]:
+        await contact_hover(cdp, p, steps)
+    else:
+        # The drawer's bar: the heart, rightmost, 32 px above the bottom (TitleChrome on a phone).
+        t0 = time.monotonic()
+        await tap(cdp, p, W * 0.77, H - 32)
+        while not await marked(cdp, "/#/contact"):
+            if time.monotonic() - t0 > LIMITS["contact hover"]:
+                raise Hang("contact: the drawer's heart did not reach the contact page")
+            await asyncio.sleep(0.25)
+        await asyncio.sleep(12)  # the row typed on, the arrival's veil lifted
+        steps["contact"] = round(time.monotonic() - t0, 1)
+    await pointer_follows(cdp, p, "contact", steps)
     return steps
+
+
+async def png_shot(cdp):
+    """A lossless screen: a hover's lift is a few grey levels, which a JPEG blurs away."""
+    r = await cdp("Page.captureScreenshot", format="png")
+    return Image.open(io.BytesIO(base64.b64decode(r["data"]))).convert("RGB")
+
+
+async def label_box(cdp, label):
+    """The rectangle of the semantics node whose label is `label`, or None."""
+    # The one on screen: the drawer keeps a copy of its entries out of view.
+    js = f"""(() => {{ const e = [...document.querySelectorAll('flt-semantics')]
+      .filter(n => (n.getAttribute('aria-label') || n.textContent || '').trim() === {json.dumps(label)})
+      .map(n => n.getBoundingClientRect())
+      .find(r => r.width > 0 && r.x >= 0 && r.x + r.width <= innerWidth && r.y >= 0 && r.y + r.height <= innerHeight);
+      return e ? [e.x, e.y, e.width, e.height] : null; }})()"""
+    r = await cdp("Runtime.evaluate", expression=js, returnByValue=True)
+    return r["result"].get("value")
+
+
+async def contact_hover(cdp, p, steps):
+    """Desktop: the drawer's "let's connect" to the contact page; the mouse on "github" must
+    light the word (its letters brighten). A mouse parked in a corner first, so the word is
+    measured at rest and then under the pointer."""
+    t0 = time.monotonic()
+    # A real click where the entry is: a JS click on its semantics node did not navigate.
+    # The drawer slides in: wait for the entry to be on screen before clicking it.
+    entry = await label_box(cdp, "let's connect")
+    while entry is None:
+        if time.monotonic() - t0 > 10:
+            raise Hang("contact hover: 'let's connect' never came on screen in the drawer")
+        await asyncio.sleep(0.25)
+        entry = await label_box(cdp, "let's connect")
+    await asyncio.sleep(0.5)
+    entry = await label_box(cdp, "let's connect") or entry
+    await click(cdp, entry[0] + entry[2] / 2, entry[1] + entry[3] / 2)
+    while not await marked(cdp, "/#/contact"):
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            r = await cdp("Runtime.evaluate", returnByValue=True, expression=
+                          "performance.getEntriesByType('mark').map(m => m.name).filter(n => n.startsWith('scene:'))")
+            raise Hang(f"contact hover: the contact page was not reached (clicked {entry}; marks {r['result'].get('value')})")
+        await asyncio.sleep(0.25)
+    box = None
+    while box is None:
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            raise Hang("contact hover: no 'github' on the contact page")
+        await asyncio.sleep(0.5)
+        box = await label_box(cdp, "github")
+    # The row types itself on, centred, so its words slide until it is done: wait for
+    # the row to be still, with the mouse parked in a corner.
+    await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=5, y=p["h"] - 5)
+    rest = await png_shot(cdp)
+    while True:
+        await asyncio.sleep(0.5)
+        now = await png_shot(cdp)
+        band = (0, int(box[1]), p["w"], int(box[1] + box[3]))
+        if not any(v > 12 for v in ImageChops.difference(rest.crop(band), now.crop(band)).convert("L").getdata()):
+            break
+        rest = now
+        if time.monotonic() - t0 > LIMITS["contact hover"]:
+            raise Hang("contact hover: the row never settled")
+    x, y, w, h = await label_box(cdp, "github") or box
+    await cdp("Input.dispatchMouseEvent", type="mouseMoved", x=x + w / 2, y=y + h / 2)
+    await asyncio.sleep(0.6)
+    lit = await png_shot(cdp)
+    crop = (int(x), int(y + h * 0.25), int(x + w), int(y + h * 0.75))
+    diff = ImageChops.difference(rest.crop(crop), lit.crop(crop)).convert("L")
+    lifted = sum(1 for v in diff.getdata() if v > 12)
+    if os.environ.get("JOURNEY_DEBUG"):
+        rest.save(os.path.join(tempfile.gettempdir(), "journey-contact-rest.png"))
+        lit.save(os.path.join(tempfile.gettempdir(), "journey-contact-lit.png"))
+    if lifted < 40:
+        raise Hang(f"contact hover: the mouse on 'github' did not light it ({lifted} px changed)")
+    steps["contact hover"] = round(time.monotonic() - t0, 1)
 
 
 async def run_profile(p, url, remote=None):

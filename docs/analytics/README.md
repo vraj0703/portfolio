@@ -29,7 +29,7 @@ site (1 on a first visit).
 
 | Event | When | Properties |
 |---|---|---|
-| `site_loaded` | once, when loading ends and the logo screen first accepts the tap (the loading gate lifting) | `ms_first_paint`, `ms_engine_ready`, `ms_gallery_built`, `ms_ready` (all from navigation start); `build_phases` (the BUILD_TIMING phases, ms each); `renderer`; `cores`, `memory_gb`, `connection` (when the browser tells); `intro_skipped` |
+| `site_loaded` | once, when loading ends and the logo screen first accepts the tap (the loading gate lifting) | `ms_first_paint`, `ms_engine_ready`, `ms_gallery_built`, `ms_ready` (all from navigation start); `build_phases` (the BUILD_TIMING phases, ms each); `renderer`; `cores`, `memory_gb`, `connection` (when the browser tells); `intro_skipped`; `pointer_source`, `tilt_permission` (see below) |
 | `load_abandoned` | the page is hidden or closed before `site_loaded`, which is to say during loading | `phase_reached` (LoadingPhase), `ms_waited`, same device properties |
 
 Not "when the title takes input": the logo screen waits for the visitor's tap, so a time taken there
@@ -43,7 +43,7 @@ see the title. It must be sent on `pagehide` with a beacon, or it never arrives.
 
 | Event | When | Properties |
 |---|---|---|
-| `scene_health` | on leaving a scene, or when the page is hidden; at most one per scene visit, and only if the visit lasted 3 s | `scene`, `seconds`, `frames`, `frame_ms_p50`, `frame_ms_p95`, `slow_frames` (over 50 ms), `stalls` (over 500 ms), `worst_frame_ms` |
+| `scene_health` | on leaving a scene, or when the page is hidden; at most one per scene visit, and only if the visit lasted 3 s | `scene`, `seconds`, `frames`, `frame_ms_p50`, `frame_ms_p95`, `slow_frames` (over 50 ms), `stalls` (over 500 ms), `worst_frame_ms`; `pointer_source`, `tilt_permission` (see below) |
 | `hang` | a single frame or main-thread stall longer than 2 s (the web's nearest thing to an ANR); at most five a visit | `scene`, `ms`, `during` (what was happening: `gallery_build`, `focus`, `walk`, …) |
 | `$exception` | any uncaught Flutter or platform error | PostHog's own error format, with the stack |
 
@@ -126,6 +126,25 @@ The title's heart (the way to the contact page) left the top row for the drawer'
 
 There is no separate "contact opened" event: arriving on the contact page is its own `$pageview`
 (`/#/contact`), and a `nav_selected` with `destination: contact` just before it says it came from the bar.
+
+### The pointer on phones (PORTFOLIO-27)
+
+The logo's light, its rays and spring lines, and the title's sheen and parallax all follow one pointer. On a
+phone it comes from a finger, the phone's tilt or a slow idle drift; on desktop from the mouse, or the drift once
+the mouse has rested 8 s. Two properties say which, so "is the effect alive on phones?" has an answer. They are
+properties on events already sent, not new events:
+
+- `pointer_source` (`mouse` | `touch` | `tilt` | `drift` | `still`):
+  - On `site_loaded`, the source at that moment: before the logo's tap, so on a phone `tilt` (Android) or
+    `drift`, and on desktop `still`.
+  - On `scene_health`, the source that drove the pointer longest during that scene visit. It is counted on the
+    logo, title and contact screen, where the pointer lights anything; the gallery carries the last one.
+  - `still` means the light is at the centre: reduced motion is on, or a desktop mouse has not moved yet.
+- `tilt_permission` (`granted` | `denied` | `not_asked` | `not_needed`): what became of the motion permission.
+  - Only iOS Safari asks, once, on the logo's tap.
+  - `not_needed` covers browsers that give tilt without asking (Android Chrome) and those with no sensor.
+  - `site_loaded` is sent before the tap, so on an iPhone it always says `not_asked`; the answer shows on the
+    `scene_health` events after it.
 
 ## What is deliberately not collected
 

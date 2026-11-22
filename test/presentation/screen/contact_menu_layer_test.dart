@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -9,9 +10,12 @@ import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/logo_config.dart';
 import 'package:portfolio/domain/contact/contact_menu.dart';
 import 'package:portfolio/domain/style/strings.dart';
+import 'package:portfolio/presentation/bloc/menu_drawer_cubit.dart';
 import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 import 'package:portfolio/presentation/screen/contact_menu_layer.dart';
 import 'package:portfolio/presentation/screen/credits_dialog.dart';
+import 'package:portfolio/presentation/menu/menu_drawer.dart';
+import 'package:portfolio/presentation/menu/title_actions.dart';
 
 import '../../support/scene_harness.dart';
 
@@ -132,6 +136,73 @@ void main() {
     // guards against.
     expect(find.text(strings.contactGithub), findsNothing);
     expect(find.byType(SvgPicture), findsNothing);
+  });
+
+  /// The contact screen as the scene stacks it: the sound and menu row and
+  /// the drawer above the row of words (PR 22 put them there).
+  Widget stackedHost() {
+    created = SceneBloc();
+    return MaterialApp(
+      home: MultiBlocProvider(
+        providers: [
+          BlocProvider<SceneBloc>.value(value: created!),
+          BlocProvider<MenuDrawerCubit>(create: (_) => MenuDrawerCubit()),
+        ],
+        child: const Scaffold(
+          body: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              ContactMenuLayer(),
+              TitleActions(),
+              MenuDrawer(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color? colourOf(WidgetTester tester, String word) =>
+      tester.widget<Text>(find.text(word)).style?.color;
+
+  group('a word lights under the pointer (Vishal, 2026-11-21)', () {
+    testWidgets('a mouse over it, with the top row present', (tester) async {
+      await tester.pumpWidget(stackedHost());
+      created!.emit(const SceneState.contact());
+      await tester.pump();
+      await tester.pumpAndSettle();
+      expect(find.byType(TitleActions), findsOneWidget);
+
+      final rest = colourOf(tester, strings.contactGithub);
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      addTearDown(mouse.removePointer);
+      await mouse.moveTo(tester.getCenter(find.text(strings.contactGithub)));
+      await tester.pump();
+      expect(colourOf(tester, strings.contactGithub), isNot(rest));
+      // Only the word under it.
+      expect(colourOf(tester, strings.contactCv), rest);
+      await mouse.moveTo(Offset.zero);
+      await tester.pump();
+      expect(colourOf(tester, strings.contactGithub), rest);
+    });
+
+    testWidgets('a finger on it, while pressed: a phone has no hover', (
+      tester,
+    ) async {
+      await arrive(tester);
+      final rest = colourOf(tester, strings.contactLinkedIn);
+      final finger = await tester.startGesture(
+        tester.getCenter(find.text(strings.contactLinkedIn)),
+      );
+      await tester.pump();
+      expect(colourOf(tester, strings.contactLinkedIn), isNot(rest));
+      // Slid off the word: no tap, and the light goes out.
+      await finger.moveBy(const Offset(0, 200));
+      await finger.up();
+      await tester.pump();
+      expect(colourOf(tester, strings.contactLinkedIn), rest);
+    });
   });
 
   testWidgets('offers all seven destinations', (tester) async {

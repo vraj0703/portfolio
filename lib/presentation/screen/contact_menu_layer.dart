@@ -267,13 +267,19 @@ class _MenuItem extends StatefulWidget {
 class _MenuItemState extends State<_MenuItem> {
   bool _hovered = false;
 
+  /// A finger on the word. A phone has no hover, so the word lights while it
+  /// is pressed instead (Vishal, 2026-11-21: "on contact page hover is not
+  /// working", seen on the phone). Kept apart from [_hovered] so a mouse's
+  /// click does not put out the hover it is still over.
+  bool _pressed = false;
+
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
     final strings = context.strings;
     final destination = widget.entry.destination;
 
-    final colour = _hovered
+    final colour = _hovered || _pressed
         ? colors.contactMenuTextActive
         : colors.contactMenuText;
 
@@ -283,6 +289,9 @@ class _MenuItemState extends State<_MenuItem> {
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: () => _follow(context, destination),
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
         behavior: HitTestBehavior.opaque,
         child: Semantics(
           button: true,

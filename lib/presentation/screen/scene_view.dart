@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:portfolio/data/di/dependency_manager.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/durations.dart';
+import 'package:portfolio/domain/pointer/pointer_status.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
 import 'package:portfolio/domain/style/colors.dart';
 import 'package:portfolio/domain/style/scene_palette.dart';
@@ -83,8 +84,12 @@ class SceneView extends StatelessWidget {
             builder: (context, state) => Offstage(
               offstage: state is Gallery,
               child: GameWidget.controlled(
-                gameFactory: () =>
-                    MyGame(bloc: bloc, palette: palette, audio: audio),
+                gameFactory: () => MyGame(
+                  bloc: bloc,
+                  palette: palette,
+                  audio: audio,
+                  pointerStatus: locate<PointerStatus>(),
+                ),
               ),
             ),
           ),

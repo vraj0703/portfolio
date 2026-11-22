@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart' show PointerDeviceKind;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
@@ -12,9 +13,10 @@ import 'package:portfolio/presentation/bloc/scene_bloc.dart';
 /// tap is subject to a lifecycle race. A pointer listener at the widget layer
 /// has no such ordering — it is attached the moment the widget is.
 ///
-/// Both paths raising the same event is harmless: the bloc acts on
-/// [SceneEvent.tapped] only in the interactive logo state, so whichever
-/// arrives second finds the scene already moved on and is dropped.
+/// It is the one path a tap takes to the bloc. Flame's tap handler used to
+/// raise it as well, which was harmless while any tap entered; since a
+/// touch's first tap shows the logo's hover and its second enters
+/// (PORTFOLIO-27), one finger raising it twice entered at once.
 ///
 /// A [Listener] rather than a [GestureDetector], deliberately. A gesture
 /// detector competes in the arena, and winning there would take the tap
@@ -56,7 +58,15 @@ class SceneInput extends StatelessWidget {
         return KeyEventResult.handled;
       },
       child: Listener(
-        onPointerDown: (_) => bloc.queue(event: const SceneEvent.tapped()),
+        // Whether it is a touch's: asked as "not a mouse", since some touch
+        // reaches Flutter web with an unknown kind (CDP, adb).
+        onPointerDown: (e) => bloc.queue(
+          event: SceneEvent.tapped(
+            touch:
+                e.kind != PointerDeviceKind.mouse &&
+                e.kind != PointerDeviceKind.trackpad,
+          ),
+        ),
         // A listener defers to its child by default, and a child that takes
         // no part in hit testing — anything the scene shows before the game
         // is up — leaves it receiving nothing at all.

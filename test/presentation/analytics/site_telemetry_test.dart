@@ -1,3 +1,5 @@
+import 'package:portfolio/domain/pointer/pointer_path.dart';
+import 'package:portfolio/domain/pointer/pointer_status.dart';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -318,5 +320,35 @@ void main() {
     final props = sink.sent.single.$2;
     expect(props['length'], 'long');
     expect(props.values.any((v) => '$v'.contains('xxxx')), isFalse);
+  });
+
+  group('the pointer on phones (PORTFOLIO-27)', () {
+    test('site_loaded and scene_health carry pointer_source and '
+        'tilt_permission', () {
+      final pointer = PointerStatus()
+        ..permission = TiltPermission.notAsked
+        ..note(PointerSource.drift, 1);
+      final e = SiteEvents(sink, viewport: () => (390, 844), pointer: pointer);
+      e.siteLoaded(<String, Object?>{'ms_ready': 1});
+      pointer
+        ..permission = TiltPermission.granted
+        ..note(PointerSource.tilt, 9)
+        ..note(PointerSource.touch, 1);
+      e.sceneHealth(<String, Object?>{'frames': 1});
+      final loaded = sink.sent.firstWhere((x) => x.$1 == 'site_loaded').$2;
+      expect(loaded['pointer_source'], 'drift');
+      expect(loaded['tilt_permission'], 'not_asked');
+      expect(loaded['ms_ready'], 1);
+      final health = sink.sent.firstWhere((x) => x.$1 == 'scene_health').$2;
+      expect(health['pointer_source'], 'tilt');
+      expect(health['tilt_permission'], 'granted');
+      expect(health['frames'], 1);
+    });
+
+    test('and no other event does', () {
+      final e = SiteEvents(sink, viewport: () => (390, 844));
+      e.cvOpened();
+      expect(sink.sent.single.$2.containsKey('pointer_source'), isFalse);
+    });
   });
 }

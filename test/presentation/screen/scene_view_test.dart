@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -199,9 +200,33 @@ void main() {
 
     expect(created!.state, isA<Logo>(), reason: 'precondition');
 
-    await tester.tapAt(const Offset(400, 300));
+    await tester.tapAt(const Offset(400, 300), kind: PointerDeviceKind.mouse);
     await tester.pump();
 
+    expect(created!.state, isNot(isA<Logo>()));
+  });
+
+  testWidgets('a touch taps twice: the hover, then in (PORTFOLIO-27)', (
+    tester,
+  ) async {
+    // Through the whole stack: one finger must raise one tap, or the first
+    // tap would show the hover and enter at once.
+    await tester.pumpWidget(host());
+    created!.add(const SceneEvent.initialize());
+    for (final phase in LoadingPhase.values) {
+      created!.add(SceneEvent.loadingProgressed(phase: phase, value: 1));
+    }
+    await tester.pump();
+    created!.add(const SceneEvent.logoEntranceCompleted());
+    await tester.pump();
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
+    expect(created!.state, isA<Logo>());
+    expect((created!.state as Logo).touchHovered, isTrue);
+
+    await tester.tapAt(const Offset(400, 300));
+    await tester.pump();
     expect(created!.state, isNot(isA<Logo>()));
   });
 }
