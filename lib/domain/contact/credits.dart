@@ -19,7 +19,9 @@ enum CreditNeed {
 }
 
 /// Whether the author and the licence are known. An unknown item is listed
-/// in docs/CREDITS.md and left out of the dialog until Vishal answers.
+/// in docs/CREDITS.md as UNKNOWN. If its name is known it keeps a line in the
+/// dialog by name and use alone (no author, no licence); if nothing about it
+/// can be named, it stays out until Vishal answers.
 enum CreditStatus { known, unknown }
 
 /// One thing this site is made of (PORTFOLIO-31).
@@ -63,8 +65,9 @@ class CreditItem {
 /// docs/CREDITS.md mirrors it row for row (a test keeps the two in step,
 /// and fails if any file under assets/ or fonts/ has no entry).
 ///
-/// Nothing is invented here: what is not known says so and stays out of the
-/// dialog until Vishal answers (the questions are in PORTFOLIO-31).
+/// Nothing is invented here: what is not known says so. An unknown with a
+/// name is credited in the dialog by that name and its use, and nothing
+/// more; one with no name stays out until Vishal answers (PORTFOLIO-31).
 abstract final class Credits {
   static const String unknown = 'UNKNOWN';
 
@@ -161,6 +164,8 @@ abstract final class Credits {
       need: CreditNeed.courtesy,
       status: CreditStatus.unknown,
       paths: <String>['fonts/aperturaregular.ttf'],
+      heading: 'Type',
+      line: 'Apertura — the titles',
     ),
     CreditItem(
       what: 'Font Modrnt Urban',
@@ -171,6 +176,8 @@ abstract final class Credits {
       need: CreditNeed.courtesy,
       status: CreditStatus.unknown,
       paths: <String>['fonts/modrnt_urban.otf'],
+      heading: 'Type',
+      line: 'Modrnt Urban — the mark',
     ),
     CreditItem(
       what: 'Font MonoLoading',
@@ -181,6 +188,8 @@ abstract final class Credits {
       need: CreditNeed.courtesy,
       status: CreditStatus.unknown,
       paths: <String>['fonts/mono_loading.ttf'],
+      heading: 'Type',
+      line: 'MonoLoading — the loading readout',
     ),
     CreditItem(
       what: 'Font Margot (Regular, Bold)',
@@ -191,6 +200,8 @@ abstract final class Credits {
       need: CreditNeed.courtesy,
       status: CreditStatus.unknown,
       paths: <String>['fonts/Margot-Regular.ttf', 'fonts/Margot-Bold.ttf'],
+      heading: 'Type',
+      line: 'Margot — the text',
     ),
 
     // -- Sound and icons ------------------------------------------------
@@ -407,8 +418,9 @@ abstract final class Credits {
     return b.toString();
   }
 
-  /// The dialog's groups: the known items that have a line, under their
-  /// headings, in the order the record gives them.
+  /// The dialog's groups: every item that has a line (a known one with its
+  /// author where the line names one, an unknown one by name and use only),
+  /// under their headings, in the order the record gives them.
   static List<CreditGroup> get groups {
     final order = <String>[];
     final lines = <String, List<String>>{};
@@ -416,7 +428,6 @@ abstract final class Credits {
       final heading = item.heading;
       final line = item.line;
       if (heading == null || line == null) continue;
-      if (item.status != CreditStatus.known) continue;
       if (!lines.containsKey(heading)) order.add(heading);
       (lines[heading] ??= <String>[]).add(line);
     }

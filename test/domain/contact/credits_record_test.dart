@@ -34,15 +34,44 @@ void main() {
       },
     );
 
-    test('nothing unknown reaches the dialog', () {
-      final shown = Credits.groups.expand((g) => g.items).toList();
-      for (final item in Credits.items) {
-        if (item.status == CreditStatus.unknown && item.line != null) {
-          expect(shown, isNot(contains(item.line)));
-        }
-        if (item.status == CreditStatus.unknown) {
+    test(
+      'the dialog never says UNKNOWN nor names an author it does not know',
+      () {
+        final shown = Credits.groups.expand((g) => g.items).toList();
+        expect(shown.where((l) => l.contains(Credits.unknown)), isEmpty);
+        for (final item in Credits.items) {
+          if (item.status != CreditStatus.unknown) continue;
           expect(item.author, Credits.unknown, reason: item.what);
+          final line = item.line;
+          if (line == null) continue;
+          // Name and use only: "<name> — <use>", no "by".
+          expect(line, isNot(contains(' by ')), reason: line);
         }
+      },
+    );
+
+    test('credit the dialog already gave is kept: the fonts by name', () {
+      final type = Credits.groups.firstWhere((g) => g.heading == 'Type').items;
+      expect(
+        type,
+        containsAll(<String>[
+          'Apertura — the titles',
+          'Modrnt Urban — the mark',
+          'MonoLoading — the loading readout',
+          'Margot — the text',
+        ]),
+      );
+    });
+
+    test('what cannot be named stays out until Vishal answers', () {
+      for (final path in <String>[
+        'assets/shaders/logo.frag',
+        'assets/objects/arrow.glb',
+        'assets/vectors/circle.svg',
+        'web/og-image.jpg',
+      ]) {
+        final item = Credits.items.firstWhere((i) => i.covers(path));
+        expect(item.line, isNull, reason: path);
       }
     });
 
