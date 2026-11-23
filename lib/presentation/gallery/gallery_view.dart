@@ -2,6 +2,10 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
+import 'package:portfolio/domain/gallery/card_homography.dart';
+import 'package:portfolio/data/live_frame/corridor_frame.dart';
+import 'package:portfolio/domain/gallery/live_frames.dart';
+import 'package:portfolio/presentation/gallery/live_frame_overlay.dart';
 import 'package:portfolio/domain/gallery/gallery_shape.dart';
 import 'package:portfolio/domain/gallery/swipe_map.dart';
 import 'package:portfolio/domain/gallery/wall_steps.dart';
@@ -275,6 +279,12 @@ class _GalleryViewState extends State<GalleryView> {
   /// rebuilding one from the scroll position would answer for a different
   /// frame than the one on screen.
   PerspectiveCamera? _lastCamera;
+
+  /// Where the focused frame's card is on the screen, while its live site
+  /// is up (PORTFOLIO-6): a rectangle, so a notifier, not the bloc.
+  final ValueNotifier<FocusedCard?> _liveRect = ValueNotifier<FocusedCard?>(
+    null,
+  );
   Size _viewSize = Size.zero;
 
   /// Clock the gate reasons in. Started with the view, so a gesture already
@@ -378,6 +388,9 @@ class _GalleryViewState extends State<GalleryView> {
   void _focus(Placement? frame) {
     if (frame?.project?.id == _focused?.project?.id) return;
 
+    // The live site comes down the moment focus leaves its frame.
+    _liveRect.value = null;
+    context.read<SceneBloc>().queue(event: const SceneEvent.liveFrameEnded());
     setState(() => _focused = frame);
     _placeControls(frame);
     locate<SiteTelemetry>().onPiece(frame?.project?.id);
@@ -805,6 +818,7 @@ class _GalleryViewState extends State<GalleryView> {
 
   @override
   void dispose() {
+    _liveRect.dispose();
     _keys.dispose();
     _radio?.cancel();
     _leaving.dispose();
@@ -947,6 +961,26 @@ class _GalleryViewState extends State<GalleryView> {
                 },
                 child: _surface(context),
               ),
+
+              // The focused frame's live site over its card (PORTFOLIO-6),
+              // above the scene and below the controls' fallback row.
+              // Only once the corridor is built: before that there is no frame
+              // to focus, and nothing for it to read.
+              // The live site on its frame in the corridor: a full-screen
+              // layer that takes no input.
+              if (_gallery != null && _corridorLiveSites.isNotEmpty)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CorridorFrame.view(
+                      _corridorLiveSites,
+                      LiveFrames.virtualWidth,
+                      LiveFrames.virtualHeight,
+                      tint: LiveFrames.corridorTint,
+                    ),
+                  ),
+                ),
+              if (_gallery != null)
+                Positioned.fill(child: LiveFrameOverlay(cardRect: _liveRect)),
 
               // A sibling above the gate, not a child of it. Nested, every tap
               // on a control also reached the listener's `onPointerUp` —
@@ -1112,6 +1146,8 @@ class _GalleryViewState extends State<GalleryView> {
           _orbit.update(deltaSeconds);
         }
         _advanceCamera(deltaSeconds);
+        _arriveLive();
+        _placeCorridorLive();
         if (_probe) {
           final eye = _eye;
           Browser.mark(
@@ -1138,18 +1174,24 @@ class _GalleryViewState extends State<GalleryView> {
         _wasSnapping = snapping;
       },
       cameraBuilder: (_) {
-        final camera = PerspectiveCamera(
-          fovRadiansY: _shape.fovRadians,
-          // The camera crosses the same boundary as the room, or it would
-          // pan away from the wall it is meant to be tracking.
-          position: SceneAxes.position(_eye ?? _targetPose().position),
-          target: SceneAxes.position(_look ?? _targetPose().target),
-        );
+        final camera = _cameraNow();
         _lastCamera = camera;
         return camera;
       },
     );
   }
+
+  /// The camera this frame draws with. Built from the pose the tick has just
+  /// advanced, so whatever is laid over the scene from the tick (the
+  /// corridor's live page) uses the very camera the frame is drawn with,
+  /// not the last frame's.
+  PerspectiveCamera _cameraNow() => PerspectiveCamera(
+    fovRadiansY: _shape.fovRadians,
+    // The camera crosses the same boundary as the room, or it would
+    // pan away from the wall it is meant to be tracking.
+    position: SceneAxes.position(_eye ?? _targetPose().position),
+    target: SceneAxes.position(_look ?? _targetPose().target),
+  );
 
   /// The view's shape, width over height; a laptop's before the first
   /// layout.
@@ -1411,6 +1453,122 @@ class _GalleryViewState extends State<GalleryView> {
   /// Frame-rate independent, rather than a fixed fraction per frame: the
   /// latter closes a different amount of the gap at 60fps than at 120, so
   /// the same move reads as a different speed on a different machine.
+  /// The focused frame's live site, once the camera has arrived square to
+  /// it (PORTFOLIO-6): asks the scene for it, and keeps the card's screen
+  /// rectangle where the iframe lies. Before arrival the card is still
+  /// turning on the screen and an iframe could not lie flat over it.
+  void _arriveLive() {
+    final frame = _focused;
+    final id = frame?.project?.id;
+    final camera = _lastCamera;
+    if (frame == null || id == null || camera == null) return;
+    // A frame with a site gets the link to it; one that may be framed gets
+    // the site itself as well.
+    if (LiveFrames.siteFor(id) == null) return;
+    if (_cameraGap() > LiveFrames.arrivalGap) return;
+    final rect = FramePicker.cardRectOf(
+      frame,
+      (world) => camera.worldToScreen(world, _viewSize),
+    );
+    final card = rect == null ? null : FocusedCard(projectId: id, rect: rect);
+    if (card != _liveRect.value) _liveRect.value = card;
+    if (LiveFrames.urlFor(id) == null) return;
+    // Not on a phone, for now: the page scaled to a phone's frame is too
+    // small to use (PORTFOLIO-6). A phone keeps the picture and "open site"
+    // while Vishal picks between a full-screen sheet and pinch to zoom.
+    if (Browser.isPhone()) return;
+    final bloc = context.read<SceneBloc>();
+    final state = bloc.state;
+    if (state is Gallery && state.live.projectId != id) {
+      bloc.queue(event: SceneEvent.liveFrameRequested(projectId: id));
+    }
+  }
+
+  /// The live site on its corridor frame, in perspective: the card's
+  /// corners projected by the camera this frame is drawn with, and the
+  /// homography that lays the page on them. The picture shows instead when
+  /// the card is behind the camera, facing away, small on the screen (the
+  /// hybrid), or focused (the axis-aligned live layer takes it then).
+  void _placeCorridorLive() {
+    if (_lastCamera == null || _corridorLiveFrames.isEmpty) return;
+    final camera = _cameraNow();
+    for (final frame in _corridorLiveFrames) {
+      _placeOnFrame(frame, camera);
+    }
+  }
+
+  /// One corridor frame's live page, laid on its card by [camera].
+  void _placeOnFrame(Placement frame, PerspectiveCamera camera) {
+    final id = frame.project!.id;
+    if (_focused?.project?.id == id) {
+      CorridorFrame.place(id, null);
+      return;
+    }
+    final halfW = frame.extents.x / 2 - GalleryLayout.frameBorder;
+    final halfH = frame.extents.y / 2 - GalleryLayout.frameBorder;
+    final p = frame.position;
+    final eye = _eye ?? _targetPose().position;
+    final placement = corridorPlacement(
+      corners: <(double, double)?>[
+        for (final (dy, dz) in <(double, double)>[
+          (halfH, -halfW),
+          (halfH, halfW),
+          (-halfH, halfW),
+          (-halfH, -halfW),
+        ])
+          switch (camera.worldToScreen(
+            SceneAxes.position(Vector3(p.x, p.y + dy, p.z + dz)),
+            _viewSize,
+          )) {
+            final s? => (s.dx, s.dy),
+            null => null,
+          },
+      ],
+      // A frame hangs on a side wall and faces the corridor: the eye must
+      // be on the corridor's side of that wall.
+      facing: (eye.x - p.x) * -p.x.sign > 0,
+      viewWidth: _viewSize.width,
+      viewHeight: _viewSize.height,
+      pageWidth: LiveFrames.virtualWidth.toDouble(),
+      pageHeight: LiveFrames.virtualHeight.toDouble(),
+      shareFrom: LiveFrames.corridorShareFrom,
+      shareFull: LiveFrames.corridorShareFull,
+    );
+    CorridorFrame.place(
+      id,
+      placement?.matrix,
+      opacity: placement?.opacity ?? 0,
+    );
+
+    // Seen: the page loaded and fully up on its frame, once a visit each.
+    final ms = CorridorFrame.loadedMs(id);
+    if (ms != null &&
+        (placement?.opacity ?? 0) >= 1 &&
+        _corridorLiveSeen.add(id)) {
+      locate<SiteEvents>().projectLiveViewed(
+        id,
+        msToLoad: ms,
+        where: LiveWhere.corridor,
+      );
+    }
+  }
+
+  final Set<String> _corridorLiveSeen = <String>{};
+
+  /// The frames whose live site shows in the corridor, and their URLs:
+  /// every frameable site with a frame here, on a desktop or a tablet (a
+  /// phone keeps the pictures).
+  late final Map<String, String> _corridorLiveSites = <String, String>{
+    if (!Browser.isPhone())
+      for (final id in LiveFrames.live)
+        if (_pickable.any((p) => p.project?.id == id))
+          id: LiveFrames.urlFor(id)!,
+  };
+  late final List<Placement> _corridorLiveFrames = <Placement>[
+    for (final id in _corridorLiveSites.keys)
+      _pickable.firstWhere((p) => p.project?.id == id),
+  ];
+
   /// How far the camera is from where the path puts it (world units).
   double _cameraGap() {
     final eye = _eye;

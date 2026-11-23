@@ -106,6 +106,12 @@ flutter:
         - asset: fonts/Margot-Bold.ttf
           weight: 700
   assets:
+    # Live sites' first pages, captured for their corridor frames
+    # (PORTFOLIO-6: tool/capture_frame.py <id>), and each capture's record.
+    - assets/frames/shunya-systems.webp
+    - assets/frames/shunya-systems.json
+    - assets/frames/tantr.webp
+    - assets/frames/tantr.json
     # The three marks on the contact menu, the dot between them, and the
     # heart again in its dialog.
     - assets/vectors/circle.svg

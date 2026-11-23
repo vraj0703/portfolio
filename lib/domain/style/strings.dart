@@ -68,6 +68,9 @@ abstract class AppStrings {
   String get keyboardInstruction;
 
   /// The contact menu, in the order [ContactMenu] reads.
+  /// The link beside a frame's live site, to open it in its own tab
+  /// (PORTFOLIO-6).
+  String get openSite;
   String get contactCv;
   String get contactEmail;
   String get contactGithub;
@@ -216,6 +219,9 @@ class DefaultAppStrings implements AppStrings {
   // longer than a line goes unread, and a line that has to be studied is
   // worse than no line, because it takes the attention the board wants.
   String get keyboardInstruction => 'Scroll to end, Drag, Rotate, Click a key';
+
+  @override
+  String get openSite => 'open site';
 
   @override
   String get contactCv => 'cv';

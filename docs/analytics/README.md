@@ -68,6 +68,7 @@ The fragment is for analytics only at first; whether it also becomes a real deep
 | `contact_link_clicked` | a contact link is opened | `channel` (`email`, `linkedin`, `github`), `from` | recruiter or collaborator |
 | `project_case_opened` | the sheet of a piece is opened | `project` | someone studying the work |
 | `project_link_opened` | the link out of a piece is followed | `project`, `host` | strong interest in that product |
+| `project_live_viewed` | a frame's live site came up over its picture (PORTFOLIO-6): on the focused frame, or fully up on its frame in the corridor (once a visit) | `id` (the frame: `shunya-systems`, `tantr`), `ms_to_load`, `where` (`focus`, `corridor`; the corridor one once a visit per frame) | the visitor saw the real site, not a picture of it |
 | `publication_opened` | a package or the Play listing is opened | `registry` (`npm`, `pypi`, `play`), `name` | developer |
 
 These are signals, not labels: nothing is written onto the visitor. The groups are built in PostHog as saved

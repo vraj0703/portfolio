@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:portfolio/domain/gallery/frame_captures.dart';
 import 'package:portfolio/presentation/gallery/map_prefetch.dart';
 import 'package:portfolio/presentation/gallery/texture_sets.dart';
 
@@ -32,11 +33,18 @@ void main() {
     final net = Network();
     final prefetch = MapPrefetch(parallel: 2, fetch: net.fetch);
     prefetch.start(<String>['a', 'b', 'c', 'd']);
-    expect(net.requested, <String>['a', 'b'], reason: 'the first two start at once');
+    expect(net.requested, <String>[
+      'a',
+      'b',
+    ], reason: 'the first two start at once');
 
     net.finish('b');
     await pumpEventQueue();
-    expect(net.requested, <String>['a', 'b', 'c'], reason: 'a free slot takes the next');
+    expect(net.requested, <String>[
+      'a',
+      'b',
+      'c',
+    ], reason: 'a free slot takes the next');
 
     net.finish('a');
     net.finish('c');
@@ -63,7 +71,10 @@ void main() {
     expect((await prefetch.load('wall')).getUint8(0), 7);
     await prefetch.load('floor');
     expect(prefetch.outstanding, 0);
-    expect(net.requested, <String>['wall', 'floor'], reason: 'no second download');
+    expect(net.requested, <String>[
+      'wall',
+      'floor',
+    ], reason: 'no second download');
   });
 
   test('a file nobody named is fetched when asked for', () async {
@@ -75,18 +86,21 @@ void main() {
     expect((await bytes).lengthInBytes, 1);
   });
 
-  test('a failed download fails only its own load, and frees its slot', () async {
-    final net = Network();
-    final prefetch = MapPrefetch(parallel: 1, fetch: net.fetch);
-    prefetch.start(<String>['missing', 'next']);
-    final missing = prefetch.load('missing');
-    net.open.remove('missing')!.completeError(StateError('404'));
-    await expectLater(missing, throwsStateError);
-    await pumpEventQueue();
-    expect(net.requested, <String>['missing', 'next']);
-    net.finish('next');
-    expect((await prefetch.load('next')).lengthInBytes, 1);
-  });
+  test(
+    'a failed download fails only its own load, and frees its slot',
+    () async {
+      final net = Network();
+      final prefetch = MapPrefetch(parallel: 1, fetch: net.fetch);
+      prefetch.start(<String>['missing', 'next']);
+      final missing = prefetch.load('missing');
+      net.open.remove('missing')!.completeError(StateError('404'));
+      await expectLater(missing, throwsStateError);
+      await pumpEventQueue();
+      expect(net.requested, <String>['missing', 'next']);
+      net.finish('next');
+      expect((await prefetch.load('next')).lengthInBytes, 1);
+    },
+  );
 
   test('the build names every file it reads, in the order it reads them', () {
     // Prefetching a list that misses a file only costs that file its head
@@ -105,6 +119,10 @@ void main() {
       for (final file in set.files) {
         expect(named, contains(file));
       }
+    }
+    // And the frames' captured sites (PORTFOLIO-6).
+    for (final id in FrameCaptures.projects) {
+      expect(named, contains(FrameCaptures.assetFor(id)));
     }
     expect(GalleryPrefetch.files.first, GallerySurfaces.floor.colour);
     expect(GalleryPrefetch.files.last, GallerySurfaces.keyRows.last.normal);

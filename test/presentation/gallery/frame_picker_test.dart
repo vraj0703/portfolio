@@ -1,4 +1,4 @@
-import 'dart:ui' show Offset, Size;
+import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:portfolio/domain/gallery/gallery_layout.dart';
@@ -25,13 +25,8 @@ void main() {
     );
   }
 
-  Placement? pick(Offset at, {Vector3? from}) => FramePicker.at(
-    at,
-    viewSize,
-    pieces,
-    from ?? Vector3(0, 0.5, 4),
-    project,
-  );
+  Placement? pick(Offset at, {Vector3? from}) =>
+      FramePicker.at(at, viewSize, pieces, from ?? Vector3(0, 0.5, 4), project);
 
   test('the centre of a frame picks that frame', () {
     for (final frame in frames) {
@@ -90,9 +85,9 @@ void main() {
 
   test('a frame is picked across its whole face, not just its centre', () {
     final frame = frames.first;
-    final corners = FramePicker.cornersOf(frame)
-        .map((c) => project(SceneAxes.position(c))!)
-        .toList();
+    final corners = FramePicker.cornersOf(
+      frame,
+    ).map((c) => project(SceneAxes.position(c))!).toList();
 
     // A point just inside the top-left corner: still the work, and a picker
     // testing a centre-and-radius would miss it.
@@ -144,5 +139,42 @@ void main() {
       xs.reduce((a, b) => a > b ? a : b) - xs.reduce((a, b) => a < b ? a : b),
       closeTo(wall.extents.x, 1e-9),
     );
+  });
+
+  test("the card's rectangle is the frame less its moulding (PORTFOLIO-6)", () {
+    final frame = frames.first;
+    final card = FramePicker.cardRectOf(frame, project)!;
+    final points = FramePicker.cornersOf(
+      frame,
+    ).map((c) => project(SceneAxes.position(c))!).toList();
+    final left = points.map((p) => p.dx).reduce((a, b) => a < b ? a : b);
+    final right = points.map((p) => p.dx).reduce((a, b) => a > b ? a : b);
+    final top = points.map((p) => p.dy).reduce((a, b) => a < b ? a : b);
+    final bottom = points.map((p) => p.dy).reduce((a, b) => a > b ? a : b);
+    final bounds = Rect.fromLTRB(left, top, right, bottom);
+    // Inside the frame, by the border's share of each side.
+    expect(
+      bounds.contains(card.topLeft) && bounds.contains(card.bottomRight),
+      isTrue,
+    );
+    final share = GalleryLayout.frameBorder / frame.extents.x;
+    expect(card.left - bounds.left, closeTo(bounds.width * share, 1e-6));
+    expect(bounds.right - card.right, closeTo(bounds.width * share, 1e-6));
+    final shareY = GalleryLayout.frameBorder / frame.extents.y;
+    expect(card.top - bounds.top, closeTo(bounds.height * shareY, 1e-6));
+  });
+
+  test('no rectangle for a frame behind the camera', () {
+    final behind = frames.firstWhere(
+      (f) => FramePicker.cornersOf(
+        f,
+      ).any((c) => project(SceneAxes.position(c)) == null),
+      orElse: () => frames.last,
+    );
+    if (FramePicker.cornersOf(
+      behind,
+    ).any((c) => project(SceneAxes.position(c)) == null)) {
+      expect(FramePicker.cardRectOf(behind, project), isNull);
+    }
   });
 }

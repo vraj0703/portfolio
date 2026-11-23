@@ -1,5 +1,6 @@
 import 'dart:ui' as ui;
 
+import 'package:portfolio/domain/gallery/frame_captures.dart';
 import 'package:portfolio/presentation/gallery/build_timing.dart';
 import 'package:flutter_scene/scene.dart';
 import 'package:vector_math/vector_math.dart';
@@ -81,12 +82,7 @@ class TextureSet {
       2 + (normal == null ? 0 : 1) + (occlusion == null ? 0 : 1);
 
   /// The files [SurfaceMaps.load] reads, in the order it reads them.
-  List<String> get files => <String>[
-    colour,
-    roughMetal,
-    ?normal,
-    ?occlusion,
-  ];
+  List<String> get files => <String>[colour, roughMetal, ?normal, ?occlusion];
 
   /// Units of work loading this set reports.
   ///
@@ -195,9 +191,11 @@ abstract final class GallerySurfaces {
   /// manufactured object in a room full of plaster and timber.
   static const TextureSet keyboardBase = TextureSet(
     colour: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Color.webp',
-    roughMetal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_RoughMetal.webp',
+    roughMetal:
+        'assets/textures/keyboard_base/Metal048B_1K-JPG_RoughMetal.webp',
     packedFrom: PackedFrom(
-      roughness: 'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp',
+      roughness:
+          'assets/textures/keyboard_base/Metal048B_1K-JPG_Roughness.webp',
       metallic: 1,
     ),
     normal: 'assets/textures/keyboard_base/Metal048B_1K-JPG_NormalGL.webp',
@@ -291,6 +289,11 @@ abstract final class GalleryPrefetch {
       GallerySurfaces.wall,
       GallerySurfaces.wall,
       GallerySurfaces.frame,
+    ])
+      ...set.files,
+    // The frames' captured sites (PORTFOLIO-6), read as the frames hang.
+    for (final id in FrameCaptures.projects) FrameCaptures.assetFor(id)!,
+    for (final set in <TextureSet>[
       GallerySurfaces.testimonialFrame,
       GallerySurfaces.keyboardBase,
       ...GallerySurfaces.keyRows,
@@ -375,26 +378,39 @@ class SurfaceMaps {
     if (normal != null) images.add(normal);
     if (occlusion != null) images.add(occlusion);
 
-    final colourTexture = await BuildTiming.upload('texture_sets.colour', colour, () => GpuUpload.image(colour));
+    final colourTexture = await BuildTiming.upload(
+      'texture_sets.colour',
+      colour,
+      () => GpuUpload.image(colour),
+    );
     await BuildYield.frame();
     await onStep?.call();
     // Linear data, not colour. Decoded as sRGB these would be averaged in the
     // wrong space down the mip chain, so roughness and occlusion would drift
     // with distance; normals are averaged as vectors and renormalised.
-    final roughnessTexture = await BuildTiming.upload('texture_sets.roughness', roughness, () => GpuUpload.image(
+    final roughnessTexture = await BuildTiming.upload(
+      'texture_sets.roughness',
       roughness,
-      content: TextureContent.data,
-    ));
+      () => GpuUpload.image(roughness, content: TextureContent.data),
+    );
     await BuildYield.frame();
     await onStep?.call();
     final normalTexture = normal == null
         ? null
-        : await BuildTiming.upload('texture_sets.normal', normal, () => GpuUpload.image(normal, content: TextureContent.normal));
+        : await BuildTiming.upload(
+            'texture_sets.normal',
+            normal,
+            () => GpuUpload.image(normal, content: TextureContent.normal),
+          );
     await BuildYield.frame();
     if (normalTexture != null) await onStep?.call();
     final occlusionTexture = occlusion == null
         ? null
-        : await BuildTiming.upload('texture_sets.occlusion', occlusion, () => GpuUpload.image(occlusion, content: TextureContent.data));
+        : await BuildTiming.upload(
+            'texture_sets.occlusion',
+            occlusion,
+            () => GpuUpload.image(occlusion, content: TextureContent.data),
+          );
     if (occlusionTexture != null) await onStep?.call();
 
     textures

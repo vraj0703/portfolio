@@ -5,6 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:portfolio/domain/analytics/analytics.dart';
 import 'package:portfolio/domain/audio/app_audio.dart';
 import 'package:portfolio/domain/config/button_flags.dart';
+import 'package:portfolio/domain/gallery/live_frames.dart';
 import 'package:portfolio/domain/interfaces/queuer.dart';
 import 'package:portfolio/domain/models/loading_phase.dart';
 import 'package:portfolio/domain/models/loading_progress.dart';
@@ -47,6 +48,10 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
     on<AdvanceRequested>(_onAdvanceRequested);
     on<BoldTextCompleted>(_onBoldTextCompleted);
     on<GalleryExited>(_onGalleryExited);
+    on<LiveFrameRequested>(_onLiveFrameRequested);
+    on<LiveFrameLoaded>(_onLiveFrameLoaded);
+    on<LiveFrameFailed>(_onLiveFrameFailed);
+    on<LiveFrameEnded>(_onLiveFrameEnded);
     on<GalleryExitRequested>(_onGalleryExitRequested);
     on<ContactRequested>(_onContactRequested);
     on<GalleryRequested>(_onGalleryRequested);
@@ -376,5 +381,83 @@ class SceneBloc extends Bloc<SceneEvent, SceneState> implements Queuer {
   ) {
     if (state is! Active) return null;
     emit(const SceneState.gallery());
+  }
+
+  /* -- The focused frame's live site (PORTFOLIO-6) ------------------- */
+
+  FutureOr<void> _onLiveFrameRequested(
+    LiveFrameRequested event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Gallery) return null;
+    // The same frame again is the request already standing.
+    if (current.live.projectId == event.projectId && current.live.isUp) {
+      return null;
+    }
+    if (LiveFrames.siteFor(event.projectId) == null) return null;
+    emit(
+      current.copyWith(
+        live: LiveFrame(
+          projectId: event.projectId,
+          status: LiveFrameStatus.loading,
+        ),
+      ),
+    );
+  }
+
+  FutureOr<void> _onLiveFrameLoaded(
+    LiveFrameLoaded event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Gallery) return null;
+    final live = current.live;
+    // Only a site still being waited for: a late load after focus left is
+    // a stray.
+    if (live.status != LiveFrameStatus.loading || live.projectId == null) {
+      return null;
+    }
+    emit(
+      current.copyWith(
+        live: LiveFrame(
+          projectId: live.projectId,
+          status: LiveFrameStatus.live,
+        ),
+      ),
+    );
+    _events?.projectLiveViewed(
+      live.projectId!,
+      msToLoad: event.ms,
+      where: LiveWhere.focus,
+    );
+  }
+
+  FutureOr<void> _onLiveFrameFailed(
+    LiveFrameFailed event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Gallery) return null;
+    final live = current.live;
+    if (live.status != LiveFrameStatus.loading) return null;
+    emit(
+      current.copyWith(
+        live: LiveFrame(
+          projectId: live.projectId,
+          status: LiveFrameStatus.failed,
+        ),
+      ),
+    );
+  }
+
+  FutureOr<void> _onLiveFrameEnded(
+    LiveFrameEnded event,
+    Emitter<SceneState> emit,
+  ) {
+    final current = state;
+    if (current is! Gallery) return null;
+    if (current.live == LiveFrame.none) return null;
+    emit(current.copyWith(live: LiveFrame.none));
   }
 }

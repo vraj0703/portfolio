@@ -65,6 +65,20 @@ class SceneEvent with _$SceneEvent {
   /// the middle of it would strand them halfway through an animation.
   const factory SceneEvent.galleryExited() = GalleryExited;
 
+  /// The camera has arrived square to a focused frame whose project has a
+  /// live site (PORTFOLIO-6): put it up over the picture.
+  const factory SceneEvent.liveFrameRequested({required String projectId}) =
+      LiveFrameRequested;
+
+  /// The live site loaded, [ms] after it was asked for.
+  const factory SceneEvent.liveFrameLoaded({required int ms}) = LiveFrameLoaded;
+
+  /// It did not load in time, or would not be framed: the picture stays.
+  const factory SceneEvent.liveFrameFailed() = LiveFrameFailed;
+
+  /// Focus left the frame: the live site comes down at once.
+  const factory SceneEvent.liveFrameEnded() = LiveFrameEnded;
+
   /// The visitor asked to leave the gallery, for [to]: from the BACK sign,
   /// the wall's LET'S CONNECT, or the drawer. The one way out: the bloc marks
   /// the gallery as leaving, the gallery runs its lights-down, and then

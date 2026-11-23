@@ -259,7 +259,7 @@ def changed_share(a, b, thr=20):
     return sum(1 for v in d.get_flattened_data() if v > thr) / (d.width * d.height)
 
 
-async def point(cdp, p, side):
+async def point(cdp, p, side, settle=False):
     """Desktop: the mouse near one edge. Phone: the tilt, full range one way (a finger on the
     logo would tap it)."""
     if p["touch"]:
@@ -272,7 +272,22 @@ async def point(cdp, p, side):
             await asyncio.sleep(0.1)
     # Settled: the tracker eases, and a phone (30 fps on the ROG) gets longer.
     await asyncio.sleep(3.0 if p["touch"] else 1.5)
-    return await png_shot(cdp)
+    last = await png_shot(cdp)
+    # [settle]: then until the screen holds still, at most 4 s more. A fixed wait once shot
+    # the contact scene still on its way back, and the control (left, then left again) read as
+    # a scene that ignored the mouse (2026-11-22, run 6 of 6). Only where the screen does come
+    # to rest: the logo's backdrop never does, and waiting it out let its own animation move
+    # on between the three shots.
+    if not settle:
+        return last
+    t0 = time.monotonic()
+    while time.monotonic() - t0 < 4.0:
+        await asyncio.sleep(0.5)
+        now = await png_shot(cdp)
+        if changed_share(last, now) < 0.003:
+            return now
+        last = now
+    return last
 
 
 def name_shift(a, b, p):
@@ -305,12 +320,49 @@ async def still_screen(cdp, limit=12.0):
         last = now
 
 
+CORRIDOR_LIVE_WATCH = """(() => {
+  const fs = [...document.querySelectorAll('iframe[data-live=corridor]')];
+  if (!fs.length) return false;
+  window.__corridorLive = {};
+  for (const f of fs) {
+    const id = f.dataset.id || 'frame';
+    window.__corridorLive[id] = 0;
+    new MutationObserver(() => {
+      if (f.style.visibility === 'visible')
+        window.__corridorLive[id] = Math.max(window.__corridorLive[id], parseFloat(f.style.opacity || '0'));
+    }).observe(f, {attributes: true, attributeFilter: ['style']});
+  }
+  return true;
+})()"""
+
+
+async def corridor_live_seen(cdp, p, present, steps):
+    """The walk passed the live frames: on a desktop each one's page came fully up over its
+    picture (the step reads {frame id: top opacity}); a phone keeps the pictures (no corridor
+    page at all). A build served where the sites will not be framed has no corridor page
+    either, and says so."""
+    if not present:
+        steps["corridor_live"] = "phone: picture" if p["touch"] else "no frameable site"
+        return
+    r = await cdp("Runtime.evaluate", expression="window.__corridorLive", returnByValue=True)
+    tops = r["result"].get("value") or {}
+    steps["corridor_live"] = tops
+    if p["touch"]:
+        raise Hang("corridor live: a phone has a corridor page; it should keep the picture")
+    short = {k: v for k, v in tops.items() if v < 1}
+    if short or not tops:
+        raise Hang(f"corridor live: a page never came fully up on its frame (top opacity {short or tops})")
+
+
 async def pointer_follows(cdp, p, scene, steps):
     if scene != "title":
         await still_screen(cdp)
-    left = await point(cdp, p, -1)
-    right = await point(cdp, p, 1)
-    again = await point(cdp, p, -1)
+    # Desktop only: a phone's contact screen takes its tilt as relative to how the phone is
+    # held, so waiting it out shot the scene re-centred (left->right 0.001, 2026-11-22).
+    settle = scene == "contact" and not p["touch"]
+    left = await point(cdp, p, -1, settle)
+    right = await point(cdp, p, 1, settle)
+    again = await point(cdp, p, -1, settle)
     if p["touch"]:
         # Level again: the next screen measures its tilt from how the phone is held when it
         # appears, and must start at the centre for its own full left and right.
@@ -369,6 +421,11 @@ async def journey(cdp, p, url):
     await until_marked(cdp, "gallery", "/#/gallery", onward, steps)
     await asyncio.sleep(10)  # the corridor's own entrance
 
+    # The live site on its corridor frame (PORTFOLIO-6): watched for the whole walk by its style,
+    # so a frame passed between two looks is not missed.
+    r = await cdp("Runtime.evaluate", expression=CORRIDOR_LIVE_WATCH, returnByValue=True)
+    corridor_live = r["result"].get("value")
+
     # The walk to the back wall: the stick held forward in one press on a phone, the wheel on a
     # desktop, until the app marks the wall (its region begins at the back wall's stop).
     if p["touch"]:
@@ -385,6 +442,7 @@ async def journey(cdp, p, url):
             # the wheel away walks deeper, so onward is a negative delta here.
             await wheel(cdp, -100, n=8)
     await until_marked(cdp, "back wall", "/#/testimonials", walk, steps)
+    await corridor_live_seen(cdp, p, corridor_live, steps)
     if p["touch"]:
         await touch(cdp, "touchEnd")
     await asyncio.sleep(1.0)
