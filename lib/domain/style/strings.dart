@@ -90,6 +90,12 @@ abstract class AppStrings {
 
   /// The credits dialog, opened by the heart.
   String get creditsSubtitle;
+
+  /// The dialog's closing lines (Vishal, 2026-11-22), with "write to me" as
+  /// the e-mail link: before it, the link, and after it.
+  String get creditsClosingBefore;
+  String get creditsClosingLink;
+  String get creditsClosingAfter;
   String get creditsClose;
 
   /// What each mark on the menu is, for anyone who cannot see it.
@@ -260,7 +266,20 @@ class DefaultAppStrings implements AppStrings {
   String get madeWith => 'Made with';
 
   @override
-  String get creditsSubtitle => 'When creativity meets boredom';
+  String get creditsSubtitle =>
+      'When creativity meets ai and boredom. '
+      'Heavy lifting by ai, directed by me.';
+
+  @override
+  String get creditsClosingBefore =>
+      'I have tried my best to name everyone whose work this stands on. '
+      'If yours is here and your name is not, I am sorry. Please ';
+
+  @override
+  String get creditsClosingLink => 'write to me';
+
+  @override
+  String get creditsClosingAfter => ' and I will put it right.';
 
   @override
   String get creditsClose => 'close';
