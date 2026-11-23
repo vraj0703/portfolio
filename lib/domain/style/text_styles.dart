@@ -76,7 +76,6 @@ abstract class AppTypography {
 
   /// The link at the foot of a card: the one pressable thing on it.
   TextStyle get frameLink;
-
 }
 
 /// [DefaultAppTypography] is a concrete implementation of [AppTypography].
@@ -147,7 +146,9 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get creditsHeading => const TextStyle(
-    fontSize: 11,
+    // 12 with wide tracking: distinct from the body by case and spacing,
+    // and still legible on a phone.
+    fontSize: 12,
     fontWeight: FontWeight.w600,
     letterSpacing: 1.6,
     fontFamily: 'ModrntUrban',
@@ -155,7 +156,8 @@ class DefaultAppTypography implements AppTypography {
 
   @override
   TextStyle get creditsBody =>
-      const TextStyle(fontSize: 14, height: 1.45, fontFamily: 'Margot');
+      // 15: the body holds up on a phone (PORTFOLIO-31).
+      const TextStyle(fontSize: 15, height: 1.45, fontFamily: 'Margot');
 
   @override
   TextStyle get creditsAction =>
