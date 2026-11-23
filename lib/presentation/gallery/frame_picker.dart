@@ -1,4 +1,4 @@
-import 'dart:ui' show Offset, Size;
+import 'dart:ui' show Offset, Rect, Size;
 
 import 'package:vector_math/vector_math.dart';
 
@@ -77,6 +77,20 @@ abstract final class FramePicker {
     );
   }
 
+  /// The card's rectangle on the screen: the frame's projected bounds less
+  /// the moulding each side, or null if any corner is behind the camera.
+  /// With the camera square to the frame (focused, arrived) the card is an
+  /// upright rectangle, so this is where it is exactly: the live site's
+  /// iframe lies over it (PORTFOLIO-6).
+  static Rect? cardRectOf(Placement frame, Projector project) {
+    final b = _boundsOf(frame, project);
+    if (b == null) return null;
+    final border = GalleryLayout.frameBorder;
+    final bx = (b.right - b.left) * border / frame.extents.x;
+    final by = (b.bottom - b.top) * border / frame.extents.y;
+    return Rect.fromLTRB(b.left + bx, b.top + by, b.right - bx, b.bottom - by);
+  }
+
   /// The frame's screen rectangle, or null if any corner is behind the camera.
   ///
   /// All four corners are projected rather than the centre plus a radius: a
@@ -128,11 +142,7 @@ abstract final class FramePicker {
         for (final sx in <double>[-1, 1])
           for (final sy in <double>[-1, 1])
             for (final sz in <double>[-1, 1])
-              Vector3(
-                p.x + sx * half.x,
-                p.y + sy * half.y,
-                p.z + sz * half.z,
-              ),
+              Vector3(p.x + sx * half.x, p.y + sy * half.y, p.z + sz * half.z),
       ];
     }
 

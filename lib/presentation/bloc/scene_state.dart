@@ -58,10 +58,14 @@ sealed class SceneState with _$SceneState {
   ///
   /// [leavingFor] is set while the visitor is on their way out: the gallery
   /// runs its lights-down, then raises the event that arrives there.
+  ///
+  /// [live]: the focused frame's live site, if it has one up (PORTFOLIO-6):
+  /// which frame, and whether it is loading, live or failed.
   const factory SceneState.gallery({
     @Default(ButtonFlags()) ButtonFlags flags,
     @Default(false) bool muted,
     GalleryExit? leavingFor,
+    @Default(LiveFrame.none) LiveFrame live,
   }) = Gallery;
 
   /// The contact screen.
