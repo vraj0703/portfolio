@@ -60,6 +60,18 @@ void main() {
         },
       );
 
+      test('the second frame, tantr, goes live the same way: '
+          'project_live_viewed carries id=tantr', () async {
+        await send(const SceneEvent.liveFrameRequested(projectId: 'tantr'));
+        expect(live(), isA<LiveFrame>());
+        expect(live().projectId, 'tantr');
+        await send(const SceneEvent.liveFrameLoaded(ms: 610));
+        final viewed = sink.sent.where((e) => e.$1 == 'project_live_viewed');
+        expect(viewed, hasLength(1));
+        expect(viewed.single.$2['id'], 'tantr');
+        expect(viewed.single.$2['where'], 'focus');
+      });
+
       test('it failed: the picture stays, no live view counted', () async {
         await send(
           const SceneEvent.liveFrameRequested(projectId: 'shunya-systems'),

@@ -27,6 +27,7 @@ PORT = 9343
 # The live site each project's frame shows. One line per project that has one.
 SITES = {
     "shunya-systems": "https://shunya.systems",
+    "tantr": "https://shunya.systems/tantr/",
 }
 
 # The card's shape (GalleryLayout: 4 x 3 frame less a 0.22 border each side).
@@ -104,12 +105,15 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("project", help="the project's id, e.g. shunya-systems")
     ap.add_argument("--settle", type=float, default=4.0, help="seconds to wait after load")
+    ap.add_argument("--from", dest="source", metavar="URL",
+                    help="take the picture from this URL instead (a preview of a page not live yet); "
+                         "the record keeps the declared URL and says where it came from")
     a = ap.parse_args()
     url = SITES.get(a.project)
     if not url:
         sys.exit(f"capture_frame: no site for '{a.project}'; known: {', '.join(SITES)}")
     from PIL import Image
-    png = asyncio.run(capture(url, a.settle))
+    png = asyncio.run(capture(a.source or url, a.settle))
     im = Image.open(io.BytesIO(png)).convert("RGB")
     out_h = round(OUT_W * CARD_H / CARD_W)
     im = im.resize((OUT_W, out_h), Image.LANCZOS)
@@ -125,6 +129,8 @@ def main():
         "picture": f"{OUT_W}x{out_h}",
         "tool": "tool/capture_frame.py",
     }
+    if a.source:
+        meta["captured_from"] = a.source
     with open(os.path.join(out_dir, f"{a.project}.json"), "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
         f.write("\n")

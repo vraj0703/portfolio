@@ -7,33 +7,72 @@
 /// A site has to allow being framed from this origin (shunya.systems sends
 /// X-Frame-Options: SAMEORIGIN until its frame-ancestors change ships).
 abstract final class LiveFrames {
+  /// Each frame's live page, in corridor order. Both are pages of
+  /// shunya.systems: the first page, and tantr's (PORTFOLIO-6, the second
+  /// frame). tool/capture_frame.py declares the same URLs.
   static const Map<String, String> _sites = <String, String>{
     'shunya-systems': 'https://shunya.systems',
+    'tantr': 'https://shunya.systems/tantr/',
   };
 
-  /// The sites that allow this origin to frame them today. A site that
-  /// refuses (X-Frame-Options, or a frame-ancestors without us) still fires
-  /// the iframe's load, with the browser's "refused to connect" page in it,
-  /// and a cross-origin parent cannot tell that from the real page: so it is
-  /// declared here, not detected. shunya.systems allows us since
-  /// vraj0703/shunya-site#9 (merged 2026-11-22; its frame-ancestors names
-  /// vishalraj.space, www and this PR's preview host).
-  static const Set<String> _frameable = <String>{'shunya-systems'};
+  /// The sites that allow framing at all today. A site that refuses
+  /// (X-Frame-Options, or a frame-ancestors without us) still fires the
+  /// iframe's load, with the browser's "refused to connect" page in it, and
+  /// a cross-origin parent cannot tell that from the real page: so it is
+  /// declared here, not detected. shunya.systems allows it since
+  /// vraj0703/shunya-site#9 (merged 2026-11-22), on every page.
+  static const Set<String> _frameable = <String>{'shunya-systems', 'tantr'};
 
-  /// A testing aid, never set by a visitor: `?pc-live=URL` points every live
-  /// frame at URL (a local copy of a site served with the new header).
+  /// The portfolio hosts shunya.systems' frame-ancestors names (a mirror of
+  /// that header, shunya-site tools/build.py). Served from any other host
+  /// (a later PR's preview, a local build) the frames keep their pictures,
+  /// for the browser would show its refusal page in them.
+  static const Set<String> _framedFrom = <String>{
+    'https://www.vishalraj.space',
+    'https://vishalraj.space',
+    'https://vishal-raj-space-firebase-home--pr-28-7xiu4eqk.web.app',
+  };
+
+  /// A testing aid, never set by a visitor: `?pc-live=ORIGIN` points every
+  /// live frame at its own page on ORIGIN (a local copy of the site served
+  /// with a header that names the local host), from any host.
   static final String? _override = Uri.base.queryParameters['pc-live'];
 
-  /// The live site for project [id], or null when its frame has none, or
-  /// has one that does not allow framing yet (then the frame keeps its
-  /// picture and the link to open the site). `?pc-live=` overrides both.
-  static String? urlFor(String id) {
+  /// The live site for project [id] as this page is served, or null when
+  /// its frame has none, or has one that will not be framed here (then the
+  /// frame keeps its picture and the link to open the site).
+  static String? urlFor(String id) =>
+      urlOf(id, from: _here, override: _override);
+
+  /// This page's origin; none off the web (a file: base has no origin).
+  static final String _here =
+      Uri.base.isScheme('http') || Uri.base.isScheme('https')
+      ? Uri.base.origin
+      : '';
+
+  /// [urlFor] for a page served [from] an origin, with `?pc-live=`
+  /// [override]: the rule itself, so a test can ask it of any host.
+  static String? urlOf(String id, {required String from, String? override}) {
     final site = _sites[id];
     if (site == null) return null;
-    final override = _override;
-    if (override != null) return override;
-    return _frameable.contains(id) ? site : null;
+    if (override != null) {
+      final to = Uri.parse(override);
+      return Uri.parse(
+        site,
+      ).replace(scheme: to.scheme, host: to.host, port: to.port).toString();
+    }
+    return _frameable.contains(id) && _framedFrom.contains(from) ? site : null;
   }
+
+  /// The frames whose live page shows here, in corridor order.
+  static List<String> corridorIds({required String from, String? override}) =>
+      <String>[
+        for (final id in _sites.keys)
+          if (urlOf(id, from: from, override: override) != null) id,
+      ];
+
+  /// [corridorIds] as this page is served.
+  static List<String> get live => corridorIds(from: _here, override: _override);
 
   /// The site to open in its own tab from project [id]'s frame, framed or
   /// not.

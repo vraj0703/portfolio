@@ -968,11 +968,11 @@ class _GalleryViewState extends State<GalleryView> {
               // to focus, and nothing for it to read.
               // The live site on its frame in the corridor: a full-screen
               // layer that takes no input.
-              if (_gallery != null && _corridorLiveUrl != null)
+              if (_gallery != null && _corridorLiveSites.isNotEmpty)
                 Positioned.fill(
                   child: IgnorePointer(
                     child: CorridorFrame.view(
-                      _corridorLiveUrl,
+                      _corridorLiveSites,
                       LiveFrames.virtualWidth,
                       LiveFrames.virtualHeight,
                       tint: LiveFrames.corridorTint,
@@ -1490,15 +1490,20 @@ class _GalleryViewState extends State<GalleryView> {
   /// the card is behind the camera, facing away, small on the screen (the
   /// hybrid), or focused (the axis-aligned live layer takes it then).
   void _placeCorridorLive() {
-    final frame = _corridorLiveFrame;
-    if (_lastCamera == null || _corridorLiveUrl == null || frame == null) {
-      return;
-    }
-    if (_focused?.project?.id == frame.project?.id) {
-      CorridorFrame.place(null);
-      return;
-    }
+    if (_lastCamera == null || _corridorLiveFrames.isEmpty) return;
     final camera = _cameraNow();
+    for (final frame in _corridorLiveFrames) {
+      _placeOnFrame(frame, camera);
+    }
+  }
+
+  /// One corridor frame's live page, laid on its card by [camera].
+  void _placeOnFrame(Placement frame, PerspectiveCamera camera) {
+    final id = frame.project!.id;
+    if (_focused?.project?.id == id) {
+      CorridorFrame.place(id, null);
+      return;
+    }
     final halfW = frame.extents.x / 2 - GalleryLayout.frameBorder;
     final halfH = frame.extents.y / 2 - GalleryLayout.frameBorder;
     final p = frame.position;
@@ -1529,31 +1534,40 @@ class _GalleryViewState extends State<GalleryView> {
       shareFrom: LiveFrames.corridorShareFrom,
       shareFull: LiveFrames.corridorShareFull,
     );
-    CorridorFrame.place(placement?.matrix, opacity: placement?.opacity ?? 0);
+    CorridorFrame.place(
+      id,
+      placement?.matrix,
+      opacity: placement?.opacity ?? 0,
+    );
 
-    // Seen: the page loaded and fully up on its frame, once a visit.
-    final ms = CorridorFrame.loadedMs;
-    if (!_corridorLiveSeen && ms != null && (placement?.opacity ?? 0) >= 1) {
-      _corridorLiveSeen = true;
+    // Seen: the page loaded and fully up on its frame, once a visit each.
+    final ms = CorridorFrame.loadedMs(id);
+    if (ms != null &&
+        (placement?.opacity ?? 0) >= 1 &&
+        _corridorLiveSeen.add(id)) {
       locate<SiteEvents>().projectLiveViewed(
-        frame.project!.id,
+        id,
         msToLoad: ms,
         where: LiveWhere.corridor,
       );
     }
   }
 
-  bool _corridorLiveSeen = false;
+  final Set<String> _corridorLiveSeen = <String>{};
 
-  /// The frame whose live site shows in the corridor, and its URL: a
-  /// frameable site, on a desktop or a tablet (a phone keeps the picture).
-  late final Placement? _corridorLiveFrame = _pickable
-      .where((p) => p.project?.id == _corridorLiveId)
-      .firstOrNull;
-  static const String _corridorLiveId = 'shunya-systems';
-  late final String? _corridorLiveUrl = Browser.isPhone()
-      ? null
-      : LiveFrames.urlFor(_corridorLiveId);
+  /// The frames whose live site shows in the corridor, and their URLs:
+  /// every frameable site with a frame here, on a desktop or a tablet (a
+  /// phone keeps the pictures).
+  late final Map<String, String> _corridorLiveSites = <String, String>{
+    if (!Browser.isPhone())
+      for (final id in LiveFrames.live)
+        if (_pickable.any((p) => p.project?.id == id))
+          id: LiveFrames.urlFor(id)!,
+  };
+  late final List<Placement> _corridorLiveFrames = <Placement>[
+    for (final id in _corridorLiveSites.keys)
+      _pickable.firstWhere((p) => p.project?.id == id),
+  ];
 
   /// How far the camera is from where the path puts it (world units).
   double _cameraGap() {

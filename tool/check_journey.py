@@ -321,31 +321,37 @@ async def still_screen(cdp, limit=12.0):
 
 
 CORRIDOR_LIVE_WATCH = """(() => {
-  const f = document.querySelector('iframe[data-live=corridor]');
-  if (!f) return false;
-  window.__corridorLive = 0;
-  new MutationObserver(() => {
-    if (f.style.visibility === 'visible')
-      window.__corridorLive = Math.max(window.__corridorLive, parseFloat(f.style.opacity || '0'));
-  }).observe(f, {attributes: true, attributeFilter: ['style']});
+  const fs = [...document.querySelectorAll('iframe[data-live=corridor]')];
+  if (!fs.length) return false;
+  window.__corridorLive = {};
+  for (const f of fs) {
+    const id = f.dataset.id || 'frame';
+    window.__corridorLive[id] = 0;
+    new MutationObserver(() => {
+      if (f.style.visibility === 'visible')
+        window.__corridorLive[id] = Math.max(window.__corridorLive[id], parseFloat(f.style.opacity || '0'));
+    }).observe(f, {attributes: true, attributeFilter: ['style']});
+  }
   return true;
 })()"""
 
 
 async def corridor_live_seen(cdp, p, present, steps):
-    """The walk passed the live frame: on a desktop its page came fully up over the picture; a
-    phone keeps the picture (no corridor page at all). A build whose sites are not frameable
-    yet has no corridor page either, and says so."""
+    """The walk passed the live frames: on a desktop each one's page came fully up over its
+    picture (the step reads {frame id: top opacity}); a phone keeps the pictures (no corridor
+    page at all). A build served where the sites will not be framed has no corridor page
+    either, and says so."""
     if not present:
         steps["corridor_live"] = "phone: picture" if p["touch"] else "no frameable site"
         return
     r = await cdp("Runtime.evaluate", expression="window.__corridorLive", returnByValue=True)
-    top = r["result"].get("value") or 0
-    steps["corridor_live"] = top
+    tops = r["result"].get("value") or {}
+    steps["corridor_live"] = tops
     if p["touch"]:
         raise Hang("corridor live: a phone has a corridor page; it should keep the picture")
-    if top < 1:
-        raise Hang(f"corridor live: the page never came fully up on its frame (top opacity {top})")
+    short = {k: v for k, v in tops.items() if v < 1}
+    if short or not tops:
+        raise Hang(f"corridor live: a page never came fully up on its frame (top opacity {short or tops})")
 
 
 async def pointer_follows(cdp, p, scene, steps):

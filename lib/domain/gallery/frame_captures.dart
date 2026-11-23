@@ -7,7 +7,7 @@
 /// Refreshing a picture is running it again; nothing here changes.
 abstract final class FrameCaptures {
   /// Project ids with a capture.
-  static const Set<String> projects = <String>{'shunya-systems'};
+  static const Set<String> projects = <String>{'shunya-systems', 'tantr'};
 
   /// The picture's asset for project [id], or null when it has none.
   static String? assetFor(String id) =>
